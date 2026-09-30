@@ -30,3 +30,12 @@ gendered Arabic CTAs, saved cafés in Account, map reachable, derived counts, em
 ## Profile wording
 "مهاراتي واحتياجاتي": sections are **أقدر أساعد في** and **أحتاج مساعدة في** (help topics, not networking goals).
 Account stats: مرة ساعدت / مرة استفدت / أماكن زرتها.
+
+## v3 — noise reduction (no visual redesign)
+- Demo reset button no longer floats over content (it covered card buttons); it only shows with `?demo` in the URL.
+- Removed the verified shield from every list card (everyone is verified, so it carried no information); kept on the profile.
+- Removed the green avatar dot on cards; the "الآن" badge already says it.
+- "حولك": removed the extra count/title row under the filters (mode switch + filter counts already say it).
+- Home and intent screens: removed sub-lines that repeated the heading.
+- Café list: "مفتوح الآن" shown only when a café is closing or closed.
+- Fixed stacked avatars overlapping the count line on café cards.

@@ -5376,3 +5376,6 @@ button:focus-visible {
 .settings-link-copy b { font-weight: 600; }
 .settings-link-copy small { font-size: 11.5px; color: var(--muted); font-weight: 400; }
 .drawer-detail-section .service-tags-row { margin-top: 8px; }
+
+/* Café card: keep the stacked avatars from overlapping the count line. */
+.cafe-match .mini-avatars { flex: none; margin-inline: 8px; }

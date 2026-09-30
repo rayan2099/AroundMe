@@ -35,6 +35,8 @@ const COPY = {
   consent: 'ما أحد يقدر يراسلك إلا إذا وافقتوا الاثنين.',
 }
 const DURATIONS = [10, 15, 30, 60]
+// The restart shortcut is for demos only (open with ?demo); it must not sit on top of real content.
+const DEMO = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('demo')
 
 // ---------- Location ----------
 export type Loc = { mode: 'gps' | 'manual'; city: string; area: string }
@@ -300,9 +302,9 @@ function HelperCard({ p, h, showCafe = true }: { p: Person; h: CardHandlers; sho
     <div className="service-card" role="button" tabIndex={0} onClick={() => h.onOpenPerson(p)} onKeyDown={onEnter(() => h.onOpenPerson(p))}>
       <div className="service-card-head">
         <div className="service-card-user">
-          <Avatar src={p.image} size={46} name={p.name} online={p.presence === 'now'} />
+          <Avatar src={p.image} size={46} name={p.name} online={false} />
           <div>
-            <h3>{p.name}<Verified /></h3>
+            <h3>{p.name}</h3>
             <p>{p.job}{showCafe ? ` · ${p.cafe}${cafe ? ` · ${cafe.distance}` : ''}` : ''}</p>
           </div>
         </div>
@@ -596,7 +598,6 @@ function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, checkedI
       <section className="journey-gateway">
         <div className="gateway-intro">
           <h1>وش تبي اليوم؟</h1>
-          <p>اختر وحدة، ونوريك الأقرب لك في الكافيهات حولك.</p>
         </div>
         <div className="journey-cards">
           <button className="journey-card seek" onClick={() => openIntent('seek')}>
@@ -642,7 +643,6 @@ function IntentScreen({ mode, back, mySkills, privateMode, checkedIn, onContinue
       <TopBar title={seek ? COPY.seek : COPY.help} back={back} />
       <main>
         <span className="intent-hero-icon">{seek ? <Search /> : <HeartHandshake />}</span>
-        <small>{seek ? 'خطوة واحدة ونجيب لك الأقرب والأنسب' : 'خل خبرتك توصل للي يحتاجها حولك'}</small>
         <h1>{seek ? 'وش تحتاج تنجز اليوم؟' : 'وش تقدر تساعد فيه؟'}</h1>
         <p>{seek ? 'اكتب احتياجك بشكل بسيط أو اختر من الاقتراحات.' : 'اختر مهارة أو أكثر، وأضف تفاصيل لو تبي.'}</p>
         {seek && (
@@ -729,10 +729,6 @@ function PeopleScreen({ onTab, unread, h, actionMode, onActionModeChange, presen
           </div>
 
           <main className="people-discovery">
-            <div className="group-label">
-              <span>{seek ? 'يقدرون يساعدونك' : 'يحتاجون مساعدتك'} · من الأقرب</span>
-              <small>{count}</small>
-            </div>
             {count === 0 && <EmptyState title="ما لقينا أحد بهالخيارات" hint="جرّب «الكل» أو كلمة بحث ثانية." action="اعرض الكل" onAction={resetAll} />}
             {groups.map(g => (
               <section key={g.cafe.id} className="cafe-group">
@@ -809,7 +805,7 @@ function MapScreen({ onTab, unread, onCafe, actionMode, onActionModeChange, chec
                     <div className="cafe-browse-copy">
                       <div><h3>{cafe.name}</h3><ChevronLeft /></div>
                       <p>{cafe.area} · {cafe.distance} · {cafe.eta}</p>
-                      <span className={`open-now ${cafe.isOpen ? '' : 'closing'}`}>{cafe.open}</span>
+                      {!cafe.isOpen && <span className="open-now closing">{cafe.open}</span>}
                       <div className="cafe-amenities">{cafe.amenities.slice(0, 2).map(t => <span key={t}>{t}</span>)}</div>
                       <div className="cafe-match">
                         {actionMode === 'help' ? <HeartHandshake /> : <div className="mini-avatars">{peopleAt(d, cafe.name).slice(0, 3).map(p => <Avatar key={p.id} src={p.image} size={24} name={p.name} online={false} />)}</div>}
@@ -895,7 +891,7 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
       <main className="cafe-detail-content">
         <div className="cafe-title-row">
           <div>
-            <span className={`open-now ${cafe.isOpen ? '' : 'closing'}`}>{cafe.open}</span>
+            {!cafe.isOpen && <span className="open-now closing">{cafe.open}</span>}
             <h1>{cafeName}</h1>
             <p>{cafe.area} · {cafe.distance} منك · {cafe.eta}</p>
           </div>
@@ -2033,7 +2029,7 @@ export default function App() {
 
       {toast && <div className="toast" role="status">{toast}</div>}
 
-      {screen !== 'onboarding' && (
+      {screen !== 'onboarding' && DEMO && (
         <button className="demo-reset" title="إعادة التجربة من شاشة البداية" aria-label="إعادة تعيين التجربة" onClick={logout}>
           <Compass />
         </button>
