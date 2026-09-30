@@ -39,3 +39,11 @@ Account stats: مرة ساعدت / مرة استفدت / أماكن زرتها.
 - Home and intent screens: removed sub-lines that repeated the heading.
 - Café list: "مفتوح الآن" shown only when a café is closing or closed.
 - Fixed stacked avatars overlapping the count line on café cards.
+
+## v4 — flow consistency (helpers and seekers)
+- Helper and need cards share one layout: name/topic + status badge on top, place + one action at the bottom. Needs no longer repeat "الاسم يظهر بعد الموافقة" on every card; they show the seat and time needed instead.
+- Filter pills (الكل / الآن / اليوم) share the row equally and never cut off at the edge.
+- Time choices are one even row in every sheet, with correct Arabic (10 دقائق / 15 دقيقة).
+- Match screen names the person; pending sheet says "إلى {name}".
+- The first chat message reads as a request ("أحتاج مساعدة في Excel") instead of a bare word.
+- Inbox place line stays on one row; extra space before the main action in sheets.

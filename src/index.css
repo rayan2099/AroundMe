@@ -5379,3 +5379,19 @@ button:focus-visible {
 
 /* Café card: keep the stacked avatars from overlapping the count line. */
 .cafe-match .mini-avatars { flex: none; margin-inline: 8px; }
+
+/* v4 consistency pass */
+/* Filters share the row equally so nothing is cut off at the edge. */
+.presence-filter-bar { overflow-x: visible; }
+.presence-filter-pill { flex: 1; justify-content: center; padding: 8px 6px; min-width: 0; }
+
+/* Time choices: one even row everywhere they appear. */
+.chip-row.duration-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.chip-row.duration-row .chip { justify-content: center; padding-inline: 4px; font-size: 12.5px; white-space: nowrap; }
+
+/* Inbox: place line stays on one row. */
+.conversation small { display: flex; align-items: center; gap: 4px; }
+.conversation small svg { flex: none; }
+
+/* Sheets: breathing room before the main action. */
+.bottom-sheet > .primary-button { margin-top: 18px; }

@@ -35,6 +35,8 @@ const COPY = {
   consent: 'ما أحد يقدر يراسلك إلا إذا وافقتوا الاثنين.',
 }
 const DURATIONS = [10, 15, 30, 60]
+// Arabic number agreement: 3-10 دقائق, otherwise دقيقة.
+const mins = (n: number) => (n >= 3 && n <= 10 ? `${n} دقائق` : `${n} دقيقة`)
 // The restart shortcut is for demos only (open with ?demo); it must not sit on top of real content.
 const DEMO = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('demo')
 
@@ -331,15 +333,15 @@ function NeedCard({ n, h, showCafe = true }: { n: Need; h: CardHandlers; showCaf
           <AnonAvatar />
           <div>
             <h3>{n.topic}</h3>
-            <p>{showCafe ? `${n.cafe}${cafe ? ` · ${cafe.distance}` : ''}` : 'الاسم يظهر بعد الموافقة'}</p>
+            <p>{showCafe ? `${n.cafe}${cafe ? ` · ${cafe.distance}` : ''} · ` : ''}يحتاج {mins(n.minutes)}</p>
           </div>
         </div>
-        <span className="time-badge"><Clock3 />{n.minutes} دقيقة</span>
+        <PresenceBadge presence={n.presence} time={n.time} />
       </div>
       <div className="service-desc-box need">{n.text}</div>
       <div className="service-tags-row">{n.tags.map(t => <span key={t} className="service-tag">{t}</span>)}</div>
       <div className="service-footer">
-        <PresenceBadge presence={n.presence} time={n.time} />
+        <div className="service-meta-info"><MapPin />{n.seat}</div>
         <ConnectButton state={state} label={COPY.offer} onClick={() => h.onOffer(n)} onOpenChat={() => h.onOpenChat(n.personId)} />
       </div>
     </div>
@@ -723,9 +725,9 @@ function PeopleScreen({ onTab, unread, h, actionMode, onActionModeChange, presen
             </div>
           )}
           <div className="presence-filter-bar">
-            <button type="button" className={`presence-filter-pill ${presenceFilter === 'all' ? 'active' : ''}`} onClick={() => onPresenceFilterChange('all')}>الكل ({pool.length})</button>
-            <button type="button" className={`presence-filter-pill ${presenceFilter === 'now' ? 'active active-now' : ''}`} onClick={() => onPresenceFilterChange('now')}><i className="live-dot" />{COPY.nowGroup} ({nowCount})</button>
-            <button type="button" className={`presence-filter-pill ${presenceFilter === 'today' ? 'active active-today' : ''}`} onClick={() => onPresenceFilterChange('today')}><Clock3 className="time-clock-icon" />{COPY.todayGroup} ({todayCount})</button>
+            <button type="button" className={`presence-filter-pill ${presenceFilter === 'all' ? 'active' : ''}`} onClick={() => onPresenceFilterChange('all')}>الكل · {pool.length}</button>
+            <button type="button" className={`presence-filter-pill ${presenceFilter === 'now' ? 'active active-now' : ''}`} onClick={() => onPresenceFilterChange('now')}><i className="live-dot" />الآن · {nowCount}</button>
+            <button type="button" className={`presence-filter-pill ${presenceFilter === 'today' ? 'active active-today' : ''}`} onClick={() => onPresenceFilterChange('today')}><Clock3 className="time-clock-icon" />اليوم · {todayCount}</button>
           </div>
 
           <main className="people-discovery">
@@ -1010,8 +1012,8 @@ function MatchProfileScreen({ back, initialSkills, initialGoals, initialNeedDesc
             ))}
           </div>
           <label className="field-label">الوقت اللي تقدر تعطيه عادةً</label>
-          <div className="chip-row">
-            {DURATIONS.map(m => <Chip key={m} active={duration === m} onClick={() => setDuration(m)}>{m} دقيقة</Chip>)}
+          <div className="chip-row duration-row">
+            {DURATIONS.map(m => <Chip key={m} active={duration === m} onClick={() => setDuration(m)}>{mins(m)}</Chip>)}
           </div>
         </section>
 
@@ -1455,7 +1457,7 @@ function RequestSheet({ target, privateMode, close, send }: { target: Target; pr
         </>
       )}
       <label className="field-label">{person ? `كم تحتاج من ${gx(person, 'وقته', 'وقتها')} تقريبًا؟` : 'كم تقدر تعطي من وقتك؟'}</label>
-      <div className="chip-row">{DURATIONS.map(v => <Chip key={v} active={commit === v} onClick={() => setCommit(v)}>{v} دقيقة</Chip>)}</div>
+      <div className="chip-row duration-row">{DURATIONS.map(v => <Chip key={v} active={commit === v} onClick={() => setCommit(v)}>{mins(v)}</Chip>)}</div>
       <PrimaryButton onClick={() => send(commit, text.trim())} icon={<Send />} disabled={target.kind === 'ask' && text.trim().length < 3}>{person ? 'أرسل الطلب' : 'أرسل العرض'}</PrimaryButton>
     </BottomSheet>
   )
@@ -1471,7 +1473,7 @@ function PendingSheet({ kind, name, image, declined, close, cancel, retry }: {
   retry: () => void;
 }) {
   const noun = kind === 'ask' ? 'طلبك' : 'عرضك'
-  const to = kind === 'offer' ? 'لصاحب الاحتياج' : `لـ ${name}`
+  const to = kind === 'offer' ? 'إلى صاحب الاحتياج' : `إلى ${name}`
   if (declined) {
     return (
       <BottomSheet onClose={close}>
@@ -1515,7 +1517,7 @@ function IncomingSheet({ need, accept, decline }: { need: Need; accept: () => vo
       </div>
       <div className="incoming-detail">
         <span><Clock3 /></span>
-        <div><small>الوقت المطلوب</small><b>{need.minutes} دقيقة تقريبًا</b></div>
+        <div><small>الوقت المطلوب</small><b>{mins(need.minutes)} تقريبًا</b></div>
       </div>
       <div className="trust"><ShieldCheck /> رقم موثّق · الاسم يظهر بعد موافقتك</div>
       <PrimaryButton onClick={accept} icon={<Check />}>أوافق أساعده</PrimaryButton>
@@ -1533,7 +1535,7 @@ function MatchSheet({ c, myName, chat, later }: { c: Connection; myName: string;
         <span><Handshake /></span>
         <Avatar src={c.image} size={115} name={c.name} online={false} />
       </div>
-      <h1>اتفقتوا 🤝</h1>
+      <h1>اتفقت مع {first(c.name)} 🤝</h1>
       <p>الحين تقدرون تتواصلون وتنسقون اللقاء في {c.cafe}.</p>
       <PrimaryButton onClick={chat} icon={<MessageCircle />}>{COPY.openChat}</PrimaryButton>
       <button className="text-button" onClick={later}>بعدين</button>
@@ -1711,7 +1713,7 @@ export default function App() {
       } else {
         const p = t.person
         const where = p.presence === 'now' ? `أنا ${p.seat}` : `أوصل ${p.time} وأكون ${p.seat}`
-        connect({ personId: id, name: p.name, image: p.image, cafe: p.cafe, minutes, seat: p.seat, topic: p.tag, mine: text, reply: `هلا! ${where}. تعال متى ما جهزت 👋` })
+        connect({ personId: id, name: p.name, image: p.image, cafe: p.cafe, minutes, seat: p.seat, topic: p.tag, mine: text.split(/\s+/).length <= 2 ? `أحتاج مساعدة في ${text}` : text, reply: `هلا! ${where}. تعال متى ما جهزت 👋` })
       }
     }, 3500)
   }
