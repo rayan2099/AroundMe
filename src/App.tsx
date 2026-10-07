@@ -221,18 +221,32 @@ function PresenceBadge({ presence, time, seat }: { presence: Presence; time: str
   )
 }
 
-// Plain words for when someone is at the café: «يطلع بعد ساعة» while they're here, «يوصل بعد 20 دقيقة» while on the way.
-// Green dot = here now; footsteps = on the way; the here badge turns red-clay in the last 15 minutes.
-const leaveLine = (g: Gender, at: number, t: number) => (at - t <= 0 ? (g === 'f' ? 'طلعت' : 'طلع') : `${g === 'f' ? 'تطلع' : 'يطلع'} بعد ${timeLeft(at, t)}`)
-const arriveLine = (g: Gender, at: number, t: number) => (at - t <= 0 ? (g === 'f' ? 'وصلت' : 'وصل') : `${g === 'f' ? 'توصل' : 'يوصل'} بعد ${timeLeft(at, t)}`)
+// Plain words for when someone is at the café: «يطلع من الكافيه بعد ساعة» while they're here, «يوصل الكافيه بعد 20 دقيقة» on the way.
+// Green dot = here now; footsteps = on the way; the here timer turns red-clay in the last 15 minutes.
+const leaveLine = (g: Gender, at: number, t: number) => (at - t <= 0 ? (g === 'f' ? 'طلعت من الكافيه' : 'طلع من الكافيه') : `${g === 'f' ? 'تطلع' : 'يطلع'} من الكافيه بعد ${timeLeft(at, t)}`)
+const arriveLine = (g: Gender, at: number, t: number) => (at - t <= 0 ? (g === 'f' ? 'وصلت الكافيه' : 'وصل الكافيه') : `${g === 'f' ? 'توصل' : 'يوصل'} الكافيه بعد ${timeLeft(at, t)}`)
 function CardPresence({ presence, time, seat, g, leaveAt, arriveAt }: { presence: Presence; time: string; seat?: string; g: Gender; leaveAt?: number; arriveAt?: number }) {
   const t = useNow()
+  const f = g === 'f'
+  // A small two-line timer: what happens and where on top, how long underneath.
   if (presence === 'now' && leaveAt) {
+    const done = leaveAt - t <= 0
     const soon = leaveAt - t <= 15 * 60000
-    return <span className={`presence-badge now ${soon ? 'is-soon' : ''}`}><i className="live-dot" />{leaveLine(g, leaveAt, t)}</span>
+    return (
+      <span className={`presence-timer now ${soon ? 'is-soon' : ''}`}>
+        <small><i className="live-dot" />{done ? (f ? 'طلعت من الكافيه' : 'طلع من الكافيه') : f ? 'تطلع من الكافيه بعد' : 'يطلع من الكافيه بعد'}</small>
+        {!done && <b>{timeLeft(leaveAt, t)}</b>}
+      </span>
+    )
   }
   if (presence === 'today' && arriveAt) {
-    return <span className="presence-badge today" title={`الساعة ${time}`}><Footprints className="time-clock-icon" />{arriveLine(g, arriveAt, t)}</span>
+    const done = arriveAt - t <= 0
+    return (
+      <span className="presence-timer today" title={`الساعة ${time}`}>
+        <small><Footprints />{done ? (f ? 'وصلت الكافيه' : 'وصل الكافيه') : f ? 'توصل الكافيه بعد' : 'يوصل الكافيه بعد'}</small>
+        {!done && <b>{timeLeft(arriveAt, t)}</b>}
+      </span>
+    )
   }
   return <PresenceBadge presence={presence} time={time} seat={seat} />
 }
@@ -968,7 +982,7 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
           <>
             <div>
               <small><i className="live-dot" /> أنت متواجد هنا · {checkedIn!.mode === 'seek' ? COPY.seek : COPY.help}</small>
-              <b>{checkedIn!.leaveAt ? <StayLeft leaveAt={checkedIn!.leaveAt} prefix="تطلع بعد " /> : `تظهر كقادم ${checkedIn!.when} · بتجلس ${span(checkedIn!.stay)}`}</b>
+              <b>{checkedIn!.leaveAt ? <StayLeft leaveAt={checkedIn!.leaveAt} prefix="تطلع من الكافيه بعد " /> : `تظهر كقادم ${checkedIn!.when} · بتجلس ${span(checkedIn!.stay)}`}</b>
             </div>
             <button type="button" className="ghost-button" onClick={onEndCheckin}>إنهاء التواجد</button>
           </>
