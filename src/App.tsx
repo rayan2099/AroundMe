@@ -248,8 +248,9 @@ function StayMeta({ g, seat, leaveAt, arriveAt, time }: { g: Gender; seat: strin
   }
   return <div className="service-meta-info"><MapPin />{seat}</div>
 }
-const CardPresence = ({ presence, time, leaveAt, arriveAt }: { presence: Presence; time: string; leaveAt?: number; arriveAt?: number }) =>
-  leaveAt || arriveAt ? null : <PresenceBadge presence={presence} time={time} />
+// Top corner of the card: where they sit in the café while they're there; nothing while they're on the way.
+const CardPresence = ({ presence, time, seat, leaveAt, arriveAt }: { presence: Presence; time: string; seat?: string; leaveAt?: number; arriveAt?: number }) =>
+  leaveAt ? (seat ? <span className="seat-chip"><MapPin />{seat}</span> : null) : arriveAt ? null : <PresenceBadge presence={presence} time={time} />
 
 function BrandLogo({ compact = false }: { compact?: boolean }) {
   return (
@@ -371,7 +372,7 @@ function HelperCard({ p, h, showCafe = true }: { p: Person; h: CardHandlers; sho
             <p>{p.job}{showCafe ? ` · ${p.cafe}${cafe ? ` · ${cafe.distance}` : ''}` : ''}</p>
           </div>
         </div>
-        <CardPresence presence={p.presence} time={p.time} leaveAt={p.leaveAt} arriveAt={p.arriveAt} />
+        <CardPresence presence={p.presence} time={p.time} seat={p.seat} leaveAt={p.leaveAt} arriveAt={p.arriveAt} />
       </div>
       <div className="service-desc-box">{p.serviceOffer}</div>
       <div className="service-tags-row">{p.skills.map(s => <span key={s} className="service-tag">{s}</span>)}</div>
@@ -397,7 +398,7 @@ function NeedCard({ n, h, showCafe = true }: { n: Need; h: CardHandlers; showCaf
             <p>{showCafe ? `${n.cafe}${cafe ? ` · ${cafe.distance}` : ''} · ` : ''}يحتاج {mins(n.minutes)}</p>
           </div>
         </div>
-        <CardPresence presence={n.presence} time={n.time} leaveAt={n.leaveAt} arriveAt={n.arriveAt} />
+        <CardPresence presence={n.presence} time={n.time} seat={n.seat} leaveAt={n.leaveAt} arriveAt={n.arriveAt} />
       </div>
       <div className="service-desc-box need">{n.text}</div>
       <div className="service-tags-row">{n.tags.map(t => <span key={t} className="service-tag">{t}</span>)}</div>
