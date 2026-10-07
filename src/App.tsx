@@ -225,31 +225,31 @@ function PresenceBadge({ presence, time, seat }: { presence: Presence; time: str
 // Green dot = here now; footsteps = on the way; the here timer turns red-clay in the last 15 minutes.
 const leaveLine = (g: Gender, at: number, t: number) => (at - t <= 0 ? (g === 'f' ? 'طلعت من الكافيه' : 'طلع من الكافيه') : `${g === 'f' ? 'تطلع' : 'يطلع'} من الكافيه بعد ${timeLeft(at, t)}`)
 const arriveLine = (g: Gender, at: number, t: number) => (at - t <= 0 ? (g === 'f' ? 'وصلت الكافيه' : 'وصل الكافيه') : `${g === 'f' ? 'توصل' : 'يوصل'} الكافيه بعد ${timeLeft(at, t)}`)
-function CardPresence({ presence, time, seat, g, leaveAt, arriveAt }: { presence: Presence; time: string; seat?: string; g: Gender; leaveAt?: number; arriveAt?: number }) {
+// Presence without extra words: a ring around the photo empties as their time at the café runs out
+// (dashed when they're still on the way), and one short line in the card footer says how long.
+const STAY_SHOWN = 40 * 60000 // pretend everyone arrived 40 minutes ago, so the ring has a starting point
+function StayRing({ leaveAt, arriveAt, size, children }: { leaveAt?: number; arriveAt?: number; size: number; children: React.ReactNode }) {
   const t = useNow()
-  const f = g === 'f'
-  // A small two-line timer: what happens and where on top, how long underneath.
-  if (presence === 'now' && leaveAt) {
-    const done = leaveAt - t <= 0
-    const soon = leaveAt - t <= 15 * 60000
-    return (
-      <span className={`presence-timer now ${soon ? 'is-soon' : ''}`}>
-        <small><i className="live-dot" />{done ? (f ? 'طلعت من الكافيه' : 'طلع من الكافيه') : f ? 'تطلع من الكافيه بعد' : 'يطلع من الكافيه بعد'}</small>
-        {!done && <b>{timeLeft(leaveAt, t)}</b>}
-      </span>
-    )
-  }
-  if (presence === 'today' && arriveAt) {
-    const done = arriveAt - t <= 0
-    return (
-      <span className="presence-timer today" title={`الساعة ${time}`}>
-        <small><Footprints />{done ? (f ? 'وصلت الكافيه' : 'وصل الكافيه') : f ? 'توصل الكافيه بعد' : 'يوصل الكافيه بعد'}</small>
-        {!done && <b>{timeLeft(arriveAt, t)}</b>}
-      </span>
-    )
-  }
-  return <PresenceBadge presence={presence} time={time} seat={seat} />
+  if (!leaveAt && !arriveAt) return <>{children}</>
+  const left = leaveAt ? Math.max(0, leaveAt - t) : 0
+  const frac = leaveAt ? left / (left + STAY_SHOWN) : 1
+  const soon = !!leaveAt && left <= 15 * 60000
+  const cls = arriveAt ? 'is-coming' : soon ? 'is-soon' : ''
+  return <span className={`stay-ring ${cls}`} style={{ '--p': frac, width: size + 8, height: size + 8 } as React.CSSProperties}>{children}</span>
 }
+function StayMeta({ g, seat, leaveAt, arriveAt, time }: { g: Gender; seat: string; leaveAt?: number; arriveAt?: number; time: string }) {
+  const t = useNow()
+  if (leaveAt) {
+    const soon = leaveAt - t <= 15 * 60000
+    return <div className={`service-meta-info stay-meta ${soon ? 'is-soon' : ''}`} title={`${g === 'f' ? 'تطلع' : 'يطلع'} من الكافيه الساعة ${clock(leaveAt)}`}><Coffee />{leaveAt - t <= 0 ? (g === 'f' ? 'طلعت' : 'طلع') : `باقي ${timeLeft(leaveAt, t)}`}</div>
+  }
+  if (arriveAt) {
+    return <div className="service-meta-info stay-meta is-coming" title={`الساعة ${time}`}><Footprints />{arriveAt - t <= 0 ? (g === 'f' ? 'وصلت' : 'وصل') : `${g === 'f' ? 'توصل' : 'يوصل'} بعد ${timeLeft(arriveAt, t)}`}</div>
+  }
+  return <div className="service-meta-info"><MapPin />{seat}</div>
+}
+const CardPresence = ({ presence, time, leaveAt, arriveAt }: { presence: Presence; time: string; leaveAt?: number; arriveAt?: number }) =>
+  leaveAt || arriveAt ? null : <PresenceBadge presence={presence} time={time} />
 
 function BrandLogo({ compact = false }: { compact?: boolean }) {
   return (
@@ -365,18 +365,18 @@ function HelperCard({ p, h, showCafe = true }: { p: Person; h: CardHandlers; sho
     <div className="service-card" role="button" tabIndex={0} onClick={() => h.onOpenPerson(p)} onKeyDown={onEnter(() => h.onOpenPerson(p))}>
       <div className="service-card-head">
         <div className="service-card-user">
-          <Avatar src={p.image} size={46} name={p.name} online={false} />
+          <StayRing leaveAt={p.leaveAt} arriveAt={p.arriveAt} size={46}><Avatar src={p.image} size={46} name={p.name} online={false} /></StayRing>
           <div>
             <h3>{p.name}</h3>
             <p>{p.job}{showCafe ? ` · ${p.cafe}${cafe ? ` · ${cafe.distance}` : ''}` : ''}</p>
           </div>
         </div>
-        <CardPresence presence={p.presence} time={p.time} g={p.g} leaveAt={p.leaveAt} arriveAt={p.arriveAt} />
+        <CardPresence presence={p.presence} time={p.time} leaveAt={p.leaveAt} arriveAt={p.arriveAt} />
       </div>
       <div className="service-desc-box">{p.serviceOffer}</div>
       <div className="service-tags-row">{p.skills.map(s => <span key={s} className="service-tag">{s}</span>)}</div>
       <div className="service-footer">
-        <div className="service-meta-info"><MapPin />{p.seat}</div>
+        <StayMeta g={p.g} seat={p.seat} leaveAt={p.leaveAt} arriveAt={p.arriveAt} time={p.time} />
         <ConnectButton state={h.stateOf(p.id)} label={askLabel(p)} onClick={() => h.onAsk(p)} onOpenChat={() => h.onOpenChat(p.id)} />
       </div>
     </div>
@@ -391,18 +391,18 @@ function NeedCard({ n, h, showCafe = true }: { n: Need; h: CardHandlers; showCaf
     <div className="service-card" role="button" tabIndex={0} onClick={open} onKeyDown={onEnter(open)}>
       <div className="service-card-head">
         <div className="service-card-user">
-          <AnonAvatar />
+          <StayRing leaveAt={n.leaveAt} arriveAt={n.arriveAt} size={46}><AnonAvatar /></StayRing>
           <div>
             <h3>{n.topic}</h3>
             <p>{showCafe ? `${n.cafe}${cafe ? ` · ${cafe.distance}` : ''} · ` : ''}يحتاج {mins(n.minutes)}</p>
           </div>
         </div>
-        <CardPresence presence={n.presence} time={n.time} g={n.g} leaveAt={n.leaveAt} arriveAt={n.arriveAt} />
+        <CardPresence presence={n.presence} time={n.time} leaveAt={n.leaveAt} arriveAt={n.arriveAt} />
       </div>
       <div className="service-desc-box need">{n.text}</div>
       <div className="service-tags-row">{n.tags.map(t => <span key={t} className="service-tag">{t}</span>)}</div>
       <div className="service-footer">
-        <div className="service-meta-info"><MapPin />{n.seat}</div>
+        <StayMeta g={n.g} seat={n.seat} leaveAt={n.leaveAt} arriveAt={n.arriveAt} time={n.time} />
         <ConnectButton state={state} label={COPY.offer} onClick={() => h.onOffer(n)} onOpenChat={() => h.onOpenChat(n.personId)} />
       </div>
     </div>
@@ -453,10 +453,10 @@ function ProfilePreviewDrawer({ person, h, onClose, onOpenCafe }: { person: Pers
     <BottomSheet onClose={onClose} tall>
       <div className="profile-preview-card">
         <div className="drawer-person-hero">
-          <Avatar src={person.image} size={84} name={person.name} online={isNow} />
+          <StayRing leaveAt={person.leaveAt} arriveAt={person.arriveAt} size={84}><Avatar src={person.image} size={84} name={person.name} online={isNow && !person.leaveAt} /></StayRing>
           <h2>{person.name}<Verified /></h2>
           <p className="job-label">{person.job}</p>
-          <CardPresence presence={person.presence} time={person.time} seat={person.seat} g={person.g} leaveAt={person.leaveAt} arriveAt={person.arriveAt} />
+          <CardPresence presence={person.presence} time={person.time} leaveAt={person.leaveAt} arriveAt={person.arriveAt} />
         </div>
 
         <button type="button" className="drawer-cafe-row" onClick={() => onOpenCafe(person.cafe)}>

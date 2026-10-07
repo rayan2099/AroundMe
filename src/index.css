@@ -5402,16 +5402,17 @@ button:focus-visible {
 .presence-badge.now.is-soon { background: var(--clay-soft); color: var(--clay); }
 .presence-badge.now.is-soon .live-dot { background: var(--clay); }
 
-/* Presence timer: two lines, "what + where" over "how long" */
-.presence-timer {
-  display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; flex: none;
-  padding: 5px 10px 6px; border-radius: 12px; line-height: 1.25;
-  background: var(--now-soft); color: var(--now);
+/* Presence ring: empties as their time at the café runs out; dashed while they're on the way */
+.stay-ring {
+  position: relative; display: inline-grid; place-items: center; flex: none; border-radius: 50%;
+  background: conic-gradient(var(--now) calc(var(--p) * 360deg), var(--border) 0);
 }
-.presence-timer small { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 500; opacity: 0.9; white-space: nowrap; }
-.presence-timer small svg { width: 12px; height: 12px; }
-.presence-timer b { font-size: 12.5px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.presence-timer.today { background: var(--today-soft); color: var(--today); }
-.presence-timer.is-soon { background: var(--clay-soft); color: var(--clay); }
-.presence-timer.is-soon .live-dot { background: var(--clay); }
-.drawer-person-hero .presence-timer { align-items: center; }
+.stay-ring::before { content: ''; position: absolute; inset: 2.5px; border-radius: 50%; background: var(--surface); }
+.stay-ring > * { position: relative; }
+.stay-ring.is-soon { background: conic-gradient(var(--clay) calc(var(--p) * 360deg), var(--border) 0); }
+.stay-ring.is-coming { background: none; border: 2px dashed var(--today); }
+.stay-ring.is-coming::before { display: none; }
+.drawer-person-hero .stay-ring { margin-inline: auto; }
+.stay-meta { color: var(--now); font-weight: 600; gap: 5px; }
+.stay-meta.is-soon { color: var(--clay); }
+.stay-meta.is-coming { color: var(--today); }
