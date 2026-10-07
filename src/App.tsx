@@ -2,14 +2,15 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import {
   Ban, Bell, Camera, Check, ChevronDown, ChevronLeft, ChevronRight,
   CircleUserRound, Clock3, Code2, Coffee, Compass, Edit3, EyeOff, Flag,
-  Handshake, HeartHandshake, Home, List, LocateFixed, LogOut, Map as MapIcon, MapPin, MessageCircle,
-  MoreHorizontal, Navigation, Phone, Search, Send, Settings, Hourglass, Footprints, ShieldCheck, Sparkles, UserRound,
-  UsersRound, X, Wifi, Volume2, PlugZap, Car, Bookmark, XCircle, Smartphone, Monitor, Trees, DoorOpen
+  Handshake, HeartHandshake, Home, LocateFixed, LogOut, MapPin, MessageCircle,
+  MoreHorizontal, Phone, Search, Send, Settings, Footprints, ShieldCheck, Sparkles, UserRound,
+  UsersRound, X, Wifi, Volume2, PlugZap, Car, Bookmark, XCircle, Smartphone, Monitor, Trees, DoorOpen, Languages
 } from 'lucide-react'
 import { BUSINESS } from './constants'
+import { toEnglish, type Language } from './i18n'
 
 export type Screen = 'onboarding' | 'phone' | 'otp' | 'location' | 'home' | 'intent' | 'map' | 'cafe' | 'people' | 'account' | 'settings' | 'inbox' | 'chat' | 'matchProfile'
-export type Sheet = null | 'checkin' | 'profileSetup' | 'editProfile' | 'skills' | 'request' | 'pending' | 'incoming' | 'match' | 'chatMenu' | 'report' | 'location'
+export type Sheet = null | 'profileSetup' | 'editProfile' | 'skills' | 'request' | 'pending' | 'match' | 'chatMenu' | 'report' | 'location'
 export type Tab = 'home' | 'map' | 'people' | 'inbox' | 'account'
 // The app does one thing: connect people nearby to ask for help or offer it.
 export type ActionMode = 'seek' | 'help'
@@ -19,6 +20,75 @@ export type Gender = 'm' | 'f'
 export type MeetPref = 'all' | 'same'
 export type RequestState = 'pending' | 'declined' | 'connected' | null
 
+const LanguageCtx = createContext<{ language: Language; toggleLanguage: () => void }>({ language: 'ar', toggleLanguage: () => undefined })
+const useLanguage = () => useContext(LanguageCtx)
+
+const originalText = new WeakMap<Text, string>()
+const originalAttributes = new WeakMap<Element, Map<string, string>>()
+const localizedAttributes = ['aria-label', 'title', 'placeholder', 'alt']
+
+function localizeTree(root: ParentNode, language: Language) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let current = walker.nextNode() as Text | null
+  while (current) {
+    const parent = current.parentElement
+    if (parent && !parent.closest('[data-no-translate]') && !['SCRIPT', 'STYLE'].includes(parent.tagName)) {
+      const value = current.nodeValue ?? ''
+      if (language === 'en') {
+        if (/[\u0600-\u06ff]/.test(value)) originalText.set(current, value)
+        const translated = toEnglish(originalText.get(current) ?? value)
+        if (current.nodeValue !== translated) current.nodeValue = translated
+      } else {
+        const source = originalText.get(current)
+        if (source != null && current.nodeValue !== source) current.nodeValue = source
+      }
+    }
+    current = walker.nextNode() as Text | null
+  }
+
+  root.querySelectorAll?.<Element>('*').forEach(element => {
+    if (element.closest('[data-no-translate]')) return
+    let saved = originalAttributes.get(element)
+    for (const attribute of localizedAttributes) {
+      const value = element.getAttribute(attribute)
+      if (value == null) continue
+      if (language === 'en') {
+        if (/[\u0600-\u06ff]/.test(value)) {
+          saved ??= new Map<string, string>()
+          saved.set(attribute, value)
+          originalAttributes.set(element, saved)
+        }
+        element.setAttribute(attribute, toEnglish(saved?.get(attribute) ?? value))
+      } else if (saved?.has(attribute)) {
+        element.setAttribute(attribute, saved.get(attribute)!)
+      }
+    }
+  })
+}
+
+function LanguageBridge({ language }: { language: Language }) {
+  useEffect(() => {
+    document.documentElement.lang = language
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr'
+    document.title = language === 'ar' ? 'AroundMe - شبكة التعاون في المقاهي' : 'AroundMe - Connect at nearby coffee shops'
+    const root = document.querySelector('.app-shell')
+    if (!root) return
+    let applying = false
+    const observer = new MutationObserver(() => apply())
+    const apply = () => {
+      if (applying) return
+      applying = true
+      observer.disconnect()
+      localizeTree(root, language)
+      observer.observe(root, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: localizedAttributes })
+      applying = false
+    }
+    apply()
+    return () => observer.disconnect()
+  }, [language])
+  return null
+}
+
 // One vocabulary for the whole app. Change a word here and it changes everywhere.
 const COPY = {
   seek: 'أحتاج مساعدة',
@@ -26,8 +96,6 @@ const COPY = {
   nearTab: 'حولك',
   nowGroup: 'متواجدون الآن',
   todayGroup: 'قادمون اليوم',
-  checkin: 'سجّل تواجدك',
-  checkinConfirm: 'سجّل تواجدي',
   pending: 'بانتظار الرد',
   declined: 'مو متاح الحين',
   openChat: 'افتح المحادثة',
@@ -41,8 +109,7 @@ const mins = (n: number) => count(n, 'دقيقة', 'دقيقتين', 'دقائق
 const hours = (n: number) => count(n, 'ساعة', 'ساعتين', 'ساعات')
 // 95 → «ساعة و35 دقيقة»، 120 → «ساعتين»
 const span = (m: number) => { const h = Math.floor(m / 60), r = m % 60; return !h ? mins(r) : !r ? hours(h) : `${hours(h)} و${mins(r)}` }
-// How long someone plans to stay once they arrive. The countdown starts when they check in at the café.
-const STAYS = [30, 60, 120, 180]
+// Demo presence times: who leaves or arrives when, counted from page load.
 const T0 = Date.now()
 const leaveIn = (m: number) => T0 + m * 60000
 const clock = (ts: number) => { const d = new Date(ts), h = d.getHours(); return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')} ${h < 12 ? 'ص' : 'م'}` }
@@ -59,19 +126,19 @@ const DEFAULT_LOC: Loc = { mode: 'gps', city: LIVE_CITY, area: 'العليا' }
 const locLabel = (l: Loc) => (l.city === LIVE_CITY ? `${l.area}، ${l.city}` : l.city)
 
 const images = {
-  layla: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=500&q=85',
-  omar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=500&q=85',
-  rana: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=500&q=85',
-  khaled: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=500&q=85',
-  samer: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=500&q=85',
-  sara: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=500&q=85',
-  tariq: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=500&q=85',
-  faisal: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=500&q=85',
-  noura: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=500&q=85',
-  cafe: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=900&q=85',
-  workspace: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=85',
-  corner: 'https://images.unsplash.com/photo-1445116572660-236099ec97a0?auto=format&fit=crop&w=900&q=85',
-  garden: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=900&q=85',
+  layla: '/assets/people/layla.jpg',
+  omar: '/assets/people/omar.jpg',
+  rana: '/assets/people/rana.jpg',
+  khaled: '/assets/people/khaled.jpg',
+  samer: '/assets/people/samer.jpg',
+  sara: '/assets/people/sara.jpg',
+  tariq: '/assets/people/tariq.jpg',
+  faisal: '/assets/people/faisal.jpg',
+  noura: '/assets/people/noura.jpg',
+  cafe: '/assets/places/cafe.jpg',
+  workspace: '/assets/places/workspace.jpg',
+  corner: '/assets/places/corner.jpg',
+  garden: '/assets/places/garden.jpg',
 }
 
 export type Person = {
@@ -166,7 +233,6 @@ const understand = (text: string) => topicWords.filter(([, words]) => words.some
 
 export type Message = { from: 'me' | 'them' | 'system'; text: string; time: string }
 export type Connection = { id: string; personId: string; name: string; image: string; cafe: string; topic: string; minutes: number; messages: Message[]; status: 'active' | 'past'; unread: number; askMet: boolean; endedMet?: boolean }
-export type CheckIn = { cafe: string; mode: ActionMode; when: string; seat: string; text: string; stay: number; leaveAt?: number }
 export type Target = { kind: 'ask'; person: Person; need: string } | { kind: 'offer'; need: Need }
 const targetId = (t: Target) => (t.kind === 'offer' ? t.need.personId : t.person.id)
 
@@ -178,9 +244,12 @@ const onEnter = (fn: () => void) => (e: React.KeyboardEvent) => { if (e.key === 
 
 function Avatar({ src, size = 54, online = true, alt = '', name = '' }: { src: string; size?: number; online?: boolean; alt?: string; name?: string }) {
   const [broken, setBroken] = useState(false)
+  const { language } = useLanguage()
+  // A single letter can't be translated, so take the initial from the name in the current language.
+  const initial = (language === 'en' ? toEnglish((name || alt).trim()) : (name || alt).trim()).charAt(0) || '؟'
   return (
     <span className="avatar" style={{ width: size, height: size }}>
-      {src && !broken ? <img src={src} alt={alt} onError={() => setBroken(true)} /> : <b className="avatar-initial" style={{ fontSize: size * 0.4 }}>{(name || alt).trim().charAt(0) || '؟'}</b>}
+      {src && !broken ? <img src={src} alt={alt} onError={() => setBroken(true)} /> : <b className="avatar-initial" data-no-translate style={{ fontSize: size * 0.4 }}>{initial}</b>}
       {online && <i />}
     </span>
   )
@@ -205,11 +274,6 @@ function StayLine({ person: p }: { person: Person }) {
   if (p.presence === 'now' && p.leaveAt) return <>{`موجود${p.g === 'f' ? 'ة' : ''} الحين، و${leaveLine(p.g, p.leaveAt, t)} (الساعة ${clock(p.leaveAt)})`}</>
   if (p.presence === 'today' && p.arriveAt) return <>{`${arriveLine(p.g, p.arriveAt, t)} (الساعة ${p.time})`}</>
   return <>{p.visitDetails}</>
-}
-function StayLeft({ leaveAt, prefix = 'باقي ' }: { leaveAt: number; prefix?: string }) {
-  const t = useNow()
-  const left = timeLeft(leaveAt, t)
-  return <>{leaveAt - t <= 0 ? left : `${prefix}${left}`}</>
 }
 
 function PresenceBadge({ presence, time, seat }: { presence: Presence; time: string; seat?: string }) {
@@ -266,9 +330,13 @@ function BrandLogo({ compact = false }: { compact?: boolean }) {
 }
 
 function StatusBar() {
+  const { language, toggleLanguage } = useLanguage()
   return (
     <div className="statusbar" dir="ltr">
       <b>9:41</b>
+      <button type="button" className="language-toggle" onClick={toggleLanguage} data-no-translate aria-label={language === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}>
+        <Languages /> <span>{language === 'ar' ? 'EN' : 'العربية'}</span>
+      </button>
       <div className="status-icons"><span className="signal">▮▮▮▮</span><span>⌁</span><span className="battery" /></div>
     </div>
   )
@@ -338,9 +406,9 @@ function LocationChip({ onClick }: { onClick: () => void }) {
 // The only switch in the app, with the same words on every screen.
 function IntentSwitch({ mode, onChange }: { mode: ActionMode; onChange: (m: ActionMode) => void }) {
   return (
-    <div className="service-segmented-tabs" role="tablist" aria-label="وش تبي؟">
-      <button type="button" role="tab" aria-selected={mode === 'seek'} className={`service-tab-btn ${mode === 'seek' ? 'active' : ''}`} onClick={() => onChange('seek')}><Search />{COPY.seek}</button>
-      <button type="button" role="tab" aria-selected={mode === 'help'} className={`service-tab-btn ${mode === 'help' ? 'active' : ''}`} onClick={() => onChange('help')}><HeartHandshake />{COPY.help}</button>
+    <div className="service-segmented-tabs" role="tablist" aria-label="نوع الأشخاص حولك">
+      <button type="button" role="tab" aria-selected={mode === 'help'} className={`service-tab-btn ${mode === 'help' ? 'active' : ''}`} onClick={() => onChange('help')}><HeartHandshake />يحتاجون مساعدة</button>
+      <button type="button" role="tab" aria-selected={mode === 'seek'} className={`service-tab-btn ${mode === 'seek' ? 'active' : ''}`} onClick={() => onChange('seek')}><UsersRound />يقدرون يساعدون</button>
     </div>
   )
 }
@@ -496,28 +564,29 @@ function Onboarding({ next }: { next: () => void }) {
   return (
     <div className="screen onboarding">
       <StatusBar />
-      <div className="hero-art">
-        <div className="orbit-chip one">يحتاج Excel</div>
-        <div className="orbit-chip two">يساعد في التصميم</div>
-        <div className="orbit-chip three">يراجع الكود</div>
-        <div className="connection-line" />
-        <Avatar src={images.layla} size={92} name="ليلى" />
-        <Avatar src={images.omar} size={92} name="عمر" />
-        <Sparkles className="spark" />
+      <div className="hero-art radar-hero" dir="ltr">
+        <img className="radar-art" src="/assets/radar-illustration.svg" alt="رادار يكتشف مهارات واحتياجات الأشخاص القريبين" />
+        <span className="radar-tag tag-designer">مصمّمة هوية</span>
+        <span className="radar-tag tag-developer">مبرمج</span>
+        <span className="radar-tag tag-translator">أبحث عن مترجم</span>
+        <span className="radar-tag tag-photographer">مصوّر</span>
+        <span className="radar-ring-label ring-table">طاولتك</span>
+        <span className="radar-ring-label ring-cafe">نفس الكوفي</span>
       </div>
       <div className="onboard-copy">
         <div className="brand"><BrandLogo /></div>
-        <h1>اللي حولك يعرفون<br />أشياء كثيرة.</h1>
-        <p>اطلب مساعدة من شخص قريب منك، أو ساعد غيرك بخبرتك، في نفس الكافيه.</p>
+        <h1><span>لا تبحث بالنت،</span><strong>ابحث حولك.</strong></h1>
+        <p>في نفس الكوفي، وعلى طاولة قريبة… تلقى اللي تحتاجه.</p>
         <PrimaryButton onClick={next}>يلا نبدأ</PrimaryButton>
-        <small><ShieldCheck /> {COPY.consent}</small>
       </div>
     </div>
   )
 }
 
 function PhoneScreen({ next, back }: { next: () => void; back: () => void }) {
+  const { language } = useLanguage()
   const [phone, setPhone] = useState('')
+  const requiredLength = language === 'en' ? 10 : 9
   return (
     <div className="screen form-screen">
       <StatusBar />
@@ -528,12 +597,12 @@ function PhoneScreen({ next, back }: { next: () => void; back: () => void }) {
         <p>عشان يكون كل اللي حولك أشخاص حقيقيين. رقمك ما يظهر لأحد.</p>
         <label htmlFor="phone">رقم الجوال</label>
         <div className="phone-input" dir="ltr">
-          <b>+966</b>
-          <input id="phone" autoFocus inputMode="numeric" maxLength={9} placeholder="5X XXX XXXX" value={phone}
-            onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} onKeyDown={e => e.key === 'Enter' && phone.length === 9 && next()} />
+          <b>{language === 'en' ? '+1' : '+966'}</b>
+          <input id="phone" autoFocus inputMode="numeric" maxLength={requiredLength} placeholder={language === 'en' ? 'XXX XXX XXXX' : '5X XXX XXXX'} value={phone}
+            onChange={e => setPhone(e.target.value.replace(/\D/g, ''))} onKeyDown={e => e.key === 'Enter' && phone.length === requiredLength && next()} />
         </div>
       </div>
-      <div className="sticky-action"><PrimaryButton onClick={next} disabled={phone.length < 9}>أرسل الرمز</PrimaryButton></div>
+      <div className="sticky-action"><PrimaryButton onClick={next} disabled={phone.length < requiredLength}>أرسل الرمز</PrimaryButton></div>
     </div>
   )
 }
@@ -624,9 +693,9 @@ function MetPrompt({ name, onAnswer }: { name: string; onAnswer: (met: boolean) 
   )
 }
 
-function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, checkedIn, onPresence, onLocation }: {
+function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, onLocation }: {
   onTab: (t: Tab) => void; unread: number; openIntent: (mode: ActionMode) => void; active?: Connection;
-  onChat: () => void; onMet: (met: boolean) => void; checkedIn: CheckIn | null; onPresence: () => void; onLocation: () => void;
+  onChat: () => void; onMet: (met: boolean) => void; onLocation: () => void;
 }) {
   const d = useData()
   const last = active && [...active.messages].reverse().find(m => m.from !== 'system')
@@ -639,12 +708,6 @@ function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, checkedI
           <BrandLogo compact />
           <LocationChip onClick={onLocation} />
         </div>
-        {d.live && (
-          <button type="button" className={`presence-pill ${checkedIn ? 'is-in' : ''}`} onClick={onPresence}>
-            {checkedIn ? <i className="live-dot" /> : <MapPin />}
-            <span>{checkedIn ? `أنت في ${checkedIn.cafe}` : COPY.checkin}</span>
-          </button>
-        )}
       </header>
 
       {active && (
@@ -691,8 +754,8 @@ function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, checkedI
   )
 }
 
-function IntentScreen({ mode, back, mySkills, privateMode, checkedIn, onContinue }: {
-  mode: ActionMode; back: () => void; mySkills: string[]; privateMode: boolean; checkedIn: CheckIn | null; onContinue: (text: string, skills: string[]) => void;
+function IntentScreen({ mode, back, mySkills, privateMode, onContinue }: {
+  mode: ActionMode; back: () => void; mySkills: string[]; privateMode: boolean; onContinue: (text: string, skills: string[]) => void;
 }) {
   const [text, setText] = useState('')
   const seek = mode === 'seek'
@@ -731,7 +794,7 @@ function IntentScreen({ mode, back, mySkills, privateMode, checkedIn, onContinue
       </main>
       <div className="sticky-action">
         <PrimaryButton onClick={() => onContinue(text.trim(), selected)} disabled={!ready}>
-          {checkedIn ? `اعرض المناسبين في ${checkedIn.cafe}` : seek ? 'اعرض اللي يقدرون يساعدوني' : 'اعرض اللي يحتاجون مساعدتي'}
+          {seek ? 'اعرض اللي يقدرون يساعدوني' : 'اعرض اللي يحتاجون مساعدتي'}
         </PrimaryButton>
       </div>
     </div>
@@ -739,9 +802,9 @@ function IntentScreen({ mode, back, mySkills, privateMode, checkedIn, onContinue
 }
 
 // "حولك": everyone nearby, grouped by café and ordered by distance from you.
-function PeopleScreen({ onTab, unread, h, actionMode, onActionModeChange, presenceFilter, onPresenceFilterChange, onCafe, onLocation, checkedInCafe }: {
+function PeopleScreen({ onTab, unread, h, actionMode, onActionModeChange, presenceFilter, onPresenceFilterChange, onCafe, onLocation }: {
   onTab: (t: Tab) => void; unread: number; h: CardHandlers; actionMode: ActionMode; onActionModeChange: (m: ActionMode) => void;
-  presenceFilter: PresenceFilter; onPresenceFilterChange: (f: PresenceFilter) => void; onCafe: (c: string) => void; onLocation: () => void; checkedInCafe?: string;
+  presenceFilter: PresenceFilter; onPresenceFilterChange: (f: PresenceFilter) => void; onCafe: (c: string) => void; onLocation: () => void;
 }) {
   const d = useData()
   const [searching, setSearching] = useState(false)
@@ -755,7 +818,7 @@ function PeopleScreen({ onTab, unread, h, actionMode, onActionModeChange, presen
 
   const fp = d.people.filter(p => byPresence(p.presence) && match(`${p.name} ${p.job} ${p.cafe} ${p.serviceOffer} ${p.skills.join(' ')}`))
   const fn = d.needs.filter(n => byPresence(n.presence) && match(`${n.topic} ${n.text} ${n.cafe} ${n.tags.join(' ')}`))
-  const ordered = [...d.cafes].sort((a, b) => (a.name === checkedInCafe ? -1 : b.name === checkedInCafe ? 1 : a.km - b.km))
+  const ordered = [...d.cafes].sort((a, b) => a.km - b.km)
   const groups = ordered
     .map(c => ({ cafe: c, people: fp.filter(p => p.cafe === c.name), needs: fn.filter(n => n.cafe === c.name) }))
     .filter(g => (seek ? g.people.length : g.needs.length) > 0)
@@ -796,14 +859,13 @@ function PeopleScreen({ onTab, unread, h, actionMode, onActionModeChange, presen
             {count === 0 && <EmptyState title="ما لقينا أحد بهالخيارات" hint="جرّب «الكل» أو كلمة بحث ثانية." action="اعرض الكل" onAction={resetAll} />}
             {groups.map(g => (
               <section key={g.cafe.id} className="cafe-group">
-                <button type="button" className="cafe-group-head" onClick={() => onCafe(g.cafe.name)}>
-                  <Coffee />
-                  <b>{g.cafe.name}</b>
-                  <small>{g.cafe.area} · {g.cafe.distance}</small>
-                  {g.cafe.name === checkedInCafe && <em><i className="live-dot" /> أنت هنا</em>}
+                <button type="button" className="cafe-group-head" onClick={() => onCafe(g.cafe.name)} aria-label={`${g.cafe.name}، ${g.cafe.area}، ${g.cafe.distance}`}>
+                  <img className="cafe-group-thumb" src={g.cafe.image} alt="" onError={hidePhoto} />
+                  <span className="cafe-group-copy"><b>{g.cafe.name}</b><small>{g.cafe.area} · {g.cafe.distance}</small></span>
+                  <strong>{seek ? `${g.people.length} يقدرون يساعدون` : `${g.needs.length} يحتاجون مساعدة`}</strong>
                   <ChevronLeft />
                 </button>
-                <div className="card-stack">
+                <div className="card-stack cafe-thread">
                   {seek ? g.people.map(p => <HelperCard key={p.id} p={p} h={h} showCafe={false} />) : g.needs.map(n => <NeedCard key={n.id} n={n} h={h} showCafe={false} />)}
                 </div>
               </section>
@@ -817,113 +879,59 @@ function PeopleScreen({ onTab, unread, h, actionMode, onActionModeChange, presen
   )
 }
 
-function MapScreen({ onTab, unread, onCafe, actionMode, onActionModeChange, checkedInCafe, context, onLocation }: {
+function MapScreen({ onTab, unread, onCafe, actionMode, onActionModeChange, context, onLocation }: {
   onTab: (t: Tab) => void; unread: number; onCafe: (name: string) => void; actionMode: ActionMode; onActionModeChange: (m: ActionMode) => void;
-  checkedInCafe?: string; context: string; onLocation: () => void;
+  context: string; onLocation: () => void;
 }) {
   const d = useData()
-  const [selected, setSelected] = useState('featured')
-  const [view, setView] = useState<'list' | 'map'>('list')
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'open' | 'quiet' | 'outdoor'>('all')
-  const selectedCafe = d.cafes.find(c => c.id === selected) || d.cafes[0]
   const visible = d.cafes.filter(c =>
     (!query || `${c.name} ${c.area}`.includes(query)) &&
     (filter === 'all' || (filter === 'open' && c.isOpen) || (filter === 'quiet' && c.amenities.includes('هادئ للعمل')) || (filter === 'outdoor' && c.amenities.includes('جلسات خارجية'))))
   const counts = d.cafes.map(c => cafeCount(d, c.name, actionMode))
   const bestIdx = counts.indexOf(Math.max(0, ...counts))
   const bestId = counts[bestIdx] > 0 ? d.cafes[bestIdx].id : ''
-  const badgeFor = (c: Cafe) => c.name === checkedInCafe ? <span className="here"><i className="live-dot" /> أنت هنا</span> : c.id === bestId ? <span><Sparkles /> الأنسب</span> : null
+  const badgeFor = (c: Cafe) => c.id === bestId ? <span><Sparkles /> الأنسب</span> : null
 
   return (
-    <div className={`screen app-screen map-screen ${view === 'list' ? 'cafe-list-screen' : 'map-view-active'}`}>
+    <div className="screen app-screen map-screen cafe-list-screen">
       <StatusBar />
-      {(view === 'list' || !d.live) && (
+      <header className="cafes-header">
+        <div><h1>الكافيهات</h1><LocationChip onClick={onLocation} /></div>
+      </header>
+      {!d.live ? <main className="cafes-browser"><NotLiveState onChange={onLocation} /></main> : (
         <>
-          <header className="cafes-header">
-            <div>
-              <h1>الكافيهات</h1>
-              <LocationChip onClick={onLocation} />
-            </div>
-            {d.live && <button type="button" className="icon-btn" onClick={() => setView('map')} aria-label="عرض على الخريطة"><MapIcon /></button>}
-          </header>
-          {!d.live ? <main className="cafes-browser"><NotLiveState onChange={onLocation} /></main> : (
-            <>
-              <div className="screen-gutter"><IntentSwitch mode={actionMode} onChange={onActionModeChange} /></div>
-              {context && <p className="context-line clamp-1">{context}</p>}
-              <div className="search-field cafe-search">
-                <Search />
-                <input value={query} onChange={e => setQuery(e.target.value)} placeholder="ابحث عن كافيه أو حي" aria-label="ابحث عن كافيه أو حي" />
-              </div>
-              <div className="cafe-filter-row">
-                <Chip active={filter === 'all'} onClick={() => setFilter('all')}>الأقرب</Chip>
-                <Chip active={filter === 'open'} onClick={() => setFilter('open')}>مفتوح الآن</Chip>
-                <Chip active={filter === 'quiet'} onClick={() => setFilter('quiet')}>هادئ للعمل</Chip>
-                <Chip active={filter === 'outdoor'} onClick={() => setFilter('outdoor')}>جلسات خارجية</Chip>
-              </div>
-              <main className="cafes-browser">
-                {visible.length === 0 && <EmptyState title="ما لقينا كافيه بهالخيارات" hint={query ? 'جرّب اسم الحي بدل اسم الكافيه.' : 'جرّب فلتر ثاني.'} action="اعرض الكل" onAction={() => { setQuery(''); setFilter('all') }} />}
-                {visible.map(cafe => (
-                  <button className="cafe-browse-card" key={cafe.id} onClick={() => { setSelected(cafe.id); onCafe(cafe.name) }}>
-                    <div className="cafe-image"><img src={cafe.image} alt="" onError={hidePhoto} />{badgeFor(cafe)}</div>
-                    <div className="cafe-browse-copy">
-                      <div><h3>{cafe.name}</h3><ChevronLeft /></div>
-                      <p>{cafe.area} · {cafe.distance} · {cafe.eta}</p>
-                      {!cafe.isOpen && <span className="open-now closing">{cafe.open}</span>}
-                      <div className="cafe-amenities">{cafe.amenities.slice(0, 2).map(t => <span key={t}>{t}</span>)}</div>
-                      <div className="cafe-match">
-                        {actionMode === 'help' ? <HeartHandshake /> : <div className="mini-avatars">{peopleAt(d, cafe.name).slice(0, 3).map(p => <Avatar key={p.id} src={p.image} size={24} name={p.name} online={false} />)}</div>}
-                        <b>{countLine(d, cafe.name, actionMode)}</b>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </main>
-            </>
-          )}
-        </>
-      )}
-
-      {view === 'map' && d.live && (
-        <>
-          <div className="map-canvas">
-            <div className="street s1" /><div className="street s2" /><div className="street s3" />
-            <div className="park p1">حديقة الملك سلمان</div>
-            <div className="park p2">حديقة العليا</div>
-            <div className="map-top">
-              <button className="map-search" onClick={() => setView('list')}><Search /><span>ابحث عن كافيه أو حي</span></button>
-              <div className="map-lens">
-                <button className={actionMode === 'seek' ? 'active' : ''} onClick={() => onActionModeChange('seek')}>{COPY.seek}</button>
-                <button className={actionMode === 'help' ? 'active' : ''} onClick={() => onActionModeChange('help')}>{COPY.help}</button>
-              </div>
-            </div>
-            <button className="map-control locate" onClick={() => setSelected(d.cafes[0].id)} aria-label="الأقرب لي"><Navigation /></button>
-            {d.cafes.map(c => (
-              <button key={c.id} onClick={() => setSelected(c.id)} className={`map-pin ${c.id} ${selected === c.id ? 'selected-pin' : ''}`} aria-label={c.name}>
-                <b>{cafeCount(d, c.name, actionMode)}</b>
+          <div className="screen-gutter"><IntentSwitch mode={actionMode} onChange={onActionModeChange} /></div>
+          {context && <p className="context-line clamp-1">{context}</p>}
+          <div className="search-field cafe-search">
+            <Search />
+            <input value={query} onChange={e => setQuery(e.target.value)} placeholder="ابحث عن كافيه أو حي" aria-label="ابحث عن كافيه أو حي" />
+          </div>
+          <div className="cafe-filter-row">
+            <Chip active={filter === 'all'} onClick={() => setFilter('all')}>الأقرب</Chip>
+            <Chip active={filter === 'open'} onClick={() => setFilter('open')}>مفتوح الآن</Chip>
+            <Chip active={filter === 'quiet'} onClick={() => setFilter('quiet')}>هادئ للعمل</Chip>
+            <Chip active={filter === 'outdoor'} onClick={() => setFilter('outdoor')}>جلسات خارجية</Chip>
+          </div>
+          <main className="cafes-browser">
+            {visible.length === 0 && <EmptyState title="ما لقينا كافيه بهالخيارات" hint={query ? 'جرّب اسم الحي بدل اسم الكافيه.' : 'جرّب فلتر ثاني.'} action="اعرض الكل" onAction={() => { setQuery(''); setFilter('all') }} />}
+            {visible.map(cafe => (
+              <button className="cafe-browse-card" key={cafe.id} onClick={() => onCafe(cafe.name)}>
+                <div className="cafe-image"><img src={cafe.image} alt="" onError={hidePhoto} />{badgeFor(cafe)}</div>
+                <div className="cafe-browse-copy">
+                  <div><h3>{cafe.name}</h3><ChevronLeft /></div>
+                  <p>{cafe.area} · {cafe.distance} · {cafe.eta}</p>
+                  {!cafe.isOpen && <span className="open-now closing">{cafe.open}</span>}
+                  <div className="cafe-amenities">{cafe.amenities.slice(0, 2).map(t => <span key={t}>{t}</span>)}</div>
+                  <div className="cafe-match">
+                    {actionMode === 'help' ? <HeartHandshake /> : <div className="mini-avatars">{peopleAt(d, cafe.name).slice(0, 3).map(p => <Avatar key={p.id} src={p.image} size={24} name={p.name} online={false} />)}</div>}
+                    <b>{countLine(d, cafe.name, actionMode)}</b>
+                  </div>
+                </div>
               </button>
             ))}
-            <div className="map-legend">
-              <span><i /> {actionMode === 'seek' ? 'عدد اللي يقدرون يساعدونك' : 'عدد الاحتياجات'}</span>
-              <button onClick={() => setView('list')}><List /> عرض كقائمة</button>
-            </div>
-          </div>
-          <section className="map-place-card refined">
-            <span className="grabber" />
-            <div className="place-summary">
-              <img src={selectedCafe.image} alt="" onError={hidePhoto} />
-              <div>
-                {selectedCafe.name === checkedInCafe ? <span className="fit-label"><i className="live-dot" /> أنت هنا</span> : selectedCafe.id === bestId && <span className="fit-label"><Sparkles /> الأنسب</span>}
-                <h2>{selectedCafe.name}</h2>
-                <p>{selectedCafe.area} · {selectedCafe.distance} · {selectedCafe.eta}</p>
-              </div>
-            </div>
-            <div className="place-reason">
-              <div className="avatar-stack small">{peopleAt(d, selectedCafe.name).slice(0, 3).map(p => <Avatar key={p.id} src={p.image} size={30} name={p.name} online={false} />)}</div>
-              <span><b>{countLine(d, selectedCafe.name, actionMode)}</b><small>{selectedCafe.amenities.join(' · ')}</small></span>
-            </div>
-            <PrimaryButton onClick={() => onCafe(selectedCafe.name)}>افتح {selectedCafe.name}</PrimaryButton>
-          </section>
+          </main>
         </>
       )}
       <TabBar tab="map" onTab={onTab} unread={unread} />
@@ -931,15 +939,14 @@ function MapScreen({ onTab, unread, onCafe, actionMode, onActionModeChange, chec
   )
 }
 
-function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onActionModeChange, checkedIn, onCheckin, onEndCheckin, h }: {
+function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onActionModeChange, h }: {
   cafeName: string; back: () => void; saved: boolean; onToggleSave: () => void; actionMode: ActionMode; onActionModeChange: (m: ActionMode) => void;
-  checkedIn: CheckIn | null; onCheckin: () => void; onEndCheckin: () => void; h: CardHandlers;
+  h: CardHandlers;
 }) {
   const d = useData()
   const cafe = cafeOf(d, cafeName) ?? { ...allCafes[0], km: 0, distance: '', eta: '' }
   const cafePeople = peopleAt(d, cafeName)
   const cafeNeeds = needsAt(d, cafeName)
-  const hereNow = checkedIn?.cafe === cafeName
   const seek = actionMode === 'seek'
   const sortNow = <T extends { presence: Presence }>(xs: T[]) => [...xs].sort((a, b) => (a.presence === b.presence ? 0 : a.presence === 'now' ? -1 : 1))
 
@@ -971,32 +978,13 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
             : <EmptyState title="ما فيه أحد هنا يقدر يساعد حاليًا" hint="جرّب كافيه ثاني قريب." action="ارجع" onAction={back} />)}
           {!seek && (cafeNeeds.length
             ? <div className="card-stack">{sortNow(cafeNeeds).map(n => <NeedCard key={n.id} n={n} h={h} showCafe={false} />)}</div>
-            : <EmptyState title="ما فيه احتياجات هنا حاليًا" hint="سجّل تواجدك ونبلغك أول ما أحد يحتاج خبرتك." />)}
+            : <EmptyState title="ما فيه احتياجات هنا حاليًا" hint="جرّب كافيهًا آخر قريبًا." />)}
         </section>
         <section className="cafe-section">
           <div className="section-head"><h2>عن المكان</h2></div>
           <div className="amenities-grid">{cafe.amenities.map(a => <span key={a}>{amenityIcon[a]} {a}</span>)}</div>
         </section>
       </main>
-      <div className={`cafe-sticky ${hereNow ? 'is-here' : ''}`}>
-        {hereNow ? (
-          <>
-            <div>
-              <small><i className="live-dot" /> أنت متواجد هنا · {checkedIn!.mode === 'seek' ? COPY.seek : COPY.help}</small>
-              <b>{checkedIn!.leaveAt ? <StayLeft leaveAt={checkedIn!.leaveAt} prefix="مغادرة بعد: " /> : `تظهر كقادم ${checkedIn!.when} · بتجلس ${span(checkedIn!.stay)}`}</b>
-            </div>
-            <button type="button" className="ghost-button" onClick={onEndCheckin}>إنهاء التواجد</button>
-          </>
-        ) : (
-          <>
-            <div>
-              <small>{checkedIn ? `أنت مسجّل في ${checkedIn.cafe}` : seek ? 'تبي مساعدة من اللي هنا؟' : 'تقدر تساعد اللي هنا؟'}</small>
-              <b>{checkedIn ? 'انقل تواجدك لهذا الكافيه' : 'سجّل تواجدك عشان يشوفونك'}</b>
-            </div>
-            <PrimaryButton onClick={onCheckin} icon={<MapPin />}>{COPY.checkin}</PrimaryButton>
-          </>
-        )}
-      </div>
     </div>
   )
 }
@@ -1099,7 +1087,7 @@ function MatchProfileScreen({ back, initialSkills, initialGoals, initialNeedDesc
         <section className="match-section">
           <div className="match-section-head"><h3><ShieldCheck /> التواجد والتنبيهات</h3></div>
           <button type="button" className="settings-row" onClick={() => setAvailable(!available)} role="switch" aria-checked={available}>
-            <span><HeartHandshake /><i><b>متاح للمساعدة</b><small>تظهر في قائمة «يقدرون يساعدونك» لما تسجّل تواجدك في كافيه</small></i></span>
+            <span><HeartHandshake /><i><b>متاح للمساعدة</b><small>تظهر في قائمة «يقدرون يساعدون» عند تفعيل هذا الخيار</small></i></span>
             <em className={available ? 'on' : ''} />
           </button>
           <button type="button" className="settings-row" onClick={() => setNotify(!notify)} role="switch" aria-checked={notify}>
@@ -1131,7 +1119,7 @@ function MatchProfileScreen({ back, initialSkills, initialGoals, initialNeedDesc
   )
 }
 
-function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfile, name, job, skills, goals, availableForHelp, checkedIn, savedCafes }: {
+function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfile, name, job, skills, goals, availableForHelp, savedCafes }: {
   onTab: (t: Tab) => void;
   unread: number;
   onSettings: () => void;
@@ -1143,7 +1131,6 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
   skills: string[];
   goals: string[];
   availableForHelp: boolean;
-  checkedIn: CheckIn | null;
   savedCafes: string[];
 }) {
   const d = useData()
@@ -1160,9 +1147,9 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
       </header>
       <main>
         <section className="account-profile">
-          <Avatar src={images.samer} size={92} name={name} online={!!checkedIn} />
+          <Avatar src={images.samer} size={92} name={name} online={availableForHelp} />
           <div>
-            <span className={`profile-status ${checkedIn ? '' : 'is-off'}`}>{checkedIn ? `متواجد في ${checkedIn.cafe}` : 'غير مسجّل في كافيه'}</span>
+            <span className={`profile-status ${availableForHelp ? '' : 'is-off'}`}>{availableForHelp ? 'متاح للمساعدة' : 'غير متاح حاليًا'}</span>
             <h2>{name}</h2>
             <p>{job}</p>
             <button onClick={onEdit}><Edit3 /> تعديل الملف الشخصي</button>
@@ -1222,7 +1209,7 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
   )
 }
 
-function SettingsScreen({ back, privateMode, setPrivateMode, notifications, setNotifications, onEdit, onMatchProfile, onLogout, onLocation, pref, setPref }: {
+function SettingsScreen({ back, privateMode, setPrivateMode, notifications, setNotifications, onLogout, onLocation, pref, setPref }: {
   onLocation: () => void;
   pref: MeetPref;
   setPref: (p: MeetPref) => void;
@@ -1231,8 +1218,6 @@ function SettingsScreen({ back, privateMode, setPrivateMode, notifications, setN
   setPrivateMode: (v: boolean) => void;
   notifications: boolean;
   setNotifications: (v: boolean) => void;
-  onEdit: () => void;
-  onMatchProfile: () => void;
   onLogout: () => void;
 }) {
   const { loc } = useData()
@@ -1259,11 +1244,6 @@ function SettingsScreen({ back, privateMode, setPrivateMode, notifications, setN
             <span><UsersRound /><i><b>أتواصل مع نفس الجنس فقط</b><small>يظهر لك ويشوفك بس الأشخاص من نفس الجنس</small></i></span>
             <em className={pref === 'same' ? 'on' : ''} />
           </button>
-        </section>
-        <section>
-          <h3>الحساب</h3>
-          <button className="settings-link" onClick={onEdit}><span><UserRound />تعديل الملف الشخصي</span><ChevronLeft /></button>
-          <button className="settings-link" onClick={onMatchProfile}><span><Sparkles />مهاراتي واحتياجاتي</span><ChevronLeft /></button>
         </section>
         <section>
           <button className="settings-link danger" onClick={onLogout}><span><LogOut />تسجيل الخروج</span><ChevronLeft /></button>
@@ -1363,75 +1343,6 @@ function ChatScreen({ c, back, send, onMenu, onMet }: { c: Connection; back: () 
   )
 }
 
-function CheckinSheet({ close, confirm, mode, cafeName, initialText, mySkills }: {
-  close: () => void;
-  confirm: (c: CheckIn, skills?: string[]) => void;
-  mode: ActionMode;
-  cafeName: string;
-  initialText: string;
-  mySkills: string[];
-}) {
-  const [need, setNeed] = useState(mode === 'seek' ? initialText : '')
-  const [when, setWhen] = useState('الآن')
-  const [seat, setSeat] = useState('عند النافذة')
-  const [stay, setStay] = useState(60)
-  const options = Array.from(new Set([...mySkills, 'React Native', 'تطوير واجهات', 'Excel', 'تصميم']))
-  const [skills, setSkills] = useState<string[]>(mySkills)
-  const topics = understand(need)
-  const toggle = (s: string) => setSkills(skills.includes(s) ? skills.filter(x => x !== s) : [...skills, s])
-  const valid = mode === 'seek' ? need.trim().length > 3 : skills.length > 0
-  const text = mode === 'seek' ? need.trim() : skills.join('، ')
-
-  return (
-    <BottomSheet onClose={close} tall>
-      <div className="sheet-title">
-        <span className="sheet-icon"><MapPin /></span>
-        <div>
-          <h2>{COPY.checkin}</h2>
-          <p>{mode === 'seek' ? 'عشان يشوف احتياجك القريبين اللي يقدرون يساعدونك' : 'عشان يشوف خبرتك القريبين اللي يحتاجونها'}</p>
-        </div>
-      </div>
-      <label className="field-label">المكان</label>
-      <div className="select-row"><Coffee /><span><small>الكافيه</small>{cafeName}</span></div>
-      <label className="field-label">متى؟</label>
-      <div className="chip-row">
-        {['الآن', 'خلال ساعة', 'اليوم'].map(w => <Chip key={w} active={when === w} onClick={() => setWhen(w)}>{w}</Chip>)}
-      </div>
-      {when === 'الآن' && (
-        <>
-          <label className="field-label">وين جالس؟ (يسهّل اللقاء)</label>
-          <div className="chip-row">
-            {['عند النافذة', 'الطاولة الطويلة', 'الجلسات الخارجية', 'قريب من الكاونتر'].map(s => <Chip key={s} active={seat === s} onClick={() => setSeat(s)}>{s}</Chip>)}
-          </div>
-        </>
-      )}
-      <label className="field-label">كم بتجلس؟</label>
-      <div className="chip-row">
-        {STAYS.map(m => <Chip key={m} active={stay === m} onClick={() => setStay(m)}>{span(m)}</Chip>)}
-      </div>
-      <p className="field-hint"><Hourglass />{when === 'الآن' ? 'يبدأ العد التنازلي الحين، ويشوفه اللي ناوين يجون.' : 'يبدأ العد التنازلي أول ما توصل الكافيه.'}</p>
-      {mode === 'seek' && (
-        <>
-          <label className="field-label" htmlFor="checkin-need">وش تحتاج مساعدة فيه؟</label>
-          <textarea id="checkin-need" maxLength={BUSINESS.MAX_NEED_TEXT_CHARS} value={need} onChange={e => setNeed(e.target.value)} placeholder="مثلاً: أبغى أحد يراجع عرضي التقديمي" />
-          {topics.length > 0 && <div className="understood"><small>فهمنا:</small>{topics.map(t => <span key={t}>{t}</span>)}</div>}
-        </>
-      )}
-      {mode === 'help' && (
-        <>
-          <label className="field-label">وش تقدر تساعد فيه؟</label>
-          <div className="skill-grid">
-            {options.map(s => <Chip key={s} active={skills.includes(s)} onClick={() => toggle(s)}>{skills.includes(s) && <Check />}{s}</Chip>)}
-          </div>
-        </>
-      )}
-      <PrimaryButton onClick={() => confirm({ cafe: cafeName, mode, when, seat: when === 'الآن' ? seat : '', text, stay }, mode === 'help' ? skills : undefined)} disabled={!valid} icon={<MapPin />}>
-        {COPY.checkinConfirm}
-      </PrimaryButton>
-    </BottomSheet>
-  )
-}
-
 function ProfileSetupSheet({ close, next, editing = false, name, setName, job, setJob, gender, setGender, pref, setPref, privateMode, setPrivateMode }: {
   pref: MeetPref;
   setPref: (p: MeetPref) => void;
@@ -1481,6 +1392,17 @@ function SkillsSheet({ close, initial, save }: { close: () => void; initial: str
   const [skills, setSkills] = useState(initial)
   const [query, setQuery] = useState('')
   const options = Array.from(new Set([...initial, 'React Native', 'تطوير واجهات', 'تصميم', 'تسويق', 'Excel', 'ذكاء اصطناعي'])).filter(x => !query.trim() || x.includes(query.trim()))
+  const custom = query.trim().replace(/\s+/g, ' ')
+  const canAdd = custom.length >= 2 && !skills.some(s => s.toLowerCase() === custom.toLowerCase()) && skills.length < BUSINESS.MAX_SKILLS_PER_USER
+  const addCustom = () => {
+    if (!canAdd) return
+    setSkills([...skills, custom])
+    setQuery('')
+  }
+  const toggle = (skill: string) => {
+    if (skills.includes(skill)) setSkills(skills.filter(s => s !== skill))
+    else if (skills.length < BUSINESS.MAX_SKILLS_PER_USER) setSkills([...skills, skill])
+  }
   return (
     <BottomSheet onClose={close}>
       <div className="sheet-title">
@@ -1489,15 +1411,17 @@ function SkillsSheet({ close, initial, save }: { close: () => void; initial: str
       </div>
       <div className="search-field">
         <Search />
-        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="ابحث عن مهارة" aria-label="ابحث عن مهارة" />
+        <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustom() } }} placeholder="ابحث أو اكتب مهارة" aria-label="ابحث أو اكتب مهارة" />
       </div>
+      {canAdd && <button type="button" className="custom-skill-suggestion" onClick={addCustom}><span>إضافة «{custom}»</span><Check /></button>}
       <div className="skill-grid">
         {options.map(x => (
-          <Chip key={x} active={skills.includes(x)} onClick={() => setSkills(skills.includes(x) ? skills.filter(s => s !== x) : [...skills, x])}>
+          <Chip key={x} active={skills.includes(x)} onClick={() => toggle(x)}>
             {skills.includes(x) && <Check />}{x}
           </Chip>
         ))}
       </div>
+      <p className="skill-entry-hint">{skills.length} من {BUSINESS.MAX_SKILLS_PER_USER} مهارات</p>
       <PrimaryButton onClick={() => save(skills)} disabled={!skills.length}>حفظ ومتابعة</PrimaryButton>
     </BottomSheet>
   )
@@ -1569,31 +1493,6 @@ function PendingSheet({ kind, name, image, declined, close, cancel, retry }: {
   )
 }
 
-function IncomingSheet({ need, accept, decline }: { need: Need; accept: () => void; decline: () => void }) {
-  return (
-    <BottomSheet onClose={decline} tall>
-      <div className="incoming-hero">
-        <span className="anonymous-avatar big"><UserRound /></span>
-        <span className="incoming-badge"><HeartHandshake /></span>
-        <h2>شخص يحتاج مساعدتك</h2>
-        <p>ظهر لك لأنه ضمن خبرتك في {need.topic}</p>
-      </div>
-      <div className="summary-box"><small>احتياجه</small><p>{need.text}</p></div>
-      <div className="incoming-detail">
-        <span><MapPin /></span>
-        <div><small>المكان</small><b>{need.cafe} · {need.presence === 'now' ? 'الآن' : `اليوم ${need.time}`}</b></div>
-      </div>
-      <div className="incoming-detail">
-        <span><Clock3 /></span>
-        <div><small>الوقت المطلوب</small><b>{mins(need.minutes)} تقريبًا</b></div>
-      </div>
-      <div className="trust"><ShieldCheck /> رقم موثّق · الاسم يظهر بعد موافقتك</div>
-      <PrimaryButton onClick={accept} icon={<Check />}>أوافق أساعده</PrimaryButton>
-      <button className="text-button" onClick={decline}>مو الحين</button>
-    </BottomSheet>
-  )
-}
-
 function MatchSheet({ c, myName, chat, later }: { c: Connection; myName: string; chat: () => void; later: () => void }) {
   return (
     <div className="match-overlay" role="dialog" aria-modal="true">
@@ -1647,6 +1546,15 @@ const load = <T,>(key: string, fallback: T): T => {
 const store = (key: string, value: unknown) => { try { localStorage.setItem(key, JSON.stringify(value)) } catch { /* storage unavailable */ } }
 
 export default function App() {
+  const [language, setLanguage] = useState<Language>(() => {
+    const requested = new URLSearchParams(window.location.search).get('lang')
+    return requested === 'en' || requested === 'ar' ? requested : load('around-language', 'ar')
+  })
+  const toggleLanguage = () => setLanguage(current => {
+    const next = current === 'ar' ? 'en' : 'ar'
+    store('around-language', next)
+    return next
+  })
   // A real back stack, so "رجوع" always returns to where you came from.
   const [stack, setStack] = useState<Screen[]>(() => [load('around-onboarded', 0) ? 'home' : 'onboarding'])
   const screen = stack[stack.length - 1]
@@ -1674,19 +1582,16 @@ export default function App() {
   const [previewPerson, setPreviewPerson] = useState<Person | null>(null)
   const [needText, setNeedText] = useState('')
   const [selectedCafe, setSelectedCafe] = useState(allCafes[0].name)
-  const [checkedIn, setCheckedIn] = useState<CheckIn | null>(null)
-  const [pendingCheckin, setPendingCheckin] = useState<CheckIn | null>(null)
   const [savedCafes, setSavedCafes] = useState<string[]>(() => load('around-saved', []))
   const [target, setTarget] = useState<Target | null>(null)
   const [requests, setRequests] = useState<Record<string, 'pending' | 'declined'>>({})
   const [pending, setPending] = useState<{ id: string; kind: Target['kind'] } | null>(null)
-  const [incoming, setIncoming] = useState<Need | null>(null)
   const [connections, setConnections] = useState<Connection[]>([])
   const [chatId, setChatId] = useState<string | null>(null)
   const [matchId, setMatchId] = useState<string | null>(null)
   const [toast, setToast] = useState('')
   const [isWideMode, setIsWideMode] = useState(false)
-  const incomingSent = useRef(false)
+  const [locationFromOnboarding, setLocationFromOnboarding] = useState(false)
   const cancelled = useRef(new Set<string>())
   const seats = useRef<Record<string, string>>({})
   const chatIdRef = useRef<string | null>(null)
@@ -1739,7 +1644,7 @@ export default function App() {
   const h: CardHandlers = {
     stateOf: requestState,
     onOpenPerson: p => setPreviewPerson(p),
-    onAsk: p => startTarget({ kind: 'ask', person: p, need: needText || (checkedIn?.mode === 'seek' ? checkedIn.text : '') || myNeedDesc }),
+    onAsk: p => startTarget({ kind: 'ask', person: p, need: needText || myNeedDesc }),
     onOffer: n => startTarget({ kind: 'offer', need: n }),
     onOpenChat: openChatFor,
   }
@@ -1786,46 +1691,8 @@ export default function App() {
     }, 3500)
   }
 
-  // ---------- Presence (check-in) ----------
-  const finishCheckin = (c: CheckIn) => {
-    setCheckedIn(c.when === 'الآن' ? { ...c, leaveAt: Date.now() + c.stay * 60000 } : c)
-    setActionMode(c.mode)
-    setPendingCheckin(null)
-    setSheet(null)
-    if (c.mode === 'seek' && c.text) setNeedText(c.text)
-    say(`سجّلنا تواجدك في ${c.cafe}`)
-    if (c.mode === 'help' && !incomingSent.current) {
-      incomingSent.current = true
-      window.setTimeout(() => {
-        setIncoming(allNeeds.find(n => n.cafe === c.cafe && n.presence === 'now') ?? allNeeds[1])
-        setSheet(s => s ?? 'incoming')
-      }, 5000)
-    }
-  }
-  const confirmCheckin = (c: CheckIn, skills?: string[]) => {
-    if (skills) setMySkills(skills)
-    if (!profileReady) { setPendingCheckin(c); setSheet('profileSetup'); return }
-    finishCheckin(c)
-  }
-  // When the stay runs out, the check-in ends on its own.
-  useEffect(() => {
-    const at = checkedIn?.leaveAt
-    if (!at) return
-    const id = window.setTimeout(() => {
-      say(`خلص وقت تواجدك في ${checkedIn!.cafe}`)
-      setCheckedIn(null)
-    }, Math.max(0, at - Date.now()))
-    return () => window.clearTimeout(id)
-  }, [checkedIn])
-  const endCheckin = () => {
-    if (!checkedIn) return
-    say(`أنهيت تواجدك في ${checkedIn.cafe}`)
-    setCheckedIn(null)
-  }
-
   const afterProfile = () => {
     setProfileReady(true)
-    if (pendingCheckin) return finishCheckin(pendingCheckin)
     if (target?.kind === 'offer') return setSheet('skills')
     if (target) return setSheet('request')
     setSheet(null)
@@ -1881,28 +1748,41 @@ export default function App() {
     setConnections([])
     setRequests({})
     setPending(null)
-    setCheckedIn(null)
     setSavedCafes([])
     setLocRaw(DEFAULT_LOC)
     setSheet(null)
     setPreviewPerson(null)
-    incomingSent.current = false
     reset('onboarding')
   }
 
   const completeLocation = (to: Screen) => { store('around-onboarded', 1); reset(to) }
 
-  useEffect(() => { document.title = 'AroundMe' }, [])
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [screen])
 
   const pendingPerson = pending ? allPeople.find(p => p.id === pending.id) : undefined
   const match = connections.find(c => c.id === matchId)
   const profileSheetProps = { name: myName, setName: setMyName, job: myJob, setJob: setMyJob, gender: myGender, setGender: setMyGender, pref: meetPref, setPref: setMeetPref, privateMode, setPrivateMode }
-  const openLocation = () => setSheet('location')
+  const openLocation = () => {
+    setLocationFromOnboarding(false)
+    setSheet('location')
+  }
+  const openOnboardingLocation = () => {
+    setLocationFromOnboarding(true)
+    setSheet('location')
+  }
+  const saveLocation = (nextLoc: Loc) => {
+    setLoc(nextLoc)
+    if (locationFromOnboarding) {
+      setLocationFromOnboarding(false)
+      completeLocation('home')
+    }
+  }
 
   return (
+    <LanguageCtx.Provider value={{ language, toggleLanguage }}>
     <DataCtx.Provider value={data}>
-    <div className="app-shell" dir="rtl">
+    <div className="app-shell" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <LanguageBridge language={language} />
       <div className="device-mode-switch" aria-label="وضع العرض">
         <button className={!isWideMode ? 'active' : ''} onClick={() => setIsWideMode(false)}><Smartphone /><span>محاكي الجوال</span></button>
         <button className={isWideMode ? 'active' : ''} onClick={() => setIsWideMode(true)}><Monitor /><span>العرض الموسع</span></button>
@@ -1912,7 +1792,7 @@ export default function App() {
         {screen === 'onboarding' && <Onboarding next={() => go('phone')} />}
         {screen === 'phone' && <PhoneScreen next={() => go('otp')} back={back} />}
         {screen === 'otp' && <OtpScreen next={() => go('location')} back={back} />}
-        {screen === 'location' && <LocationScreen next={() => completeLocation('home')} manual={() => { completeLocation('home'); openLocation() }} back={back} />}
+        {screen === 'location' && <LocationScreen next={() => completeLocation('home')} manual={openOnboardingLocation} back={back} />}
         {screen === 'home' && (
           <HomeScreen
             onTab={onTab}
@@ -1921,8 +1801,6 @@ export default function App() {
             active={active}
             onChat={() => active && openChat(active.id)}
             onMet={met => active && answerMet(active.id, met)}
-            checkedIn={checkedIn}
-            onPresence={() => openCafe(checkedIn?.cafe ?? data.cafes[0]?.name ?? allCafes[0].name)}
             onLocation={openLocation}
           />
         )}
@@ -1932,12 +1810,10 @@ export default function App() {
             back={back}
             mySkills={mySkills}
             privateMode={privateMode}
-            checkedIn={checkedIn}
             onContinue={(text, skills) => {
               if (actionMode === 'seek') setNeedText(text || skills.join('، '))
               else setMySkills(skills)
-              if (checkedIn) openCafe(checkedIn.cafe)
-              else onTab('people')
+              onTab('people')
             }}
           />
         )}
@@ -1948,7 +1824,6 @@ export default function App() {
             onCafe={openCafe}
             actionMode={actionMode}
             onActionModeChange={setActionMode}
-            checkedInCafe={checkedIn?.cafe}
             context={actionMode === 'seek' ? (needText ? `الأنسب لـ: ${needText}` : '') : `حسب مهاراتك: ${mySkills.slice(0, 2).join('، ')}`}
             onLocation={openLocation}
           />
@@ -1961,9 +1836,6 @@ export default function App() {
             onToggleSave={() => toggleSave(selectedCafe)}
             actionMode={actionMode}
             onActionModeChange={setActionMode}
-            checkedIn={checkedIn}
-            onCheckin={() => setSheet('checkin')}
-            onEndCheckin={endCheckin}
             h={h}
           />
         )}
@@ -1978,7 +1850,6 @@ export default function App() {
             onPresenceFilterChange={setPresenceFilter}
             onCafe={openCafe}
             onLocation={openLocation}
-            checkedInCafe={checkedIn?.cafe}
           />
         )}
         {screen === 'account' && (
@@ -1994,7 +1865,6 @@ export default function App() {
             skills={mySkills}
             goals={myGoals}
             availableForHelp={isAvailableForHelp}
-            checkedIn={checkedIn}
             savedCafes={savedCafes}
           />
         )}
@@ -2020,8 +1890,6 @@ export default function App() {
             setPrivateMode={setPrivateMode}
             notifications={notifications}
             setNotifications={setNotifications}
-            onEdit={() => setSheet('editProfile')}
-            onMatchProfile={() => go('matchProfile')}
             onLogout={logout}
             onLocation={openLocation}
             pref={meetPref}
@@ -2034,18 +1902,8 @@ export default function App() {
         )}
       </div>
 
-      {sheet === 'checkin' && (
-        <CheckinSheet
-          close={() => setSheet(null)}
-          confirm={confirmCheckin}
-          mode={actionMode}
-          cafeName={selectedCafe}
-          initialText={needText}
-          mySkills={mySkills}
-        />
-      )}
       {sheet === 'profileSetup' && (
-        <ProfileSetupSheet {...profileSheetProps} close={() => { setSheet(null); setPendingCheckin(null) }} next={afterProfile} />
+        <ProfileSetupSheet {...profileSheetProps} close={() => setSheet(null)} next={afterProfile} />
       )}
       {sheet === 'editProfile' && (
         <ProfileSetupSheet {...profileSheetProps} editing close={() => setSheet(null)} next={() => { setSheet(null); say('حفظنا التعديلات') }} />
@@ -2076,16 +1934,6 @@ export default function App() {
           retry={() => { setSheet(null); onTab('people') }}
         />
       )}
-      {sheet === 'incoming' && incoming && (
-        <IncomingSheet
-          need={incoming}
-          decline={() => { setSheet(null); say('تمام، بنقول له إنك مو متاح الحين') }}
-          accept={() => {
-            setSheet(null)
-            connect({ personId: incoming.personId, name: incoming.name, image: incoming.image, cafe: incoming.cafe, topic: incoming.topic, minutes: incoming.minutes, seat: incoming.seat, reply: `هلا، شكرًا إنك وافقت تساعدني! أنا ${incoming.seat}` })
-          }}
-        />
-      )}
       {sheet === 'match' && match && (
         <MatchSheet c={match} myName={myName} chat={() => { setSheet(null); openChat(match.id) }} later={() => setSheet(null)} />
       )}
@@ -2105,7 +1953,13 @@ export default function App() {
         />
       )}
 
-      {sheet === 'location' && <LocationSheet current={loc} close={() => setSheet(null)} save={setLoc} />}
+      {sheet === 'location' && (
+        <LocationSheet
+          current={loc}
+          close={() => { setSheet(null); setLocationFromOnboarding(false) }}
+          save={saveLocation}
+        />
+      )}
 
       {toast && <div className="toast" role="status">{toast}</div>}
 
@@ -2116,5 +1970,6 @@ export default function App() {
       )}
     </div>
     </DataCtx.Provider>
+    </LanguageCtx.Provider>
   )
 }
