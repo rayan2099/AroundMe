@@ -3,7 +3,7 @@ import {
   Ban, Bell, Camera, Check, ChevronDown, ChevronLeft, ChevronRight,
   CircleUserRound, Clock3, Code2, Coffee, Compass, Edit3, EyeOff, Flag,
   Handshake, HeartHandshake, Home, List, LocateFixed, LogOut, Map as MapIcon, MapPin, MessageCircle,
-  MoreHorizontal, Navigation, Phone, Search, Send, Settings, ShieldCheck, Sparkles, UserRound,
+  MoreHorizontal, Navigation, Phone, Search, Send, Settings, Hourglass, ShieldCheck, Sparkles, UserRound,
   UsersRound, X, Wifi, Volume2, PlugZap, Car, Bookmark, XCircle, Smartphone, Monitor, Trees, DoorOpen
 } from 'lucide-react'
 import { BUSINESS } from './constants'
@@ -35,8 +35,16 @@ const COPY = {
   consent: 'ما أحد يقدر يراسلك إلا إذا وافقتوا الاثنين.',
 }
 const DURATIONS = [10, 15, 30, 60]
-// Arabic number agreement: 3-10 دقائق, otherwise دقيقة.
-const mins = (n: number) => (n >= 3 && n <= 10 ? `${n} دقائق` : `${n} دقيقة`)
+// Arabic number agreement: 1 دقيقة، 2 دقيقتين، 3-10 دقائق، 11+ دقيقة. Hours follow the same rule.
+const count = (n: number, one: string, two: string, few: string) => (n === 1 ? one : n === 2 ? two : n >= 3 && n <= 10 ? `${n} ${few}` : `${n} ${one}`)
+const mins = (n: number) => count(n, 'دقيقة', 'دقيقتين', 'دقائق')
+const hours = (n: number) => count(n, 'ساعة', 'ساعتين', 'ساعات')
+// 95 → «ساعة و35 دقيقة»، 120 → «ساعتين»
+const span = (m: number) => { const h = Math.floor(m / 60), r = m % 60; return !h ? mins(r) : !r ? hours(h) : `${hours(h)} و${mins(r)}` }
+// How long someone plans to stay once they arrive. The countdown starts when they check in at the café.
+const STAYS = [30, 60, 120, 180]
+const T0 = Date.now()
+const leaveIn = (m: number) => T0 + m * 60000
 // The restart shortcut is for demos only (open with ?demo); it must not sit on top of real content.
 const DEMO = typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('demo')
 
@@ -67,32 +75,32 @@ const images = {
 
 export type Person = {
   id: string; name: string; g: Gender; image: string; job: string; bio: string; tag: string; seat: string; cafe: string;
-  presence: Presence; time: string; visitDetails: string; skills: string[]; serviceOffer: string; busy?: boolean;
+  presence: Presence; time: string; visitDetails: string; skills: string[]; serviceOffer: string; busy?: boolean; leaveAt?: number;
 }
 
 const allPeople: Person[] = [
-  { id: 'layla', name: 'ليلى حسن', g: 'f', image: images.layla, job: 'مصممة جرافيك مستقلة', bio: 'أصمم هويات بصرية للمشاريع الناشئة، وأحب أساعد في مراجعة الشعارات والعروض التقديمية.', tag: 'تصميم هوية بصرية', seat: 'عند النافذة', cafe: 'مقهى الحطب', presence: 'now', time: '', visitDetails: 'متاحة للمساعدة حتى 6:30 م', skills: ['تصميم هوية بصرية', 'UI/UX', 'Figma'], serviceOffer: 'مراجعة الهوية والشعارات وتنسيق الواجهات وتجربة المستخدم' },
-  { id: 'omar', name: 'عمر سعيد', g: 'm', image: images.omar, job: 'مطور تطبيقات موبايل', bio: 'أطور تطبيقات React Native وTypeScript، وأقدر أساعد في حل مشاكل الكود واكتشاف الأخطاء بسرعة.', tag: 'React Native', seat: 'الطاولة الطويلة', cafe: 'مقهى الحطب', presence: 'now', time: '', visitDetails: 'متاح للأسئلة البرمجية حتى 8:00 م', skills: ['React Native', 'TypeScript', 'تطوير تطبيقات', 'حل أخطاء'], serviceOffer: 'حل مشاكل كود React Native واستكشاف أخطاء الدفع والربط' },
+  { id: 'layla', name: 'ليلى حسن', g: 'f', image: images.layla, job: 'مصممة جرافيك مستقلة', bio: 'أصمم هويات بصرية للمشاريع الناشئة، وأحب أساعد في مراجعة الشعارات والعروض التقديمية.', tag: 'تصميم هوية بصرية', seat: 'عند النافذة', cafe: 'مقهى الحطب', presence: 'now', time: '', leaveAt: leaveIn(95), visitDetails: 'متاحة للمساعدة حتى 6:30 م', skills: ['تصميم هوية بصرية', 'UI/UX', 'Figma'], serviceOffer: 'مراجعة الهوية والشعارات وتنسيق الواجهات وتجربة المستخدم' },
+  { id: 'omar', name: 'عمر سعيد', g: 'm', image: images.omar, job: 'مطور تطبيقات موبايل', bio: 'أطور تطبيقات React Native وTypeScript، وأقدر أساعد في حل مشاكل الكود واكتشاف الأخطاء بسرعة.', tag: 'React Native', seat: 'الطاولة الطويلة', cafe: 'مقهى الحطب', presence: 'now', time: '', leaveAt: leaveIn(150), visitDetails: 'متاح للأسئلة البرمجية حتى 8:00 م', skills: ['React Native', 'TypeScript', 'تطوير تطبيقات', 'حل أخطاء'], serviceOffer: 'حل مشاكل كود React Native واستكشاف أخطاء الدفع والربط' },
   { id: 'khaled', name: 'خالد منصور', g: 'm', image: images.khaled, job: 'مختص تسويق رقمي', bio: 'أشتغل في التسويق الرقمي والإعلانات الممولة وحملات النمو للمتاجر الإلكترونية.', tag: 'تسويق رقمي', seat: 'قريب من الكاونتر', cafe: 'مقهى الحطب', presence: 'today', time: '4:30 م', visitDetails: 'متاح للاستشارات التسويقية من 4:30 إلى 7:00 م', skills: ['تسويق رقمي', 'SEO', 'إعلانات تيك توك وسناب', 'حملات نمو'], serviceOffer: 'استشارات تسويقية وخطط إطلاق الحملات الإعلانية' },
   { id: 'rana', name: 'رنا فارس', g: 'f', image: images.rana, job: 'صاحبة مشروع ناشئ', bio: 'أبني مشروع ناشئ للمناسبات والهدايا، وأهتم جداً بتجربة العميل وجودة التفاصيل.', tag: 'تصوير منتجات', seat: 'الجلسات الخارجية', cafe: 'مقهى الحطب', presence: 'today', time: '5:15 م', visitDetails: 'متاحة لجلسات تصوير سريعة من 5:15 م', skills: ['تصوير منتجات', 'صناعة محتوى', 'تجربة مستخدم'], serviceOffer: 'تصوير المنتجات وجلسات سريعة بالجوال' },
-  { id: 'sara', name: 'سارة الشمري', g: 'f', image: images.sara, job: 'محللة مالية ونمذجة', bio: 'أساعد رواد الأعمال في بناء جداول التدفقات النقدية ودراسات الجدوى المالية لطلبات الاستثمار.', tag: 'Excel ومالية', seat: 'منطقة الهدوء', cafe: 'مساحة العمل', presence: 'now', time: '', visitDetails: 'متاحة لمراجعة النماذج المالية حتى 5:00 م', skills: ['Excel ونمذجة', 'مالية', 'دراسات جدوى', 'عروض استثمار'], serviceOffer: 'مراجعة نماذج Excel وحسابات التدفقات النقدية للمشاريع' },
+  { id: 'sara', name: 'سارة الشمري', g: 'f', image: images.sara, job: 'محللة مالية ونمذجة', bio: 'أساعد رواد الأعمال في بناء جداول التدفقات النقدية ودراسات الجدوى المالية لطلبات الاستثمار.', tag: 'Excel ومالية', seat: 'منطقة الهدوء', cafe: 'مساحة العمل', presence: 'now', time: '', leaveAt: leaveIn(40), visitDetails: 'متاحة لمراجعة النماذج المالية حتى 5:00 م', skills: ['Excel ونمذجة', 'مالية', 'دراسات جدوى', 'عروض استثمار'], serviceOffer: 'مراجعة نماذج Excel وحسابات التدفقات النقدية للمشاريع' },
   { id: 'tariq', name: 'طارق الجاسم', g: 'm', image: images.tariq, job: 'مهندس حلول سحابية', bio: 'أبني بنى تحتية سحابية وأنظمة Backend عالية الأداء للمنصات الرقمية.', tag: 'هندسة سحابية', seat: 'غرفة الاجتماعات 2', cafe: 'مساحة العمل', presence: 'today', time: '6:00 م', visitDetails: 'متاح لأسئلة السحابة والخوادم من 6:00 م', skills: ['Cloud', 'DevOps', 'Node.js', 'PostgreSQL'], serviceOffer: 'استشارات معمارية الأنظمة السحابية وخوادم التطبيقات' },
-  { id: 'faisal', name: 'فيصل العتيبي', g: 'm', image: images.faisal, job: 'صانع محتوى ومصور', bio: 'أساعد أصحاب المشاريع في محتوى السوشال ميديا والتيك توك.', tag: 'صناعة محتوى', seat: 'الجلسات الخارجية', cafe: 'مقهى ركن', presence: 'now', time: '', visitDetails: 'متاح لمراجعة الحسابات وأفكار المحتوى حتى المغرب', skills: ['محتوى تيك توك', 'تصوير بالجوال', 'كتابة سيناريو'], serviceOffer: 'أفكار محتوى ومراجعة حسابات التواصل الاجتماعي' },
+  { id: 'faisal', name: 'فيصل العتيبي', g: 'm', image: images.faisal, job: 'صانع محتوى ومصور', bio: 'أساعد أصحاب المشاريع في محتوى السوشال ميديا والتيك توك.', tag: 'صناعة محتوى', seat: 'الجلسات الخارجية', cafe: 'مقهى ركن', presence: 'now', time: '', leaveAt: leaveIn(70), visitDetails: 'متاح لمراجعة الحسابات وأفكار المحتوى حتى المغرب', skills: ['محتوى تيك توك', 'تصوير بالجوال', 'كتابة سيناريو'], serviceOffer: 'أفكار محتوى ومراجعة حسابات التواصل الاجتماعي' },
   { id: 'noura', name: 'نورة الدوسري', g: 'f', image: images.noura, job: 'كاتبة إعلانية ومترجمة', bio: 'شغوفة باللغة وصياغة رسائل البراندات والمقالات التسويقية.', tag: 'كتابة محتوى', seat: 'الحديقة الجانبية', cafe: 'حديقة البن', presence: 'today', time: '5:45 م', visitDetails: 'متاحة لتدقيق النصوص من 5:45 م', skills: ['كتابة إعلانية', 'ترجمة', 'صياغة نصوص'], serviceOffer: 'مراجعة وتدقيق النصوص التسويقية وشعارات البراند' },
 ]
 
 // Needs stay anonymous (no name, no photo) everywhere until both sides agree.
 export type Need = {
   id: string; personId: string; name: string; g: Gender; image: string; cafe: string; text: string; topic: string;
-  tags: string[]; minutes: number; presence: Presence; time: string; seat: string;
+  tags: string[]; minutes: number; presence: Presence; time: string; seat: string; leaveAt?: number;
 }
 
 const allNeeds: Need[] = [
   { id: 'n1', personId: 'rana', name: 'رنا فارس', g: 'f', image: images.rana, cafe: 'مقهى الحطب', text: 'أحتاج رأي وملاحظات سريعة في تصميم تجربة واجهات تطبيق مشروعي', topic: 'تصميم تطبيق', tags: ['تصميم', 'تطبيقات', 'UI/UX'], minutes: 15, presence: 'today', time: '5:15 م', seat: 'الجلسات الخارجية' },
-  { id: 'n2', personId: 'reem', name: 'ريم السالم', g: 'f', image: '', cafe: 'مقهى الحطب', text: 'تطبيقي يعلّق ويظهر خطأ لما أفتح صفحة الدفع في Stripe', topic: 'React Native', tags: ['React Native', 'دفع إلكتروني', 'كود'], minutes: 10, presence: 'now', time: '', seat: 'عند النافذة' },
-  { id: 'n3', personId: 'yousef', name: 'يوسف العلي', g: 'm', image: '', cafe: 'مساحة العمل', text: 'واجهة تطبيقي ما تضبط على الجوالات ذات الشاشات الصغيرة وأحتاج مساعدة في CSS', topic: 'تطوير واجهات', tags: ['تطوير واجهات', 'CSS', 'Responsive'], minutes: 20, presence: 'now', time: '', seat: 'منطقة الهدوء' },
+  { id: 'n2', personId: 'reem', name: 'ريم السالم', g: 'f', image: '', cafe: 'مقهى الحطب', text: 'تطبيقي يعلّق ويظهر خطأ لما أفتح صفحة الدفع في Stripe', topic: 'React Native', tags: ['React Native', 'دفع إلكتروني', 'كود'], minutes: 10, presence: 'now', time: '', leaveAt: leaveIn(25), seat: 'عند النافذة' },
+  { id: 'n3', personId: 'yousef', name: 'يوسف العلي', g: 'm', image: '', cafe: 'مساحة العمل', text: 'واجهة تطبيقي ما تضبط على الجوالات ذات الشاشات الصغيرة وأحتاج مساعدة في CSS', topic: 'تطوير واجهات', tags: ['تطوير واجهات', 'CSS', 'Responsive'], minutes: 20, presence: 'now', time: '', leaveAt: leaveIn(120), seat: 'منطقة الهدوء' },
   { id: 'n4', personId: 'majed', name: 'ماجد الحربي', g: 'm', image: '', cafe: 'مقهى ركن', text: 'أبحث عن استشارة سريعة في تسعير اشتراكات تطبيق جديد موجه للشركات', topic: 'تسعير واستراتيجية', tags: ['تسعير', 'تسويق', 'B2B'], minutes: 15, presence: 'today', time: '4:45 م', seat: 'الجلسات الخارجية' },
-  { id: 'n5', personId: 'hind', name: 'هند القحطاني', g: 'f', image: '', cafe: 'حديقة البن', text: 'مراجعة سريعة لشرائح العرض الاستثماري Pitch Deck قبل عرضه غداً', topic: 'عروض تقديمية', tags: ['عروض تقديمية', 'استثمار', 'Pitch Deck'], minutes: 20, presence: 'now', time: '', seat: 'الحديقة الجانبية' },
+  { id: 'n5', personId: 'hind', name: 'هند القحطاني', g: 'f', image: '', cafe: 'حديقة البن', text: 'مراجعة سريعة لشرائح العرض الاستثماري Pitch Deck قبل عرضه غداً', topic: 'عروض تقديمية', tags: ['عروض تقديمية', 'استثمار', 'Pitch Deck'], minutes: 20, presence: 'now', time: '', leaveAt: leaveIn(55), seat: 'الحديقة الجانبية' },
   { id: 'n6', personId: 'abdullah', name: 'عبدالله الزهراني', g: 'm', image: '', cafe: 'مقهى الحطب', text: 'أبغى أحد يراجع معي خطة إطلاق حملة إعلانية على سناب', topic: 'تسويق', tags: ['تسويق', 'إعلانات', 'سناب'], minutes: 15, presence: 'today', time: '6:15 م', seat: 'قريب من الكاونتر' },
 ]
 
@@ -157,7 +165,7 @@ const understand = (text: string) => topicWords.filter(([, words]) => words.some
 
 export type Message = { from: 'me' | 'them' | 'system'; text: string; time: string }
 export type Connection = { id: string; personId: string; name: string; image: string; cafe: string; topic: string; minutes: number; messages: Message[]; status: 'active' | 'past'; unread: number; askMet: boolean; endedMet?: boolean }
-export type CheckIn = { cafe: string; mode: ActionMode; when: string; seat: string; text: string }
+export type CheckIn = { cafe: string; mode: ActionMode; when: string; seat: string; text: string; stay: number; leaveAt?: number }
 export type Target = { kind: 'ask'; person: Person; need: string } | { kind: 'offer'; need: Need }
 const targetId = (t: Target) => (t.kind === 'offer' ? t.need.personId : t.person.id)
 
@@ -181,11 +189,27 @@ function AnonAvatar({ size = 46 }: { size?: number }) {
 }
 function Verified() { return <ShieldCheck className="verified" aria-label="رقم موثّق" /> }
 
-function PresenceBadge({ presence, time, seat }: { presence: Presence; time: string; seat?: string }) {
+// Re-renders every few seconds so countdowns stay live.
+function useNow(ms = 5000) {
+  const [t, setT] = useState(Date.now())
+  useEffect(() => { const id = window.setInterval(() => setT(Date.now()), ms); return () => window.clearInterval(id) }, [ms])
+  return t
+}
+const timeLeft = (leaveAt: number, t: number) => {
+  const left = leaveAt - t
+  return left <= 0 ? 'وقته خلص' : left < 60000 ? 'أقل من دقيقة' : span(Math.ceil(left / 60000))
+}
+function StayLeft({ leaveAt, prefix = 'باقي ' }: { leaveAt: number; prefix?: string }) {
+  const t = useNow()
+  const left = timeLeft(leaveAt, t)
+  return <>{leaveAt - t <= 0 ? left : `${prefix}${left}`}</>
+}
+
+function PresenceBadge({ presence, time, seat, leaveAt }: { presence: Presence; time: string; seat?: string; leaveAt?: number }) {
   return (
     <span className={`presence-badge ${presence}`}>
       {presence === 'now' ? <i className="live-dot" /> : <Clock3 className="time-clock-icon" />}
-      {presence === 'now' ? `الآن${seat ? ` · ${seat}` : ''}` : `اليوم ${time}`}
+      {presence === 'now' ? (leaveAt ? <StayLeft leaveAt={leaveAt} /> : `الآن${seat ? ` · ${seat}` : ''}`) : `اليوم ${time}`}
     </span>
   )
 }
@@ -310,7 +334,7 @@ function HelperCard({ p, h, showCafe = true }: { p: Person; h: CardHandlers; sho
             <p>{p.job}{showCafe ? ` · ${p.cafe}${cafe ? ` · ${cafe.distance}` : ''}` : ''}</p>
           </div>
         </div>
-        <PresenceBadge presence={p.presence} time={p.time} />
+        <PresenceBadge presence={p.presence} time={p.time} leaveAt={p.leaveAt} />
       </div>
       <div className="service-desc-box">{p.serviceOffer}</div>
       <div className="service-tags-row">{p.skills.map(s => <span key={s} className="service-tag">{s}</span>)}</div>
@@ -336,7 +360,7 @@ function NeedCard({ n, h, showCafe = true }: { n: Need; h: CardHandlers; showCaf
             <p>{showCafe ? `${n.cafe}${cafe ? ` · ${cafe.distance}` : ''} · ` : ''}يحتاج {mins(n.minutes)}</p>
           </div>
         </div>
-        <PresenceBadge presence={n.presence} time={n.time} />
+        <PresenceBadge presence={n.presence} time={n.time} leaveAt={n.leaveAt} />
       </div>
       <div className="service-desc-box need">{n.text}</div>
       <div className="service-tags-row">{n.tags.map(t => <span key={t} className="service-tag">{t}</span>)}</div>
@@ -395,7 +419,7 @@ function ProfilePreviewDrawer({ person, h, onClose, onOpenCafe }: { person: Pers
           <Avatar src={person.image} size={84} name={person.name} online={isNow} />
           <h2>{person.name}<Verified /></h2>
           <p className="job-label">{person.job}</p>
-          <PresenceBadge presence={person.presence} time={person.time} seat={person.seat} />
+          <PresenceBadge presence={person.presence} time={person.time} seat={person.seat} leaveAt={person.leaveAt} />
         </div>
 
         <button type="button" className="drawer-cafe-row" onClick={() => onOpenCafe(person.cafe)}>
@@ -414,7 +438,7 @@ function ProfilePreviewDrawer({ person, h, onClose, onOpenCafe }: { person: Pers
         </div>
         <div className="drawer-detail-section">
           <h4><Clock3 /> وقت التواجد</h4>
-          <p>{person.visitDetails}</p>
+          <p>{isNow && person.leaveAt ? <StayLeft leaveAt={person.leaveAt} prefix={gx(person, 'باقي له في المكان ', 'باقي لها في المكان ')} /> : person.visitDetails}</p>
         </div>
         <div className="drawer-detail-section">
           <h4><UserRound /> نبذة</h4>
@@ -599,7 +623,7 @@ function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, checkedI
 
       <section className="journey-gateway">
         <div className="gateway-intro">
-          <h1>وش تبي اليوم؟</h1>
+          <h1>وش حاب تسوي اليوم؟</h1>
         </div>
         <div className="journey-cards">
           <button className="journey-card seek" onClick={() => openIntent('seek')}>
@@ -921,7 +945,7 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
           <>
             <div>
               <small><i className="live-dot" /> أنت متواجد هنا · {checkedIn!.mode === 'seek' ? COPY.seek : COPY.help}</small>
-              <b>{checkedIn!.when === 'الآن' ? 'يشوفك القريبين منك الآن' : `تظهر كقادم ${checkedIn!.when}`}</b>
+              <b>{checkedIn!.leaveAt ? <StayLeft leaveAt={checkedIn!.leaveAt} prefix="باقي لك هنا " /> : `تظهر كقادم ${checkedIn!.when} · بتجلس ${span(checkedIn!.stay)}`}</b>
             </div>
             <button type="button" className="ghost-button" onClick={onEndCheckin}>إنهاء التواجد</button>
           </>
@@ -1312,6 +1336,7 @@ function CheckinSheet({ close, confirm, mode, cafeName, initialText, mySkills }:
   const [need, setNeed] = useState(mode === 'seek' ? initialText : '')
   const [when, setWhen] = useState('الآن')
   const [seat, setSeat] = useState('عند النافذة')
+  const [stay, setStay] = useState(60)
   const options = Array.from(new Set([...mySkills, 'React Native', 'تطوير واجهات', 'Excel', 'تصميم']))
   const [skills, setSkills] = useState<string[]>(mySkills)
   const topics = understand(need)
@@ -1342,6 +1367,11 @@ function CheckinSheet({ close, confirm, mode, cafeName, initialText, mySkills }:
           </div>
         </>
       )}
+      <label className="field-label">كم بتجلس؟</label>
+      <div className="chip-row">
+        {STAYS.map(m => <Chip key={m} active={stay === m} onClick={() => setStay(m)}>{span(m)}</Chip>)}
+      </div>
+      <p className="field-hint"><Hourglass />{when === 'الآن' ? 'يبدأ العد التنازلي الحين، ويشوفه اللي ناوين يجون.' : 'يبدأ العد التنازلي أول ما توصل الكافيه.'}</p>
       {mode === 'seek' && (
         <>
           <label className="field-label" htmlFor="checkin-need">وش تحتاج مساعدة فيه؟</label>
@@ -1357,7 +1387,7 @@ function CheckinSheet({ close, confirm, mode, cafeName, initialText, mySkills }:
           </div>
         </>
       )}
-      <PrimaryButton onClick={() => confirm({ cafe: cafeName, mode, when, seat: when === 'الآن' ? seat : '', text }, mode === 'help' ? skills : undefined)} disabled={!valid} icon={<MapPin />}>
+      <PrimaryButton onClick={() => confirm({ cafe: cafeName, mode, when, seat: when === 'الآن' ? seat : '', text, stay }, mode === 'help' ? skills : undefined)} disabled={!valid} icon={<MapPin />}>
         {COPY.checkinConfirm}
       </PrimaryButton>
     </BottomSheet>
@@ -1720,7 +1750,7 @@ export default function App() {
 
   // ---------- Presence (check-in) ----------
   const finishCheckin = (c: CheckIn) => {
-    setCheckedIn(c)
+    setCheckedIn(c.when === 'الآن' ? { ...c, leaveAt: Date.now() + c.stay * 60000 } : c)
     setActionMode(c.mode)
     setPendingCheckin(null)
     setSheet(null)
@@ -1739,6 +1769,16 @@ export default function App() {
     if (!profileReady) { setPendingCheckin(c); setSheet('profileSetup'); return }
     finishCheckin(c)
   }
+  // When the stay runs out, the check-in ends on its own.
+  useEffect(() => {
+    const at = checkedIn?.leaveAt
+    if (!at) return
+    const id = window.setTimeout(() => {
+      say(`خلص وقت تواجدك في ${checkedIn!.cafe}`)
+      setCheckedIn(null)
+    }, Math.max(0, at - Date.now()))
+    return () => window.clearTimeout(id)
+  }, [checkedIn])
   const endCheckin = () => {
     if (!checkedIn) return
     say(`أنهيت تواجدك في ${checkedIn.cafe}`)

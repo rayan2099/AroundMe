@@ -5395,3 +5395,7 @@ button:focus-visible {
 
 /* Sheets: breathing room before the main action. */
 .bottom-sheet > .primary-button { margin-top: 18px; }
+
+/* Stay countdown hint under the "how long" chips */
+.field-hint { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+.field-hint svg { width: 13px; height: 13px; flex: none; }
