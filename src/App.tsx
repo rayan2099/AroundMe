@@ -97,7 +97,7 @@ export type Need = {
 
 const allNeeds: Need[] = [
   { id: 'n1', personId: 'rana', name: 'رنا فارس', g: 'f', image: images.rana, cafe: 'مقهى الحطب', text: 'أحتاج رأي وملاحظات سريعة في تصميم تجربة واجهات تطبيق مشروعي', topic: 'تصميم تطبيق', tags: ['تصميم', 'تطبيقات', 'UI/UX'], minutes: 15, presence: 'today', time: '5:15 م', seat: 'الجلسات الخارجية' },
-  { id: 'n2', personId: 'reem', name: 'ريم السالم', g: 'f', image: '', cafe: 'مقهى الحطب', text: 'تطبيقي يعلّق ويظهر خطأ لما أفتح صفحة الدفع في Stripe', topic: 'React Native', tags: ['React Native', 'دفع إلكتروني', 'كود'], minutes: 10, presence: 'now', time: '', leaveAt: leaveIn(25), seat: 'عند النافذة' },
+  { id: 'n2', personId: 'reem', name: 'ريم السالم', g: 'f', image: '', cafe: 'مقهى الحطب', text: 'تطبيقي يعلّق ويظهر خطأ لما أفتح صفحة الدفع في Stripe', topic: 'React Native', tags: ['React Native', 'دفع إلكتروني', 'كود'], minutes: 10, presence: 'now', time: '', leaveAt: leaveIn(12), seat: 'عند النافذة' },
   { id: 'n3', personId: 'yousef', name: 'يوسف العلي', g: 'm', image: '', cafe: 'مساحة العمل', text: 'واجهة تطبيقي ما تضبط على الجوالات ذات الشاشات الصغيرة وأحتاج مساعدة في CSS', topic: 'تطوير واجهات', tags: ['تطوير واجهات', 'CSS', 'Responsive'], minutes: 20, presence: 'now', time: '', leaveAt: leaveIn(120), seat: 'منطقة الهدوء' },
   { id: 'n4', personId: 'majed', name: 'ماجد الحربي', g: 'm', image: '', cafe: 'مقهى ركن', text: 'أبحث عن استشارة سريعة في تسعير اشتراكات تطبيق جديد موجه للشركات', topic: 'تسعير واستراتيجية', tags: ['تسعير', 'تسويق', 'B2B'], minutes: 15, presence: 'today', time: '4:45 م', seat: 'الجلسات الخارجية' },
   { id: 'n5', personId: 'hind', name: 'هند القحطاني', g: 'f', image: '', cafe: 'حديقة البن', text: 'مراجعة سريعة لشرائح العرض الاستثماري Pitch Deck قبل عرضه غداً', topic: 'عروض تقديمية', tags: ['عروض تقديمية', 'استثمار', 'Pitch Deck'], minutes: 20, presence: 'now', time: '', leaveAt: leaveIn(55), seat: 'الحديقة الجانبية' },
@@ -205,14 +205,29 @@ function StayLeft({ leaveAt, prefix = 'باقي ' }: { leaveAt: number; prefix?:
   return <>{leaveAt - t <= 0 ? left : `${prefix}${left}`}</>
 }
 
-function PresenceBadge({ presence, time, seat, leaveAt }: { presence: Presence; time: string; seat?: string; leaveAt?: number }) {
+function PresenceBadge({ presence, time, seat }: { presence: Presence; time: string; seat?: string }) {
   return (
     <span className={`presence-badge ${presence}`}>
       {presence === 'now' ? <i className="live-dot" /> : <Clock3 className="time-clock-icon" />}
-      {presence === 'now' ? (leaveAt ? <StayLeft leaveAt={leaveAt} /> : `الآن${seat ? ` · ${seat}` : ''}`) : `اليوم ${time}`}
+      {presence === 'now' ? `الآن${seat ? ` · ${seat}` : ''}` : `اليوم ${time}`}
     </span>
   )
 }
+
+// Time until someone leaves the café. The exit icon says "leaving" so the card needs no extra words;
+// the badge turns amber in the last 15 minutes.
+function LeaveBadge({ leaveAt }: { leaveAt: number }) {
+  const t = useNow()
+  const left = timeLeft(leaveAt, t)
+  const soon = leaveAt - t <= 15 * 60000
+  return (
+    <span className={`presence-badge now leave-badge ${soon ? 'is-soon' : ''}`} title={`يغادر المكان بعد ${left}`} aria-label={`يغادر المكان بعد ${left}`}>
+      <LogOut className="time-clock-icon leave-icon" />{left}
+    </span>
+  )
+}
+const CardPresence = ({ presence, time, seat, leaveAt }: { presence: Presence; time: string; seat?: string; leaveAt?: number }) =>
+  presence === 'now' && leaveAt ? <LeaveBadge leaveAt={leaveAt} /> : <PresenceBadge presence={presence} time={time} seat={seat} />
 
 function BrandLogo({ compact = false }: { compact?: boolean }) {
   return (
@@ -334,7 +349,7 @@ function HelperCard({ p, h, showCafe = true }: { p: Person; h: CardHandlers; sho
             <p>{p.job}{showCafe ? ` · ${p.cafe}${cafe ? ` · ${cafe.distance}` : ''}` : ''}</p>
           </div>
         </div>
-        <PresenceBadge presence={p.presence} time={p.time} leaveAt={p.leaveAt} />
+        <CardPresence presence={p.presence} time={p.time} leaveAt={p.leaveAt} />
       </div>
       <div className="service-desc-box">{p.serviceOffer}</div>
       <div className="service-tags-row">{p.skills.map(s => <span key={s} className="service-tag">{s}</span>)}</div>
@@ -360,7 +375,7 @@ function NeedCard({ n, h, showCafe = true }: { n: Need; h: CardHandlers; showCaf
             <p>{showCafe ? `${n.cafe}${cafe ? ` · ${cafe.distance}` : ''} · ` : ''}يحتاج {mins(n.minutes)}</p>
           </div>
         </div>
-        <PresenceBadge presence={n.presence} time={n.time} leaveAt={n.leaveAt} />
+        <CardPresence presence={n.presence} time={n.time} leaveAt={n.leaveAt} />
       </div>
       <div className="service-desc-box need">{n.text}</div>
       <div className="service-tags-row">{n.tags.map(t => <span key={t} className="service-tag">{t}</span>)}</div>
@@ -419,7 +434,7 @@ function ProfilePreviewDrawer({ person, h, onClose, onOpenCafe }: { person: Pers
           <Avatar src={person.image} size={84} name={person.name} online={isNow} />
           <h2>{person.name}<Verified /></h2>
           <p className="job-label">{person.job}</p>
-          <PresenceBadge presence={person.presence} time={person.time} seat={person.seat} leaveAt={person.leaveAt} />
+          <CardPresence presence={person.presence} time={person.time} seat={person.seat} leaveAt={person.leaveAt} />
         </div>
 
         <button type="button" className="drawer-cafe-row" onClick={() => onOpenCafe(person.cafe)}>
@@ -438,7 +453,7 @@ function ProfilePreviewDrawer({ person, h, onClose, onOpenCafe }: { person: Pers
         </div>
         <div className="drawer-detail-section">
           <h4><Clock3 /> وقت التواجد</h4>
-          <p>{isNow && person.leaveAt ? <StayLeft leaveAt={person.leaveAt} prefix={gx(person, 'باقي له في المكان ', 'باقي لها في المكان ')} /> : person.visitDetails}</p>
+          <p>{isNow && person.leaveAt ? <StayLeft leaveAt={person.leaveAt} prefix={gx(person, 'يغادر المكان بعد ', 'تغادر المكان بعد ')} /> : person.visitDetails}</p>
         </div>
         <div className="drawer-detail-section">
           <h4><UserRound /> نبذة</h4>
@@ -945,7 +960,7 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
           <>
             <div>
               <small><i className="live-dot" /> أنت متواجد هنا · {checkedIn!.mode === 'seek' ? COPY.seek : COPY.help}</small>
-              <b>{checkedIn!.leaveAt ? <StayLeft leaveAt={checkedIn!.leaveAt} prefix="باقي لك هنا " /> : `تظهر كقادم ${checkedIn!.when} · بتجلس ${span(checkedIn!.stay)}`}</b>
+              <b>{checkedIn!.leaveAt ? <StayLeft leaveAt={checkedIn!.leaveAt} prefix="تغادر المكان بعد " /> : `تظهر كقادم ${checkedIn!.when} · بتجلس ${span(checkedIn!.stay)}`}</b>
             </div>
             <button type="button" className="ghost-button" onClick={onEndCheckin}>إنهاء التواجد</button>
           </>
