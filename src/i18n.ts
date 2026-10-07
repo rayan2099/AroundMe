@@ -62,13 +62,16 @@ const EN: [string, string][] = [
   ['نتمنى إنه كان لقاء مفيد', 'We hope it was a useful meeting'], ['حظرت هذا الشخص', 'You blocked this person'], ['حظرت', 'You blocked'], ['أنهيت المحادثة', 'You ended the chat'], ['حفظنا مهاراتك واحتياجاتك', 'Saved your skills and needs'], ['حفظنا التعديلات', 'Changes saved'], ['وصلنا بلاغك، وبنراجعه بأسرع وقت', 'We got your report and will review it soon'], ['حفظنا الكافيه في حسابك', 'Coffee shop saved to your account'], ['شلنا الكافيه من المحفوظة', 'Removed from saved coffee shops'],
   ['تقابلتوا. نتمنى إنه كان لقاء مفيد', 'You met. We hope it was useful'], ['ما تقابلتوا بعد. كمّلوا التنسيق هنا', 'You have not met yet. Keep coordinating here'], ['انتهت المحادثة', 'Chat ended'], ['تقابلتوا', 'You met'], ['اتفقتوا 🤝', 'Agreed 🤝'],
   ['هلا، شكرًا إنك وافقت تساعدني! أنا', 'Hi, thanks for agreeing to help! I am'], ['هلا، أقدر أساعدك في', 'Hi, I can help you with'], ['تعال متى ما جهزت 👋', 'come over whenever you are ready 👋'], ['هلا!', 'Hi!'], ['أوصل', 'I arrive at'], ['وأكون', 'and will be'], ['أنا', 'I am'], ['ولا يهمك، أنتظرك', 'No problem, I will wait'], ['تمام، أنتظرك', 'Great, I will wait for you'], ['أحتاج مساعدة في', 'I need help with'],
+  ['مراجعة تصميم وهوية', 'Design and brand review'], ['مراجعة عرض تقديمي', 'Presentation review'], ['Excel ونماذج مالية', 'Excel and financial models'], ['Excel ومالية', 'Excel and finance'], ['كتابة وتدقيق نصوص', 'Writing and proofreading'], ['تطوير تطبيق', 'App development'], ['مراجعة عرض', 'Presentation review'], ['بايثون', 'Python'], ['برمجة', 'Programming'], ['تصوير', 'Photography'], ['هوية', 'Branding'], ['شعار', 'Logo'], ['تطبيق', 'App'],
+  ['أبني مشروع ناشئ وأحتاج مشورة في معمارية التطبيق وقاعدة البيانات.', 'I am building a startup and need advice on app architecture and the database.'],
+  ['أقدر أساعد في', 'I can help with'], ['مجالات', 'areas'],
   ['حفظ', 'Save'], ['رجوع', 'Back'], ['خيارات', 'Options'], ['حذف', 'Remove'], ['قريب منك', 'Near you'], ['منك', 'away'], ['متاح في', 'available in'], ['حاليًا', 'currently'], ['بس.', 'only.'], ['نبلغك أول ما نوصل مدينتك.', 'We will notify you when we launch in your city.'], ['لسا ما وصل', 'is not available in'], ['نفس الجنس فقط حسب تفضيلك.', 'Only the same gender is shown based on your preference.'], ['الاحتياجات تظهر بدون اسم أو صورة حتى الموافقة.', 'Requests stay anonymous until approval.'], ['يحتاج', 'Needs'], ['يوصل', 'Arrives'], ['الجلسة:', 'Seat:'], ['وقت التواجد', 'Availability'], ['نبذة', 'About'], ['يقدر يساعدك في', 'Can help you with'], ['تقدر تساعدك في', 'Can help you with'], ['الأنسب لـ:', 'Best matches for:'], ['حسب مهاراتك:', 'Based on your skills:'], ['إعادة التجربة من شاشة البداية', 'Restart from onboarding'], ['إعادة تعيين التجربة', 'Reset demo'], ['وضع العرض', 'Display mode'], ['محاكي الجوال', 'Phone preview'], ['العرض الموسع', 'Wide preview'],
 ]
 
 const arabic = /[\u0600-\u06ff]/
 
 // Short presence words that only appear on their own, so they are matched whole rather than inside other words.
-const EXACT: Record<string, string> = { 'طلع': 'Left', 'طلعت': 'Left', 'وصل': 'Arrived', 'وصلت': 'Arrived', 'وقته خلص': 'Time is up', 'أقل من دقيقة': 'under 1 min' }
+const EXACT: Record<string, string> = { 'طلع': 'Left', 'طلعت': 'Left', 'وصل': 'Arrived', 'وصلت': 'Arrived', 'وقته خلص': 'Time is up', 'أقل من دقيقة': 'under 1 min', 'مهارة': '1 skill', 'مهارتين': '2 skills', 'مجال': '1 area', 'مجالين': '2 areas' }
 
 export function toEnglish(value: string): string {
   if (!arabic.test(value)) return value
@@ -76,6 +79,7 @@ export function toEnglish(value: string): string {
   let result = value
     .replace(/(\d+) حولك يقدرون يساعدون الآن/g, '$1 people nearby can help now')
     .replace(/(\d+) احتياجات حولك اليوم/g, '$1 nearby requests today')
+    .replace(/(\d+) من (\d+) مهارات/g, '$1 of $2 skills')
   for (const [source, target] of [...EN].sort((a, b) => b[0].length - a[0].length)) result = result.split(source).join(target)
   // Countdown durations: «ساعتين و30 دقيقة» → «2 h 30 min» (minutes are already «min» from the list above).
   result = result

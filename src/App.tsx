@@ -325,7 +325,7 @@ function StayMeta({ g, seat, leaveAt, arriveAt, time }: { g: Gender; seat: strin
 }
 // Top corner of the card: where they sit in the café while they're there; nothing while they're on the way.
 const CardPresence = ({ presence, time, seat, leaveAt, arriveAt }: { presence: Presence; time: string; seat?: string; leaveAt?: number; arriveAt?: number }) =>
-  leaveAt ? (seat ? <span className="seat-chip"><MapPin />{seat}</span> : null) : arriveAt ? null : <PresenceBadge presence={presence} time={time} />
+  leaveAt ? (seat ? <span className="seat-chip" title={seat}><MapPin /><span>{seat}</span></span> : null) : arriveAt ? null : <PresenceBadge presence={presence} time={time} />
 
 function BrandLogo({ compact = false }: { compact?: boolean }) {
   return (
@@ -344,10 +344,10 @@ function StatusBar() {
   const { language, toggleLanguage } = useLanguage()
   return (
     <div className="statusbar" dir="ltr">
-      <b>9:41</b>
+      <span className="status-start"><b>9:41</b>
       <button type="button" className="language-toggle" onClick={toggleLanguage} data-no-translate aria-label={language === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}>
         <Languages /> <span>{language === 'ar' ? 'EN' : 'العربية'}</span>
-      </button>
+      </button></span>
       <div className="status-icons"><span className="signal">▮▮▮▮</span><span>⌁</span><span className="battery" /></div>
     </div>
   )
@@ -1048,8 +1048,8 @@ function MatchProfileScreen({ back, initialSkills, initialGoals, initialNeedDesc
 
         <section className="match-section">
           <div className="match-section-head">
-            <h3><Code2 /> {COPY.help} في</h3>
-            <span>{skills.length} مهارات</span>
+            <h3><Code2 /> {`${COPY.help} في`}</h3>
+            <span>{count(skills.length, 'مهارة', 'مهارتين', 'مهارات')}</span>
           </div>
           <p className="match-subtext">تظهر للموجودين في الكافيه لما يدورون على أحد يساعدهم في هالمجالات.</p>
           <div className="tag-cloud-editable">
@@ -1081,8 +1081,8 @@ function MatchProfileScreen({ back, initialSkills, initialGoals, initialNeedDesc
 
         <section className="match-section">
           <div className="match-section-head">
-            <h3><Handshake /> {COPY.seek} في</h3>
-            <span>{goals.length} مجالات</span>
+            <h3><Handshake /> {`${COPY.seek} في`}</h3>
+            <span>{count(goals.length, 'مجال', 'مجالين', 'مجالات')}</span>
           </div>
           <p className="match-subtext">حدد المجالات اللي تحتاج فيها مساعدة عادةً، عشان نوريك القريبين اللي عندهم هالخبرة.</p>
           <div className="goal-chips-grid">
@@ -1168,7 +1168,6 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
           </div>
         </section>
         <button className="account-row" onClick={onMatchProfile}>
-          <ChevronLeft />
           <div>
             <small className="eyebrow">اللي يشوفه الناس حولك</small>
             <h3>مهاراتي واحتياجاتي</h3>
@@ -1178,6 +1177,7 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
               {availableForHelp && <span>متاح للمساعدة <HeartHandshake /></span>}
             </div>
           </div>
+          <ChevronLeft />
         </button>
         <div className="account-stats">
           <span><b>12</b><small>مرة ساعدت</small></span>
@@ -1355,6 +1355,14 @@ function ChatScreen({ c, back, send, onMenu, onMet }: { c: Connection; back: () 
   )
 }
 
+const DEMO_NAME = 'سامر خليلي'
+const DEMO_JOB = 'مطور واجهات أمامية · الرياض'
+// Inputs aren't page text, so the demo profile is shown in the current language until the person edits it.
+const useDemoText = () => {
+  const { language } = useLanguage()
+  return (v: string) => (language === 'en' && (v === DEMO_NAME || v === DEMO_JOB) ? toEnglish(v) : v)
+}
+
 function ProfileSetupSheet({ close, next, editing = false, name, setName, job, setJob, gender, setGender, pref, setPref, privateMode, setPrivateMode }: {
   pref: MeetPref;
   setPref: (p: MeetPref) => void;
@@ -1370,6 +1378,7 @@ function ProfileSetupSheet({ close, next, editing = false, name, setName, job, s
   privateMode: boolean;
   setPrivateMode: (v: boolean) => void;
 }) {
+  const demoText = useDemoText()
   return (
     <BottomSheet onClose={close} tall>
       <div className="sheet-title">
@@ -1384,9 +1393,9 @@ function ProfileSetupSheet({ close, next, editing = false, name, setName, job, s
         <span><Camera /> غيّر الصورة</span>
       </label>
       <label className="field-label" htmlFor="me-name">وش اسمك؟</label>
-      <input id="me-name" className="field" value={name} onChange={e => setName(e.target.value)} />
+      <input id="me-name" className="field" value={demoText(name)} onChange={e => setName(e.target.value)} />
       <label className="field-label" htmlFor="me-job">وش تشتغل؟</label>
-      <input id="me-job" className="field" value={job} onChange={e => setJob(e.target.value)} placeholder="مثلاً: مطور واجهات أمامية · الرياض" />
+      <input id="me-job" className="field" value={demoText(job)} onChange={e => setJob(e.target.value)} placeholder="مثلاً: مطور واجهات أمامية · الرياض" />
       <label className="field-label">أنت</label>
       <div className="chip-row"><Chip active={gender === 'm'} onClick={() => setGender('m')}>رجل</Chip><Chip active={gender === 'f'} onClick={() => setGender('f')}>امرأة</Chip></div>
       <label className="field-label">تفضّل تتواصل مع</label>
@@ -1433,7 +1442,7 @@ function SkillsSheet({ close, initial, save }: { close: () => void; initial: str
           </Chip>
         ))}
       </div>
-      <p className="skill-entry-hint">{skills.length} من {BUSINESS.MAX_SKILLS_PER_USER} مهارات</p>
+      <p className="skill-entry-hint">{`${skills.length} من ${BUSINESS.MAX_SKILLS_PER_USER} مهارات`}</p>
       <PrimaryButton onClick={() => save(skills)} disabled={!skills.length}>حفظ ومتابعة</PrimaryButton>
     </BottomSheet>
   )
@@ -1576,8 +1585,8 @@ export default function App() {
 
   const [sheet, setSheet] = useState<Sheet>(null)
   const [profileReady, setProfileReady] = useState(false)
-  const [myName, setMyName] = useState('سامر خليلي')
-  const [myJob, setMyJob] = useState('مطور واجهات أمامية · الرياض')
+  const [myName, setMyName] = useState(DEMO_NAME)
+  const [myJob, setMyJob] = useState(DEMO_JOB)
   const [myGender, setMyGender] = useState<Gender>('m')
   const [meetPref, setMeetPref] = useState<MeetPref>('all')
   const [loc, setLocRaw] = useState<Loc>(() => load('around-loc', DEFAULT_LOC))
