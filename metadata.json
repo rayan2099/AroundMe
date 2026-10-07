@@ -3,9 +3,5 @@
   "description": "منصة AroundMe للربط المهني والتعاون في المقاهي وأماكن العمل المشتركة حسب المهارات والاحتياجات في نفس المكان وبموافقة الطرفين.",
   "requestFramePermissions": [
     "geolocation"
-  ],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]
 }
-

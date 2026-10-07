@@ -1,20 +1,43 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# AroundMe
 
-# Run and deploy your AI Studio app
+واجهة عربية متجاوبة تربط الموجودين في المقاهي ومساحات العمل بمن يستطيع مساعدتهم أو يحتاج إلى خبراتهم، مع إبقاء التواصل اختيارياً وبموافقة الطرفين.
 
-This contains everything you need to run your app locally.
+## التشغيل محلياً
 
-View your app in AI Studio: https://ai.studio/apps/40e48ee7-d57c-4a44-b7b8-f473ecf8647e
+المتطلبات: Node.js 20.19 أو أحدث وnpm 10 أو أحدث.
 
-## Run Locally
+```bash
+git clone https://github.com/rayan2099/AroundMe.git
+cd AroundMe
+npm ci
+npm run dev
+```
 
-**Prerequisites:**  Node.js
+ثم افتح `http://localhost:3000`.
 
+لا يحتاج المشروع إلى مفاتيح API أو متغيرات بيئة. الصور والخط العربي المستخدمان في الواجهة مضمنان داخل المشروع، لذلك لا تعتمد الواجهة على خدمات صور أو خطوط خارجية وقت التشغيل.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## أوامر المشروع
+
+```bash
+npm run dev      # خادم التطوير على المنفذ 3000
+npm run lint     # فحص TypeScript
+npm run build    # إنشاء نسخة الإنتاج داخل dist
+npm run preview  # معاينة نسخة الإنتاج
+npm run check    # تشغيل الفحص والبناء معاً
+```
+
+## بنية المشروع
+
+- `src/App.tsx` — شاشات التطبيق وتدفقاتها التفاعلية.
+- `src/index.css` — نظام التصميم والاستجابة والحركة.
+- `src/constants.ts` — بيانات العرض المشتركة.
+- `public/assets` — الرسوم والصور المحلية المستخدمة في الواجهة.
+- `UX_AUDIT.md` — توثيق مراجعة تجربة المستخدم وقرارات التصميم.
+
+## ملاحظات
+
+- اتجاه الواجهة عربي من اليمين إلى اليسار (`RTL`).
+- تدعم الواجهة العربية والإنجليزية بالكامل، ويتحوّل اتجاهها تلقائياً بين `RTL` و`LTR`. في الوضع الإنجليزي تستخدم بيانات Vancouver, BC والمقاهي المحلية المخصصة لذلك السوق.
+- بيانات الأشخاص والمقاهي تجريبية حالياً ولا توجد خدمة خلفية.
+- إذن الموقع مطلوب فقط عند اختيار تحديد الموقع تلقائياً، ويمكن إكمال التهيئة باختيار المدينة والحي يدوياً.
