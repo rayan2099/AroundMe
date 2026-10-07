@@ -5850,9 +5850,13 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .screen::-webkit-scrollbar { d
 .service-footer > .stay-meta { white-space: nowrap; min-width: 0; }
 .service-footer > button { white-space: nowrap; flex-shrink: 0; }
 @media (max-width: 400px) {
-  /* The seat chip stays in the card's top corner but gets more compact,
-     so the name keeps its room. */
   .service-card-head { column-gap: 8px; }
-  .service-card-head .seat-chip { padding: 2px 7px; gap: 3px; font-size: 10.5px; max-width: 78px; }
+  .service-card-head .seat-chip { padding: 2px 7px; gap: 3px; font-size: 10.5px; }
   .service-card-head .seat-chip svg { width: 11px; height: 11px; }
 }
+
+/* The seat tag in the card's top corner always shows in full; a name that
+   doesn't fit beside it wraps onto a second line instead. */
+.service-card-head > :not(.service-card-user) { max-width: none; }
+.service-card-head .seat-chip, .seat-chip > span { overflow: visible; text-overflow: clip; }
+.service-card-user h3 { white-space: normal; text-wrap: balance; overflow-wrap: anywhere; line-height: 1.25; }
