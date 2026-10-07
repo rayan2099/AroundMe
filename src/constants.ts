@@ -4,4 +4,5 @@ export const BUSINESS = {
   DEFAULT_CAFE: 'مقهى الحطب',
   OTP_LENGTH: 6,
   OTP_RESEND_SECONDS: 30,
+  MAX_SKILLS_PER_USER: 8,
 };
