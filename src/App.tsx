@@ -241,10 +241,10 @@ function StayMeta({ g, seat, leaveAt, arriveAt, time }: { g: Gender; seat: strin
   const t = useNow()
   if (leaveAt) {
     const soon = leaveAt - t <= 15 * 60000
-    return <div className={`service-meta-info stay-meta ${soon ? 'is-soon' : ''}`} title={`${g === 'f' ? 'تطلع' : 'يطلع'} من الكافيه الساعة ${clock(leaveAt)}`}><Coffee />{leaveAt - t <= 0 ? (g === 'f' ? 'طلعت' : 'طلع') : `باقي ${timeLeft(leaveAt, t)}`}</div>
+    return <div className={`service-meta-info stay-meta ${soon ? 'is-soon' : ''}`} title={`${g === 'f' ? 'تطلع' : 'يطلع'} من الكافيه الساعة ${clock(leaveAt)}`}><Coffee />{leaveAt - t <= 0 ? (g === 'f' ? 'طلعت' : 'طلع') : `مغادرة بعد: ${timeLeft(leaveAt, t)}`}</div>
   }
   if (arriveAt) {
-    return <div className="service-meta-info stay-meta is-coming" title={`الساعة ${time}`}><Footprints />{arriveAt - t <= 0 ? (g === 'f' ? 'وصلت' : 'وصل') : `${g === 'f' ? 'توصل' : 'يوصل'} بعد ${timeLeft(arriveAt, t)}`}</div>
+    return <div className="service-meta-info stay-meta is-coming" title={`الساعة ${time}`}><Footprints />{arriveAt - t <= 0 ? (g === 'f' ? 'وصلت' : 'وصل') : `وصول بعد: ${timeLeft(arriveAt, t)}`}</div>
   }
   return <div className="service-meta-info"><MapPin />{seat}</div>
 }
@@ -983,7 +983,7 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
           <>
             <div>
               <small><i className="live-dot" /> أنت متواجد هنا · {checkedIn!.mode === 'seek' ? COPY.seek : COPY.help}</small>
-              <b>{checkedIn!.leaveAt ? <StayLeft leaveAt={checkedIn!.leaveAt} prefix="تطلع من الكافيه بعد " /> : `تظهر كقادم ${checkedIn!.when} · بتجلس ${span(checkedIn!.stay)}`}</b>
+              <b>{checkedIn!.leaveAt ? <StayLeft leaveAt={checkedIn!.leaveAt} prefix="مغادرة بعد: " /> : `تظهر كقادم ${checkedIn!.when} · بتجلس ${span(checkedIn!.stay)}`}</b>
             </div>
             <button type="button" className="ghost-button" onClick={onEndCheckin}>إنهاء التواجد</button>
           </>
