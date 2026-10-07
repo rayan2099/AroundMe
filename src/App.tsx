@@ -22,6 +22,12 @@ export type RequestState = 'pending' | 'declined' | 'connected' | null
 
 const LanguageCtx = createContext<{ language: Language; toggleLanguage: () => void }>({ language: 'ar', toggleLanguage: () => undefined })
 const useLanguage = () => useContext(LanguageCtx)
+// Search what people actually see: in English the data is still Arabic, so match the translated text too.
+const useSearch = (query: string) => {
+  const { language } = useLanguage()
+  const q = query.trim().toLowerCase()
+  return (s: string) => !q || (language === 'en' ? `${s} ${toEnglish(s)}` : s).toLowerCase().includes(q)
+}
 
 const originalText = new WeakMap<Text, string>()
 const originalAttributes = new WeakMap<Element, Map<string, string>>()
@@ -190,7 +196,12 @@ const fmtEta = (km: number) => (km <= 1.2 ? `${Math.max(2, Math.round(km * 12))}
 
 // Everything the lists show comes from here, so counts, lists and maps can never disagree.
 type Data = { loc: Loc; live: boolean; cafes: Cafe[]; people: Person[]; needs: Need[]; samePref: boolean }
-const buildData = (loc: Loc, myGender: Gender, pref: MeetPref): Data => {
+// Presence follows the demo timers: people whose time is up leave the lists, and people who arrive count as here now.
+const ARRIVED_STAY = 90 * 60000
+const atTime = <T extends { presence: Presence; leaveAt?: number; arriveAt?: number }>(xs: T[], now: number): T[] => xs
+  .filter(x => !x.leaveAt || x.leaveAt > now)
+  .map(x => (x.arriveAt && x.arriveAt <= now ? { ...x, presence: 'now' as Presence, time: '', arriveAt: undefined, leaveAt: x.arriveAt + ARRIVED_STAY } : x))
+const buildData = (loc: Loc, myGender: Gender, pref: MeetPref, now = Date.now()): Data => {
   const live = loc.city === LIVE_CITY
   const me = AREAS[loc.area] ?? [0, 0]
   const cafes = live
@@ -199,8 +210,8 @@ const buildData = (loc: Loc, myGender: Gender, pref: MeetPref): Data => {
   const ok = (g: Gender) => pref === 'all' || g === myGender
   return {
     loc, live, cafes,
-    people: live ? allPeople.filter(p => ok(p.g)) : [],
-    needs: live ? allNeeds.filter(n => ok(n.g)) : [],
+    people: live ? atTime(allPeople.filter(p => ok(p.g)), now) : [],
+    needs: live ? atTime(allNeeds.filter(n => ok(n.g)), now) : [],
     samePref: pref === 'same',
   }
 }
@@ -809,7 +820,7 @@ function PeopleScreen({ onTab, unread, h, actionMode, onActionModeChange, presen
   const d = useData()
   const [searching, setSearching] = useState(false)
   const [query, setQuery] = useState('')
-  const match = (s: string) => !query.trim() || s.toLowerCase().includes(query.trim().toLowerCase())
+  const match = useSearch(query)
   const byPresence = (p: Presence) => presenceFilter === 'all' || p === presenceFilter
   const seek = actionMode === 'seek'
   const pool: { presence: Presence }[] = seek ? d.people : d.needs
@@ -886,8 +897,9 @@ function MapScreen({ onTab, unread, onCafe, actionMode, onActionModeChange, cont
   const d = useData()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'open' | 'quiet' | 'outdoor'>('all')
+  const match = useSearch(query)
   const visible = d.cafes.filter(c =>
-    (!query || `${c.name} ${c.area}`.includes(query)) &&
+    match(`${c.name} ${c.area}`) &&
     (filter === 'all' || (filter === 'open' && c.isOpen) || (filter === 'quiet' && c.amenities.includes('هادئ للعمل')) || (filter === 'outdoor' && c.amenities.includes('جلسات خارجية'))))
   const counts = d.cafes.map(c => cafeCount(d, c.name, actionMode))
   const bestIdx = counts.indexOf(Math.max(0, ...counts))
@@ -1599,7 +1611,8 @@ export default function App() {
 
   const setMySkills = (s: string[]) => { setMySkillsRaw(s); store('around-skills', s) }
   const setLoc = (l: Loc) => { setLocRaw(l); store('around-loc', l); setSheet(null); say(l.city === LIVE_CITY ? `نعرض لك الأقرب من ${locLabel(l)}` : `اخترت ${l.city}`) }
-  const data = buildData(loc, myGender, meetPref)
+  const clockNow = useNow(15000)
+  const data = buildData(loc, myGender, meetPref, clockNow)
   const unread = connections.reduce((n, c) => n + c.unread, 0)
   const active = connections.find(c => c.status === 'active')
   const chat = connections.find(c => c.id === chatId)

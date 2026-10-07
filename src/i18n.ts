@@ -53,6 +53,15 @@ const EN: [string, string][] = [
   ['تطلع من الكافيه الساعة', 'Leaves the coffee shop at'], ['يطلع من الكافيه الساعة', 'Leaves the coffee shop at'], ['توصل الكافيه بعد', 'Arrives at the coffee shop in'], ['يوصل الكافيه بعد', 'Arrives at the coffee shop in'], ['وصلت الكافيه', 'Arrived at the coffee shop'], ['وصل الكافيه', 'Arrived at the coffee shop'],
   ['ابحث عن كافيه أو حي', 'Search coffee shops or neighbourhoods'], ['نوع الأشخاص حولك', 'Who is nearby'], ['تصميم تطبيق', 'App design'], ['الأنسب', 'Best match'], ['الأقرب', 'Nearest'], ['الموقع:', 'Location:'], ['تغيير', 'Change'], ['بحث', 'Search'],
   ['مغادرة بعد:', 'Leaves in:'], ['وصول بعد:', 'Arrives in:'], ['توصل', 'Arrives'], ['الساعة', 'at'],
+  ['ما لقينا أحد بهالخيارات', 'No one matches these options'], ['جرّب «الكل» أو كلمة بحث ثانية.', 'Try "All" or a different search.'], ['ما لقينا كافيه بهالخيارات', 'No coffee shops match these options'], ['جرّب اسم الحي بدل اسم الكافيه.', 'Try the neighbourhood instead of the coffee shop name.'], ['جرّب فلتر ثاني.', 'Try a different filter.'], ['اعرض الكل', 'Show all'],
+  ['ابحث بالمهارة أو التخصص', 'Search by skill or field'], ['ابحث بنوع الاحتياج', 'Search by type of request'], ['إغلاق البحث', 'Close search'], ['إلغاء الحفظ', 'Unsave'], ['حفظ الكافيه', 'Save coffee shop'], ['عن المكان', 'About the place'],
+  ['حالياً متاح في', 'Currently available in'], ['ما وصلنا', 'Not yet in'], ['للحين', ''], ['ويظهر لك نفس الجنس فقط حسب تفضيلك.', 'Only the same gender is shown based on your preference.'],
+  ['بيشوف طلبك بدون اسمك وصورتك، ويظهرون بعد الموافقة', 'will see your request without your name and photo until approval'], ['بتشوف طلبك بدون اسمك وصورتك، ويظهرون بعد الموافقة', 'will see your request without your name and photo until approval'], ['بيشوف اسمك وصورتك مع الطلب', 'will see your name and photo with the request'], ['بتشوف اسمك وصورتك مع الطلب', 'will see your name and photo with the request'],
+  ['كم تحتاج من وقته تقريبًا؟', 'About how much of his time do you need?'], ['كم تحتاج من وقتها تقريبًا؟', 'About how much of her time do you need?'], ['تطلب مساعدة', 'Ask for help from'], ['إلى صاحب الاحتياج', 'To the person who needs help'], ['إلى', 'To'],
+  ['نعرض لك الأقرب من', 'Showing the closest to'], ['اخترت', 'You chose'], ['ألغينا طلبك', 'Request cancelled'], ['ألغينا عرضك', 'Offer cancelled'], ['ألغينا الطلب', 'Request cancelled'], ['ألغينا العرض', 'Offer cancelled'],
+  ['نتمنى إنه كان لقاء مفيد', 'We hope it was a useful meeting'], ['حظرت هذا الشخص', 'You blocked this person'], ['حظرت', 'You blocked'], ['أنهيت المحادثة', 'You ended the chat'], ['حفظنا مهاراتك واحتياجاتك', 'Saved your skills and needs'], ['حفظنا التعديلات', 'Changes saved'], ['وصلنا بلاغك، وبنراجعه بأسرع وقت', 'We got your report and will review it soon'], ['حفظنا الكافيه في حسابك', 'Coffee shop saved to your account'], ['شلنا الكافيه من المحفوظة', 'Removed from saved coffee shops'],
+  ['تقابلتوا. نتمنى إنه كان لقاء مفيد', 'You met. We hope it was useful'], ['ما تقابلتوا بعد. كمّلوا التنسيق هنا', 'You have not met yet. Keep coordinating here'], ['انتهت المحادثة', 'Chat ended'], ['تقابلتوا', 'You met'], ['اتفقتوا 🤝', 'Agreed 🤝'],
+  ['هلا، شكرًا إنك وافقت تساعدني! أنا', 'Hi, thanks for agreeing to help! I am'], ['هلا، أقدر أساعدك في', 'Hi, I can help you with'], ['تعال متى ما جهزت 👋', 'come over whenever you are ready 👋'], ['هلا!', 'Hi!'], ['أوصل', 'I arrive at'], ['وأكون', 'and will be'], ['أنا', 'I am'], ['ولا يهمك، أنتظرك', 'No problem, I will wait'], ['تمام، أنتظرك', 'Great, I will wait for you'], ['أحتاج مساعدة في', 'I need help with'],
   ['حفظ', 'Save'], ['رجوع', 'Back'], ['خيارات', 'Options'], ['حذف', 'Remove'], ['قريب منك', 'Near you'], ['منك', 'away'], ['متاح في', 'available in'], ['حاليًا', 'currently'], ['بس.', 'only.'], ['نبلغك أول ما نوصل مدينتك.', 'We will notify you when we launch in your city.'], ['لسا ما وصل', 'is not available in'], ['نفس الجنس فقط حسب تفضيلك.', 'Only the same gender is shown based on your preference.'], ['الاحتياجات تظهر بدون اسم أو صورة حتى الموافقة.', 'Requests stay anonymous until approval.'], ['يحتاج', 'Needs'], ['يوصل', 'Arrives'], ['الجلسة:', 'Seat:'], ['وقت التواجد', 'Availability'], ['نبذة', 'About'], ['يقدر يساعدك في', 'Can help you with'], ['تقدر تساعدك في', 'Can help you with'], ['الأنسب لـ:', 'Best matches for:'], ['حسب مهاراتك:', 'Based on your skills:'], ['إعادة التجربة من شاشة البداية', 'Restart from onboarding'], ['إعادة تعيين التجربة', 'Reset demo'], ['وضع العرض', 'Display mode'], ['محاكي الجوال', 'Phone preview'], ['العرض الموسع', 'Wide preview'],
 ]
 
@@ -79,8 +88,8 @@ export function toEnglish(value: string): string {
     .replace(/(\d+(?:\.\d+)?) كم/g, '$1 km')
     .replace(/(\d+) م(?=\s|$|·)/g, '$1 m')
   result = result.replaceAll('،', ',')
-  // Never leak mixed-language UI. Unknown copy remains identifiable during QA.
-  return arabic.test(result) ? result.replace(/[\u0600-\u06ff]+(?:[\s،؛ـ]+[\u0600-\u06ff]+)*/g, 'English') : result
+  // Copy without a translation, and anything people type themselves, stays as written rather than being hidden.
+  return result
 }
 
 export const englishCafeName = (name: string) => toEnglish(name)
