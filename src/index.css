@@ -5850,9 +5850,9 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .screen::-webkit-scrollbar { d
 .service-footer > .stay-meta { white-space: nowrap; min-width: 0; }
 .service-footer > button { white-space: nowrap; flex-shrink: 0; }
 @media (max-width: 400px) {
-  /* Name and job get the full width; the seat chip moves under the job line. */
-  .service-card-head { grid-template-rows: auto auto auto; }
-  .service-card-user > :first-child { grid-row: 1 / span 3; }
-  .service-card-user h3 { grid-column: 2 / span 2; }
-  .service-card-head > :not(.service-card-user) { grid-column: 2 / span 2; grid-row: 3; justify-self: start; margin-top: 6px; }
+  /* The seat chip stays in the card's top corner but gets more compact,
+     so the name keeps its room. */
+  .service-card-head { column-gap: 8px; }
+  .service-card-head .seat-chip { padding: 2px 7px; gap: 3px; font-size: 10.5px; max-width: 78px; }
+  .service-card-head .seat-chip svg { width: 11px; height: 11px; }
 }
