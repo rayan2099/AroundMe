@@ -941,7 +941,7 @@ button:disabled {
   -webkit-backdrop-filter: blur(18px);
   display: flex;
   box-shadow: 0 6px 28px rgba(0, 0, 0, 0.1);
-  padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+  padding: 6px 6px calc(6px + var(--safe-bottom));
   border: 1px solid rgba(255, 255, 255, 0.85);
 }
 
@@ -1324,7 +1324,7 @@ button:disabled {
 }
 
 .sticky-action {
-  padding: 18px 24px calc(24px + env(safe-area-inset-bottom));
+  padding: 18px 24px calc(24px + var(--safe-bottom));
   background: linear-gradient(to top, #faf8f5 60%, rgba(250, 248, 245, 0));
   margin-top: auto;
 }
@@ -3293,7 +3293,7 @@ button:disabled {
   background: rgba(250, 249, 247, 0.96);
   backdrop-filter: blur(16px);
   border-top: 1px solid var(--border);
-  padding: 12px 18px calc(14px + env(safe-area-inset-bottom));
+  padding: 12px 18px calc(14px + var(--safe-bottom));
   display: flex;
   align-items: center;
   gap: 12px;
@@ -4097,7 +4097,7 @@ button:disabled {
   bottom: 0;
   inset-inline: 0;
   background: rgba(250, 249, 247, 0.96);
-  padding: 8px 14px calc(14px + env(safe-area-inset-bottom));
+  padding: 8px 14px calc(14px + var(--safe-bottom));
   backdrop-filter: blur(16px);
   border-top: 1px solid var(--border);
   z-index: 15;
@@ -4162,7 +4162,7 @@ button:disabled {
   text-align: center;
   font-size: 13px;
   color: var(--muted);
-  padding: 16px 12px calc(16px + env(safe-area-inset-bottom));
+  padding: 16px 12px calc(16px + var(--safe-bottom));
 }
 
 .chat-inbox-route-btn {
@@ -4237,7 +4237,7 @@ button:disabled {
   border-radius: 28px 28px 0 0;
   width: 100%;
   max-width: 600px;
-  padding: 18px 22px calc(24px + env(safe-area-inset-bottom));
+  padding: 18px 22px calc(24px + var(--safe-bottom));
   max-height: 88vh;
   overflow-y: auto;
   animation: rise 0.28s ease-out;
@@ -5793,3 +5793,66 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .screen::-webkit-scrollbar { d
 .service-card-user p { grid-column: 2 / span 2; grid-row: 2; align-self: start; min-width: 0; }
 .service-card-head > :not(.service-card-user) { grid-column: 3; grid-row: 1; align-self: center; min-width: 0; max-width: 100%; }
 .seat-chip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Phone safe areas (2026-10-07): keep the floating tab bar, sticky actions
+   and the reset button clear of the iPhone home indicator. */
+:root { --safe-bottom: env(safe-area-inset-bottom, 0px); }
+.tabbar { bottom: max(12px, var(--safe-bottom)); padding: 6px; }
+.app-screen { padding-bottom: calc(96px + max(12px, var(--safe-bottom))); }
+.demo-reset { bottom: calc(92px + max(12px, var(--safe-bottom))); }
+
+/* Keep the status bar on top while a screen scrolls, so content never runs
+   under the clock or the camera cut-out. It turns solid once scrolling starts. */
+.screen > .statusbar,
+.map-screen.cafe-list-screen > .statusbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+@media (max-width: 699px) {
+  /* overflow-x: hidden made .screen a scroll box that never scrolls,
+     which stops sticky children; clip hides sideways overflow the same way. */
+  .screen { overflow: visible; overflow-x: clip; }
+}
+@supports (animation-timeline: scroll()) {
+  .screen > .statusbar {
+    animation: statusbar-fill linear both;
+    animation-timeline: scroll(nearest);
+    animation-range: 0 24px;
+  }
+}
+@keyframes statusbar-fill {
+  from { background: rgba(250, 249, 247, 0); box-shadow: none; }
+  to { background: rgba(250, 249, 247, 0.92); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05); backdrop-filter: blur(14px); }
+}
+/* Coffee shop page: its status bar lives on the cover photo, so add a bar
+   that fades in once the photo has scrolled away. */
+.cafe-detail-screen::before {
+  content: "";
+  display: block;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: 44px;
+  margin-bottom: -44px;
+  pointer-events: none;
+}
+@supports (animation-timeline: scroll()) {
+  .cafe-detail-screen::before {
+    animation: statusbar-fill linear both;
+    animation-timeline: scroll(nearest);
+    animation-range: 140px 190px;
+  }
+}
+
+/* Narrow phones (360–390px) */
+.search-field input { min-width: 0; width: 100%; }
+.service-footer > .stay-meta { white-space: nowrap; min-width: 0; }
+.service-footer > button { white-space: nowrap; flex-shrink: 0; }
+@media (max-width: 400px) {
+  /* Name and job get the full width; the seat chip moves under the job line. */
+  .service-card-head { grid-template-rows: auto auto auto; }
+  .service-card-user > :first-child { grid-row: 1 / span 3; }
+  .service-card-user h3 { grid-column: 2 / span 2; }
+  .service-card-head > :not(.service-card-user) { grid-column: 2 / span 2; grid-row: 3; justify-self: start; margin-top: 6px; }
+}
