@@ -637,7 +637,15 @@ function OtpScreen({ next, back }: { next: () => void; back: () => void }) {
         <span className="form-icon"><ShieldCheck /></span>
         <h1>اكتب الرمز اللي وصلك</h1>
         <p>أرسلنا رمز التحقق المكوّن من {BUSINESS.OTP_LENGTH} أرقام.</p>
-        <input className="otp-input" dir="ltr" autoFocus inputMode="numeric" maxLength={BUSINESS.OTP_LENGTH} placeholder="• • • • • •" value={code} aria-label="رمز التحقق" onChange={e => setCode(e.target.value.replace(/\D/g, ''))} />
+        {/* One real input (keeps paste and SMS autofill) drawn as one box per digit. */}
+        <label className="otp-field" dir="ltr">
+          <input className="otp-input" autoFocus inputMode="numeric" autoComplete="one-time-code" maxLength={BUSINESS.OTP_LENGTH} value={code} aria-label="رمز التحقق" onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, BUSINESS.OTP_LENGTH))} />
+          <span className="otp-boxes" aria-hidden="true">
+            {Array.from({ length: BUSINESS.OTP_LENGTH }, (_, i) => (
+              <span key={i} className={`otp-box ${code[i] ? 'filled' : ''} ${i === Math.min(code.length, BUSINESS.OTP_LENGTH - 1) ? 'current' : ''}`}>{code[i] || ''}</span>
+            ))}
+          </span>
+        </label>
         <button className="text-button" disabled={resendIn > 0} onClick={() => { setCode(''); setResendIn(BUSINESS.OTP_RESEND_SECONDS) }}>
           {resendIn ? `إعادة الإرسال بعد ${resendIn} ث` : 'أرسل الرمز مرة ثانية'}
         </button>
