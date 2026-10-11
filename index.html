@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ar"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AroundMe</title>
+<script>if(Math.min(screen.width,innerWidth)<500)location.replace('app.html');</script>
+<style>
+:root{--ground:#e9ece8;--ground-2:#dfe4df;--ink:#2a3330;--frame:#1f2321;--frame-edge:#3a403d;--button:#2b302d}
+@media (prefers-color-scheme: dark){:root{--ground:#121514;--ground-2:#1b1f1d;--ink:#e3e8e5;--frame:#0b0d0c;--frame-edge:#4a514d;--button:#3a403d;color-scheme:dark}}
+html,body{height:100%}
+body{margin:0;background:radial-gradient(120% 90% at 50% 30%,var(--ground) 0%,var(--ground-2) 100%);color:var(--ink);font-family:system-ui,sans-serif;overflow:hidden}
+.stage{height:100%;display:flex;align-items:center;justify-content:center;padding-inline:16px}
+.scaler{width:417px;height:876px;flex:none;transform-origin:center center}
+.phone{position:relative;width:417px;height:876px;border-radius:66px;background:var(--frame);box-shadow:0 0 0 2px var(--frame-edge),0 0 0 5px var(--frame),0 40px 80px -20px rgba(0,0,0,.45),0 18px 30px -12px rgba(0,0,0,.3)}
+.screen{position:absolute;inset:12px;border-radius:54px;overflow:hidden;background:#f7f7f4}
+.screen iframe{display:block;width:393px;height:852px;border:0}
+.island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:124px;height:36px;border-radius:20px;background:#000;z-index:5;pointer-events:none}
+.home{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(0,0,0,.75);z-index:5;pointer-events:none}
+.btn{position:absolute;width:4px;background:var(--button);border-radius:2px}
+.btn.action{left:-7px;top:140px;height:32px}.btn.vol-up{left:-7px;top:200px;height:62px}.btn.vol-down{left:-7px;top:276px;height:62px}.btn.power{right:-7px;top:230px;height:100px}
+</style></head><body>
+<main class="stage"><div class="scaler" id="scaler"><div class="phone" aria-label="AroundMe on an iPhone">
+<span class="btn action"></span><span class="btn vol-up"></span><span class="btn vol-down"></span><span class="btn power"></span>
+<div class="screen"><div class="island"></div><iframe src="app.html" title="AroundMe app"></iframe><div class="home"></div></div>
+</div></div></main>
+<script>const s=document.getElementById('scaler');function fit(){const k=Math.min((innerHeight-32)/876,(innerWidth-32)/417,1);s.style.transform='scale('+k+')';s.style.margin=(-(876*(1-k))/2)+'px '+(-(417*(1-k))/2)+'px';}addEventListener('resize',fit);fit();</script>
+</body></html>
