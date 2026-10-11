@@ -5910,3 +5910,29 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .screen::-webkit-scrollbar { d
 .service-card-head > :not(.service-card-user) { max-width: none; }
 .service-card-head .seat-chip, .seat-chip > span { overflow: visible; text-overflow: clip; }
 .service-card-user h3 { white-space: normal; text-wrap: balance; overflow-wrap: anywhere; line-height: 1.25; }
+
+/* Café brand logo: a white tile on the café photo in the list, and beside the name on the café page. */
+.cafe-image > img.cafe-logo {
+  inset: auto;
+  bottom: 7px;
+  inset-inline-start: 7px;
+  width: 58px;
+  height: 30px;
+  padding: 4px 6px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+.cafe-title-row { display: flex; align-items: center; gap: 12px; }
+.cafe-title-row > div { flex: 1; min-width: 0; }
+.cafe-title-logo {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  padding: 8px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
