@@ -2,6 +2,7 @@ export type Language = 'ar' | 'en'
 
 // Ordered longest-first so complete phrases win before individual terms.
 const EN: [string, string][] = [
+  ['زيارتك القادمة', 'Your next visit'], ['بدأت زيارتك', 'Your visit has started'], ['زيارة جديدة', 'New visit'], ['خطّط لزيارتك للكافيه', 'Plan your coffee shop visit'], ['اختر المكان والوقت، وقل ليش بتزور', 'Pick the place and time, and say why you are visiting'], ['تبدأ بعد', 'Starts in'],
   ['أشتغل على مشروعي', 'Working on my project'], ['أبحث عن مساعدة', 'Looking for help'], ['أبغى أساعد غيري', 'Here to help others'], ['ألتقي شخصًا', 'Meeting someone'],
   ['ليش بتزور؟', 'Why are you visiting?'], ['وش بتشتغل عليه؟', 'What will you work on?'], ['وش تقدر تساعد فيه؟', 'What can you help with?'],
   ['مثلاً: أبني واجهة تطبيقي الجديد', 'e.g. Building my new app UI'], ['مثلاً: مراجعة كود React', 'e.g. Reviewing React code'],

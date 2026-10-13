@@ -704,7 +704,8 @@ function MetPrompt({ name, onAnswer }: { name: string; onAnswer: (met: boolean) 
   )
 }
 
-function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, onLocation }: {
+function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, onLocation, visit, now, onPlanVisit, onOpenVisit }: {
+  visit?: Visit; now: number; onPlanVisit: () => void; onOpenVisit: (cafe: string) => void;
   onTab: (t: Tab) => void; unread: number; openIntent: (mode: ActionMode) => void; active?: Connection;
   onChat: () => void; onMet: (met: boolean) => void; onLocation: () => void;
 }) {
@@ -758,6 +759,40 @@ function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, onLocati
           </button>
         </div>
         <div className="gateway-trust"><ShieldCheck /><span><small>{COPY.consent}</small></span></div>
+      </section>
+
+      <section className="home-visit">
+        {visit ? (
+          <>
+            <button className="home-visit-card" onClick={() => onOpenVisit(visit.cafe)}>
+              <img src={allCafes.find(c => c.name === visit.cafe)?.image} alt="" onError={hidePhoto} />
+              <span className="home-visit-copy">
+                <small><CalendarClock /> زيارتك القادمة</small>
+                <b>{visit.cafe}</b>
+                <em>{visitWhen(visit.at, now)}</em>
+                <i>{visit.at <= now ? 'بدأت زيارتك' : `تبدأ بعد ${timeLeft(visit.at, now)}`}</i>
+              </span>
+              <ChevronLeft />
+            </button>
+            {(visit.why || visit.workOn || visit.canHelp) && (
+              <div className="home-visit-notes">
+                {visit.why && <span>{visit.why}</span>}
+                {visit.workOn && <span>بشتغل على: {visit.workOn}</span>}
+                {visit.canHelp && <span>أقدر أساعد في: {visit.canHelp}</span>}
+              </div>
+            )}
+            <button className="home-visit-add" onClick={onPlanVisit}><CalendarPlus /> زيارة جديدة</button>
+          </>
+        ) : (
+          <button className="home-visit-cta" onClick={onPlanVisit}>
+            <span className="home-visit-icon"><CalendarPlus /></span>
+            <span className="home-visit-copy">
+              <b>خطّط لزيارتك للكافيه</b>
+              <em>اختر المكان والوقت، وقل ليش بتزور</em>
+            </span>
+            <ChevronLeft />
+          </button>
+        )}
       </section>
 
       <TabBar tab="home" onTab={onTab} unread={unread} />
@@ -1930,6 +1965,10 @@ export default function App() {
             onChat={() => active && openChat(active.id)}
             onMet={met => active && answerMet(active.id, met)}
             onLocation={openLocation}
+            visit={upcomingVisits[0]}
+            now={clockNow}
+            onPlanVisit={() => planVisit(selectedCafe)}
+            onOpenVisit={openCafe}
           />
         )}
         {screen === 'intent' && (
