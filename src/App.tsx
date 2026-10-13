@@ -4,13 +4,13 @@ import {
   CircleUserRound, Clock3, Code2, Coffee, Compass, Edit3, EyeOff, Flag,
   Handshake, HeartHandshake, Home, LocateFixed, LogOut, MapPin, MessageCircle,
   MoreHorizontal, Phone, Search, Send, Settings, Footprints, ShieldCheck, Sparkles, UserRound,
-  UsersRound, X, Wifi, Volume2, PlugZap, Car, Bookmark, XCircle, Smartphone, Monitor, Trees, DoorOpen, Languages
+  UsersRound, X, Wifi, Volume2, PlugZap, Car, Bookmark, XCircle, Smartphone, Monitor, Trees, DoorOpen, Languages, CalendarPlus, CalendarClock
 } from 'lucide-react'
 import { BUSINESS } from './constants'
 import { toEnglish, type Language } from './i18n'
 
 export type Screen = 'onboarding' | 'phone' | 'otp' | 'location' | 'home' | 'intent' | 'map' | 'cafe' | 'people' | 'account' | 'settings' | 'inbox' | 'chat' | 'matchProfile'
-export type Sheet = null | 'profileSetup' | 'editProfile' | 'skills' | 'request' | 'pending' | 'match' | 'chatMenu' | 'report' | 'location'
+export type Sheet = null | 'profileSetup' | 'editProfile' | 'skills' | 'request' | 'pending' | 'match' | 'chatMenu' | 'report' | 'location' | 'planVisit'
 export type Tab = 'home' | 'map' | 'people' | 'inbox' | 'account'
 // The app does one thing: connect people nearby to ask for help or offer it.
 export type ActionMode = 'seek' | 'help'
@@ -951,7 +951,8 @@ function MapScreen({ onTab, unread, onCafe, actionMode, onActionModeChange, cont
   )
 }
 
-function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onActionModeChange, h }: {
+function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onActionModeChange, h, visit, onPlan, now }: {
+  visit?: Visit; onPlan: () => void; now: number;
   cafeName: string; back: () => void; saved: boolean; onToggleSave: () => void; actionMode: ActionMode; onActionModeChange: (m: ActionMode) => void;
   h: CardHandlers;
 }) {
@@ -979,6 +980,11 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
             <p>{cafe.area} · {cafe.distance} منك · {cafe.eta}</p>
           </div>
         </div>
+        <button className="plan-visit" onClick={onPlan}>
+          <CalendarPlus />
+          <span><b>{visit ? 'زيارتك القادمة هنا' : 'خطط زيارة'}</b>{visit && <small>{visitWhen(visit.at, now)}{visit.why ? ` · ${visit.why}` : ''}</small>}</span>
+          <ChevronLeft />
+        </button>
         <section className="cafe-section">
           <IntentSwitch mode={actionMode} onChange={onActionModeChange} />
           <div className="section-head">
@@ -1131,7 +1137,7 @@ function MatchProfileScreen({ back, initialSkills, initialGoals, initialNeedDesc
   )
 }
 
-function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfile, name, job, skills, goals, availableForHelp, savedCafes }: {
+function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfile, name, job, skills, goals, availableForHelp, savedCafes, visits, now, onPlanVisit, onCancelVisit }: {
   onTab: (t: Tab) => void;
   unread: number;
   onSettings: () => void;
@@ -1144,6 +1150,10 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
   goals: string[];
   availableForHelp: boolean;
   savedCafes: string[];
+  visits: Visit[];
+  now: number;
+  onPlanVisit: () => void;
+  onCancelVisit: (id: string) => void;
 }) {
   const d = useData()
   const history = [
@@ -1184,6 +1194,24 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
           <span><b>5</b><small>مرة استفدت</small></span>
           <span><b>3</b><small>أماكن زرتها</small></span>
         </div>
+
+        <div className="section-head account-section-head">
+          <h2>زياراتك القادمة</h2>
+          <button onClick={onPlanVisit}>خطط زيارة</button>
+        </div>
+        {visits.length === 0 && <p className="visit-empty">ما عندك زيارات قادمة</p>}
+        {visits.map(v => {
+          const c = allCafes.find(x => x.name === v.cafe)
+          return (
+            <div key={v.id} className="history-card visit-card">
+              <button className="visit-open" onClick={() => onCafe(v.cafe)}>
+                <img src={c?.image} alt="" onError={hidePhoto} />
+                <div><h3>{v.cafe}</h3><small>{c?.area}</small><p><CalendarClock /> {visitWhen(v.at, now)}</p>{v.why && <small>{v.why}</small>}{v.workOn && <small>بشتغل على: {v.workOn}</small>}{v.canHelp && <small>أقدر أساعد في: {v.canHelp}</small>}</div>
+              </button>
+              <button className="visit-cancel" onClick={() => onCancelVisit(v.id)} aria-label="إلغاء الزيارة"><X /></button>
+            </div>
+          )
+        })}
 
         {savedCafes.length > 0 && (
           <>
@@ -1361,6 +1389,67 @@ const DEMO_JOB = 'مطور واجهات أمامية · الرياض'
 const useDemoText = () => {
   const { language } = useLanguage()
   return (v: string) => (language === 'en' && (v === DEMO_NAME || v === DEMO_JOB) ? toEnglish(v) : v)
+}
+
+// ---------- Planned visits ----------
+export type Visit = { id: string; cafe: string; at: number; why?: string; workOn?: string; canHelp?: string }
+const VISIT_REASONS = ['أشتغل على مشروعي', 'أبحث عن مساعدة', 'أبغى أساعد غيري', 'ألتقي شخصًا']
+const VISIT_GRACE = 60 * 60000 // a visit stays listed for an hour after its start time
+const SLOT_STEP = 30
+const dayStart = (offset: number, now: number) => { const d = new Date(now); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + offset); return d.getTime() }
+// Half-hour slots from 8:00 to 22:30 on the chosen day; today only offers the ones still ahead.
+const visitSlots = (offset: number, now: number) => {
+  const base = dayStart(offset, now), out: number[] = []
+  for (let m = 8 * 60; m <= 22 * 60 + 30; m += SLOT_STEP) {
+    const ts = new Date(base).setHours(0, m, 0, 0)
+    if (ts > now) out.push(ts)
+  }
+  return out
+}
+const visitDay = (at: number, now: number) => {
+  const diff = Math.round((dayStart(0, at) - dayStart(0, now)) / 86400000)
+  return diff <= 0 ? 'اليوم' : diff === 1 ? 'غدًا' : new Date(at).toLocaleDateString('ar-SA', { weekday: 'long' })
+}
+const visitWhen = (at: number, now: number) => `${visitDay(at, now)} · ${clock(at)}`
+
+function PlanVisitSheet({ cafes, initialCafe, now, skills, close, save }: { cafes: string[]; initialCafe: string; now: number; skills: string[]; close: () => void; save: (v: Omit<Visit, 'id'>) => void }) {
+  const [cafe, setCafe] = useState(initialCafe)
+  const [why, setWhy] = useState('')
+  const [workOn, setWorkOn] = useState('')
+  const [canHelp, setCanHelp] = useState(skills.slice(0, 3).join('، '))
+  const [day, setDay] = useState(() => (visitSlots(0, now).length ? 0 : 1))
+  const [at, setAt] = useState<number | null>(null)
+  const slots = visitSlots(day, now)
+  const picked = at !== null && slots.includes(at) ? at : null
+  return (
+    <BottomSheet onClose={close} tall>
+      <div className="sheet-title">
+        <span className="sheet-icon"><CalendarPlus /></span>
+        <div>
+          <h2>خطّط لزيارتك</h2>
+          <p>اختر الكافيه والوقت، ونحفظ الزيارة في حسابك</p>
+        </div>
+      </div>
+      <label className="field-label">أي كافيه؟</label>
+      <div className="chip-row visit-cafes">{cafes.map(n => <Chip key={n} active={cafe === n} onClick={() => setCafe(n)}>{n}</Chip>)}</div>
+      <label className="field-label">أي يوم؟</label>
+      <div className="chip-row">
+        <Chip active={day === 0} onClick={() => setDay(0)}>اليوم</Chip>
+        <Chip active={day === 1} onClick={() => setDay(1)}>غدًا</Chip>
+      </div>
+      <label className="field-label">أي وقت؟</label>
+      {slots.length
+        ? <div className="chip-row visit-times">{slots.map(ts => <Chip key={ts} active={picked === ts} onClick={() => setAt(ts)}>{clock(ts)}</Chip>)}</div>
+        : <p className="visit-empty">ما فيه أوقات متاحة اليوم</p>}
+      <label className="field-label">ليش بتزور؟</label>
+      <div className="chip-row visit-cafes">{VISIT_REASONS.map(r => <Chip key={r} active={why === r} onClick={() => setWhy(r)}>{r}</Chip>)}</div>
+      <label className="field-label" htmlFor="visit-work">وش بتشتغل عليه؟</label>
+      <input id="visit-work" className="field" value={workOn} onChange={e => setWorkOn(e.target.value)} maxLength={80} placeholder="مثلاً: أبني واجهة تطبيقي الجديد" />
+      <label className="field-label" htmlFor="visit-help">وش تقدر تساعد فيه؟</label>
+      <input id="visit-help" className="field" value={canHelp} onChange={e => setCanHelp(e.target.value)} maxLength={80} placeholder="مثلاً: مراجعة كود React" />
+      <PrimaryButton onClick={() => picked !== null && save({ cafe, at: picked, why, workOn: workOn.trim(), canHelp: canHelp.trim() })} icon={<CalendarClock />} disabled={picked === null || !why || workOn.trim().length < 3}>ثبّت الزيارة</PrimaryButton>
+    </BottomSheet>
+  )
 }
 
 function ProfileSetupSheet({ close, next, editing = false, name, setName, job, setJob, gender, setGender, pref, setPref, privateMode, setPrivateMode }: {
@@ -1604,6 +1693,8 @@ export default function App() {
   const [needText, setNeedText] = useState('')
   const [selectedCafe, setSelectedCafe] = useState(allCafes[0].name)
   const [savedCafes, setSavedCafes] = useState<string[]>(() => load('around-saved', []))
+  const [visits, setVisits] = useState<Visit[]>(() => load('around-visits', []))
+  const [visitCafe, setVisitCafe] = useState(allCafes[0].name)
   const [target, setTarget] = useState<Target | null>(null)
   const [requests, setRequests] = useState<Record<string, 'pending' | 'declined'>>({})
   const [pending, setPending] = useState<{ id: string; kind: Target['kind'] } | null>(null)
@@ -1764,6 +1855,20 @@ export default function App() {
     say(next.includes(name) ? 'حفظنا الكافيه في حسابك' : 'شلنا الكافيه من المحفوظة')
   }
 
+  const upcomingVisits = visits.filter(v => v.at + VISIT_GRACE > clockNow).sort((a, b) => a.at - b.at)
+  const planVisit = (cafe: string) => { setVisitCafe(cafe); setSheet('planVisit') }
+  const saveVisit = ({ cafe, at, ...details }: Omit<Visit, 'id'>) => {
+    const next = [...visits.filter(v => !(v.cafe === cafe && v.at === at)), { id: `${cafe}-${at}`, cafe, at, ...details }]
+    setVisits(next); store('around-visits', next)
+    setSheet(null)
+    say(`ثبّتنا زيارتك: ${visitWhen(at, Date.now())}`)
+  }
+  const cancelVisit = (id: string) => {
+    const next = visits.filter(v => v.id !== id)
+    setVisits(next); store('around-visits', next)
+    say('ألغينا الزيارة')
+  }
+
   const logout = () => {
     try { localStorage.clear() } catch { /* storage unavailable */ }
     setProfileReady(false)
@@ -1771,6 +1876,7 @@ export default function App() {
     setRequests({})
     setPending(null)
     setSavedCafes([])
+    setVisits([])
     setLocRaw(DEFAULT_LOC)
     setSheet(null)
     setPreviewPerson(null)
@@ -1859,6 +1965,9 @@ export default function App() {
             actionMode={actionMode}
             onActionModeChange={setActionMode}
             h={h}
+            visit={upcomingVisits.find(v => v.cafe === selectedCafe)}
+            onPlan={() => planVisit(selectedCafe)}
+            now={clockNow}
           />
         )}
         {screen === 'people' && (
@@ -1888,6 +1997,10 @@ export default function App() {
             goals={myGoals}
             availableForHelp={isAvailableForHelp}
             savedCafes={savedCafes}
+            visits={upcomingVisits}
+            now={clockNow}
+            onPlanVisit={() => planVisit(selectedCafe)}
+            onCancelVisit={cancelVisit}
           />
         )}
         {screen === 'matchProfile' && (
@@ -1936,6 +2049,9 @@ export default function App() {
           initial={mySkills}
           save={skills => { setMySkills(skills); setSheet(target ? 'request' : null) }}
         />
+      )}
+      {sheet === 'planVisit' && (
+        <PlanVisitSheet cafes={data.cafes.map(c => c.name)} initialCafe={visitCafe} now={clockNow} skills={mySkills} close={() => setSheet(null)} save={saveVisit} />
       )}
       {sheet === 'request' && target && <RequestSheet target={target} privateMode={privateMode} close={() => setSheet(null)} send={sendRequest} />}
       {sheet === 'pending' && pending && (

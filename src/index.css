@@ -5860,3 +5860,32 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .screen::-webkit-scrollbar { d
 .service-card-head > :not(.service-card-user) { max-width: none; }
 .service-card-head .seat-chip, .seat-chip > span { overflow: visible; text-overflow: clip; }
 .service-card-user h3 { white-space: normal; text-wrap: balance; overflow-wrap: anywhere; line-height: 1.25; }
+
+/* Plan a visit */
+.plan-visit {
+  width: 100%;
+  margin: 14px 0 4px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 16px;
+  background: var(--green);
+  color: #fff;
+  text-align: start;
+}
+.plan-visit > span { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.plan-visit b { font-size: 15px; }
+.plan-visit small { font-size: 12px; opacity: 0.85; }
+.plan-visit svg { width: 20px; flex: none; }
+.visit-cafes, .visit-times { flex-wrap: wrap; }
+.chip-row.visit-times { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-height: none; overflow: visible; }
+.chip-row.visit-times .chip { justify-content: center; padding-inline: 4px; font-size: 12.5px; white-space: nowrap; }
+.visit-empty { margin: 8px 0 12px; font-size: 13px; color: #77716a; }
+.visit-card { position: relative; padding: 0; }
+.visit-open { flex: 1; display: flex; align-items: center; gap: 12px; padding: 12px; background: transparent; text-align: start; min-width: 0; }
+.visit-open img { width: 56px; height: 56px; border-radius: 12px; object-fit: cover; flex: none; }
+.visit-cancel { width: 44px; align-self: stretch; display: grid; place-items: center; background: transparent; color: #77716a; }
+.visit-cancel svg { width: 18px; }
+.visit-open > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.visit-open small { font-size: 12px; color: #77716a; overflow-wrap: anywhere; }

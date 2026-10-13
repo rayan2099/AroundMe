@@ -2,6 +2,14 @@ export type Language = 'ar' | 'en'
 
 // Ordered longest-first so complete phrases win before individual terms.
 const EN: [string, string][] = [
+  ['أشتغل على مشروعي', 'Working on my project'], ['أبحث عن مساعدة', 'Looking for help'], ['أبغى أساعد غيري', 'Here to help others'], ['ألتقي شخصًا', 'Meeting someone'],
+  ['ليش بتزور؟', 'Why are you visiting?'], ['وش بتشتغل عليه؟', 'What will you work on?'], ['وش تقدر تساعد فيه؟', 'What can you help with?'],
+  ['مثلاً: أبني واجهة تطبيقي الجديد', 'e.g. Building my new app UI'], ['مثلاً: مراجعة كود React', 'e.g. Reviewing React code'],
+  ['بشتغل على:', 'Working on:'], ['أقدر أساعد في:', 'Can help with:'],
+  ['خطط زيارة', 'Plan a visit'], ['خطّط لزيارتك', 'Plan your visit'], ['اختر الكافيه والوقت، ونحفظ الزيارة في حسابك', 'Pick the coffee shop and time, and we save the visit to your account'],
+  ['أي كافيه؟', 'Which coffee shop?'], ['أي يوم؟', 'Which day?'], ['أي وقت؟', 'What time?'], ['غدًا', 'Tomorrow'], ['ثبّت الزيارة', 'Confirm visit'],
+  ['زياراتك القادمة', 'Upcoming visits'], ['زيارتك القادمة هنا', 'Your upcoming visit here'], ['إلغاء الزيارة', 'Cancel visit'], ['ألغينا الزيارة', 'Visit cancelled'],
+  ['ما فيه أوقات متاحة اليوم', 'No times left today'], ['ما عندك زيارات قادمة', 'No upcoming visits'], ['ثبّتنا زيارتك:', 'Your visit is set:'],
   ['لا تبحث بالنت،', "Don't search online,"], ['ابحث حولك.', 'look around you.'],
   ['في نفس الكوفي، وعلى طاولة قريبة… تلقى اللي تحتاجه.', 'In the same coffee shop, at a nearby table… find what you need.'],
   ['مصمّمة هوية', 'Brand designer'], ['مبرمج', 'Developer'], ['أبحث عن مترجم', 'Looking for a translator'], ['مصوّر', 'Photographer'], ['طاولتك', 'Your table'], ['نفس الكوفي', 'Same coffee shop'], ['يلا نبدأ', 'Get started'],
