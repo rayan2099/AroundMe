@@ -1026,7 +1026,7 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
         </div>
         <button className="plan-visit" onClick={onPlan}>
           <CalendarPlus />
-          <span><b>{visit ? 'زيارتك القادمة هنا' : 'جَدوِل زيارة هنا'}</b>{visit && <small>{visitWhen(visit.at, now)}{visit.mode ? ` · ${visit.mode === 'seek' ? COPY.seek : COPY.help}` : ''}</small>}</span>
+          <span><b>{visit ? 'زيارتك القادمة هنا' : 'جَدوِل زيارتك هنا'}</b>{visit && <small>{visitWhen(visit.at, now)}{visit.mode ? ` · ${visit.mode === 'seek' ? COPY.seek : COPY.help}` : ''}</small>}</span>
           <ChevronLeft />
         </button>
         <section className="cafe-section">
