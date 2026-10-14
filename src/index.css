@@ -818,16 +818,66 @@ button:disabled {
   font-size: 18px;
 }
 
-.otp-input {
-  border: 1px solid var(--border);
-  text-align: center;
-  letter-spacing: 12px;
-  outline-color: var(--green);
-  background: #fff;
-  border-radius: 16px;
+/* OTP: one box per digit; the real input sits invisibly on top of the boxes. */
+.otp-field {
+  position: relative;
+  display: block;
   width: 100%;
-  height: 68px;
+}
+
+.otp-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: 0;
+  font-size: 16px;
+  color: transparent;
+  caret-color: transparent;
+  z-index: 1;
+}
+
+.otp-boxes {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.otp-box {
+  height: 58px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 24px;
+  font-weight: 600;
+  color: var(--text);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.otp-box.filled {
+  border-color: var(--green);
+}
+
+.otp-field:focus-within .otp-box.current {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(69, 111, 98, 0.16);
+}
+
+.otp-field:focus-within .otp-box.current:not(.filled)::after {
+  content: "";
+  width: 2px;
+  height: 26px;
+  border-radius: 1px;
+  background: var(--green);
+  animation: otp-caret 1s steps(1) infinite;
+}
+
+@keyframes otp-caret {
+  50% { opacity: 0; }
 }
 
 /* Location Screen */
@@ -5913,3 +5963,28 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .screen::-webkit-scrollbar { d
 .home-visit-notes span { padding: 6px 10px; border-radius: 999px; background: var(--green-soft); color: var(--green-dark); font-size: 12px; overflow-wrap: anywhere; }
 .home-visit-add { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; background: transparent; color: var(--green); font-size: 13px; font-weight: 600; }
 .home-visit-add svg { width: 16px; }
+/* Café brand logo: a white tile on the café photo in the list, and beside the name on the café page. */
+.cafe-image > img.cafe-logo {
+  inset: auto;
+  bottom: 7px;
+  inset-inline-start: 7px;
+  width: 58px;
+  height: 30px;
+  padding: 4px 6px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+.cafe-title-row { display: flex; align-items: center; gap: 12px; }
+.cafe-title-row > div { flex: 1; min-width: 0; }
+.cafe-title-logo {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  padding: 8px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}

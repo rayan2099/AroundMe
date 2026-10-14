@@ -145,6 +145,7 @@ const images = {
   workspace: '/assets/places/workspace.jpg',
   corner: '/assets/places/corner.jpg',
   garden: '/assets/places/garden.jpg',
+  jjbeanLogo: '/assets/logos/jjbean.png',
 }
 
 export type Person = {
@@ -178,11 +179,11 @@ const allNeeds: Need[] = [
   { id: 'n6', personId: 'abdullah', name: 'عبدالله الزهراني', g: 'm', image: '', cafe: 'مقهى الحطب', text: 'أبغى أحد يراجع معي خطة إطلاق حملة إعلانية على سناب', topic: 'تسويق', tags: ['تسويق', 'إعلانات', 'سناب'], minutes: 15, presence: 'today', time: clock(leaveIn(120)), arriveAt: leaveIn(120), seat: 'قريب من الكاونتر' },
 ]
 
-type CafeBase = { id: string; name: string; area: string; pos: [number, number]; image: string; open: string; isOpen: boolean; amenities: string[] }
+type CafeBase = { id: string; name: string; area: string; pos: [number, number]; image: string; logo?: string; open: string; isOpen: boolean; amenities: string[] }
 export type Cafe = CafeBase & { km: number; distance: string; eta: string }
 
 const allCafes: CafeBase[] = [
-  { id: 'featured', name: 'مقهى الحطب', area: 'العليا', pos: [0.08, 0.09], image: images.cafe, open: 'مفتوح الآن', isOpen: true, amenities: ['هادئ للعمل', 'واي فاي', 'مقابس'] },
+  { id: 'featured', name: 'مقهى الحطب', area: 'العليا', pos: [0.08, 0.09], image: images.cafe, logo: images.jjbeanLogo, open: 'مفتوح الآن', isOpen: true, amenities: ['هادئ للعمل', 'واي فاي', 'مقابس'] },
   { id: 'a', name: 'مساحة العمل', area: 'الورود', pos: [0.6, 0.4], image: images.workspace, open: 'مفتوح الآن', isOpen: true, amenities: ['غرف اجتماعات', 'واي فاي', 'مقابس', 'مواقف'] },
   { id: 'b', name: 'مقهى ركن', area: 'السليمانية', pos: [1.05, -0.7], image: images.corner, open: 'مفتوح الآن', isOpen: true, amenities: ['جلسات خارجية', 'هادئ للعمل', 'واي فاي'] },
   { id: 'c', name: 'حديقة البن', area: 'الملز', pos: [2.0, -1.1], image: images.garden, open: 'يغلق 11 م', isOpen: false, amenities: ['جلسات خارجية', 'مواقف', 'واي فاي'] },
@@ -637,7 +638,15 @@ function OtpScreen({ next, back }: { next: () => void; back: () => void }) {
         <span className="form-icon"><ShieldCheck /></span>
         <h1>اكتب الرمز اللي وصلك</h1>
         <p>أرسلنا رمز التحقق المكوّن من {BUSINESS.OTP_LENGTH} أرقام.</p>
-        <input className="otp-input" dir="ltr" autoFocus inputMode="numeric" maxLength={BUSINESS.OTP_LENGTH} placeholder="• • • • • •" value={code} aria-label="رمز التحقق" onChange={e => setCode(e.target.value.replace(/\D/g, ''))} />
+        {/* One real input (keeps paste and SMS autofill) drawn as one box per digit. */}
+        <label className="otp-field" dir="ltr">
+          <input className="otp-input" autoFocus inputMode="numeric" autoComplete="one-time-code" maxLength={BUSINESS.OTP_LENGTH} value={code} aria-label="رمز التحقق" onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, BUSINESS.OTP_LENGTH))} />
+          <span className="otp-boxes" aria-hidden="true">
+            {Array.from({ length: BUSINESS.OTP_LENGTH }, (_, i) => (
+              <span key={i} className={`otp-box ${code[i] ? 'filled' : ''} ${i === Math.min(code.length, BUSINESS.OTP_LENGTH - 1) ? 'current' : ''}`}>{code[i] || ''}</span>
+            ))}
+          </span>
+        </label>
         <button className="text-button" disabled={resendIn > 0} onClick={() => { setCode(''); setResendIn(BUSINESS.OTP_RESEND_SECONDS) }}>
           {resendIn ? `إعادة الإرسال بعد ${resendIn} ث` : 'أرسل الرمز مرة ثانية'}
         </button>
@@ -965,7 +974,7 @@ function MapScreen({ onTab, unread, onCafe, actionMode, onActionModeChange, cont
             {visible.length === 0 && <EmptyState title="ما لقينا كافيه بهالخيارات" hint={query ? 'جرّب اسم الحي بدل اسم الكافيه.' : 'جرّب فلتر ثاني.'} action="اعرض الكل" onAction={() => { setQuery(''); setFilter('all') }} />}
             {visible.map(cafe => (
               <button className="cafe-browse-card" key={cafe.id} onClick={() => onCafe(cafe.name)}>
-                <div className="cafe-image"><img src={cafe.image} alt="" onError={hidePhoto} />{badgeFor(cafe)}</div>
+                <div className="cafe-image"><img src={cafe.image} alt="" onError={hidePhoto} />{badgeFor(cafe)}{cafe.logo && <img className="cafe-logo" src={cafe.logo} alt="" />}</div>
                 <div className="cafe-browse-copy">
                   <div><h3>{cafe.name}</h3><ChevronLeft /></div>
                   <p>{cafe.area} · {cafe.distance} · {cafe.eta}</p>
@@ -1009,6 +1018,7 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
       </div>
       <main className="cafe-detail-content">
         <div className="cafe-title-row">
+          {cafe.logo && <img className="cafe-title-logo" src={cafe.logo} alt="" />}
           <div>
             {!cafe.isOpen && <span className="open-now closing">{cafe.open}</span>}
             <h1>{cafeName}</h1>
