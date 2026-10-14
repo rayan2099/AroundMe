@@ -795,7 +795,7 @@ function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, onLocati
           <button className="home-visit-cta" onClick={onPlanVisit}>
             <span className="home-visit-icon"><CalendarPlus /></span>
             <span className="home-visit-copy">
-              <b>حدد موعد زيارتك</b>
+              <b>جَدوِل زيارتك القادمة</b>
               <em>اختر الكافيه والوقت وهدف زيارتك</em>
             </span>
             <ChevronLeft />
@@ -1026,7 +1026,7 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
         </div>
         <button className="plan-visit" onClick={onPlan}>
           <CalendarPlus />
-          <span><b>{visit ? 'زيارتك القادمة هنا' : 'حدد موعد زيارة هنا'}</b>{visit && <small>{visitWhen(visit.at, now)}{visit.mode ? ` · ${visit.mode === 'seek' ? COPY.seek : COPY.help}` : ''}</small>}</span>
+          <span><b>{visit ? 'زيارتك القادمة هنا' : 'جَدوِل زيارة هنا'}</b>{visit && <small>{visitWhen(visit.at, now)}{visit.mode ? ` · ${visit.mode === 'seek' ? COPY.seek : COPY.help}` : ''}</small>}</span>
           <ChevronLeft />
         </button>
         <section className="cafe-section">
