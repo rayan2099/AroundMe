@@ -5928,9 +5928,6 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .screen::-webkit-scrollbar { d
 .plan-visit b { font-size: 15px; }
 .plan-visit small { font-size: 12px; opacity: 0.85; }
 .plan-visit svg { width: 20px; flex: none; }
-.visit-cafes, .visit-times { flex-wrap: wrap; }
-.chip-row.visit-times { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-height: none; overflow: visible; }
-.chip-row.visit-times .chip { justify-content: center; padding-inline: 4px; font-size: 12.5px; white-space: nowrap; }
 .visit-empty { margin: 8px 0 12px; font-size: 13px; color: #77716a; }
 .visit-card { position: relative; padding: 0; }
 .visit-open { flex: 1; display: flex; align-items: center; gap: 12px; padding: 12px; background: transparent; text-align: start; min-width: 0; }
@@ -5989,6 +5986,41 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .screen::-webkit-scrollbar { d
   border-radius: 16px;
 }
 
-/* Plan a visit: morning / afternoon / evening above the time slots */
-.service-segmented-tabs.visit-periods { margin: 2px 0 10px; }
-.chip-row.visit-times { grid-template-columns: repeat(3, 1fr); }
+/* Plan a visit sheet: café list, day chips, time wheel, purpose */
+.search-field.visit-search { margin: 0 0 8px; }
+.visit-cafe-list { max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 2px; margin-bottom: 4px; overscroll-behavior: contain; }
+.visit-cafe { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 14px; background: #fff; border: 1px solid var(--border); text-align: start; flex: none; }
+.visit-cafe img { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; flex: none; }
+.visit-cafe > span { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.visit-cafe b { font-size: 14px; color: var(--text); }
+.visit-cafe small { font-size: 12px; color: var(--muted); }
+.visit-cafe > svg { width: 18px; color: var(--green); flex: none; }
+.visit-cafe.active { border-color: var(--green); background: var(--green-soft); }
+.chip-row.visit-days { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.chip-row.visit-days::-webkit-scrollbar { display: none; }
+.chip-row.visit-days .chip { flex: none; }
+.time-wheel { position: relative; display: flex; justify-content: center; align-items: center; gap: 4px; height: 200px; padding: 0 12px; border-radius: 18px; background: #fff; border: 1px solid var(--border); overflow: hidden; }
+.time-wheel::before, .time-wheel::after { content: ""; position: absolute; inset-inline: 0; height: 80px; pointer-events: none; z-index: 2; }
+.time-wheel::before { top: 0; background: linear-gradient(#fff, rgba(255, 255, 255, 0)); }
+.time-wheel::after { bottom: 0; background: linear-gradient(rgba(255, 255, 255, 0), #fff); }
+.time-wheel-band { position: absolute; inset-inline: 10px; top: 80px; height: 40px; border-radius: 12px; background: var(--green-soft); pointer-events: none; }
+.time-wheel-colon { position: relative; font-size: 22px; font-weight: 700; color: var(--text); }
+.wheel { position: relative; width: 64px; height: 200px; overflow-y: auto; scroll-snap-type: y mandatory; padding: 80px 0; scroll-padding-block: 80px; scrollbar-width: none; outline: none; overscroll-behavior: contain; }
+.wheel::-webkit-scrollbar { display: none; }
+.wheel-item { height: 40px; display: grid; place-items: center; scroll-snap-align: start; font-size: 20px; color: var(--muted); cursor: pointer; font-variant-numeric: tabular-nums; }
+.wheel-item.active { color: var(--text); font-weight: 700; }
+.wheel:focus-visible { box-shadow: inset 0 0 0 2px var(--green); border-radius: 12px; }
+.visit-when { margin: 8px 2px 4px; font-size: 13px; font-weight: 600; color: var(--green); }
+.visit-when.is-past { color: var(--orange); }
+.visit-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.visit-mode { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; border-radius: 18px; background: #fff; border: 1.5px solid var(--border); text-align: start; transition: border-color 0.18s ease, background 0.18s ease; }
+.visit-mode .journey-icon { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--green-soft); color: var(--green); margin-bottom: 4px; }
+.visit-mode .journey-icon svg { width: 20px; }
+.visit-mode b { font-size: 15px; color: var(--text); }
+.visit-mode small { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.visit-mode.active { border-color: var(--green); background: var(--green-soft); }
+.visit-mode.seek.active .journey-icon { background: var(--green); color: #fff; }
+.visit-mode.help.active .journey-icon { background: var(--green); color: #fff; }
+.field-optional { font-weight: 400; color: var(--muted); font-size: 12px; }
+.home-visit-notes .visit-purpose { display: inline-flex; align-items: center; gap: 6px; }
+.home-visit-notes .visit-purpose svg { width: 14px; flex: none; }

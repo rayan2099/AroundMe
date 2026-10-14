@@ -783,11 +783,10 @@ function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, onLocati
               </span>
               <ChevronLeft />
             </button>
-            {(visit.why || visit.workOn || visit.canHelp) && (
+            {(visitPurpose(visit) || visit.workOn) && (
               <div className="home-visit-notes">
-                {visit.why && <span>{visit.why}</span>}
+                {visitPurpose(visit) && <span className={`visit-purpose ${visit.mode ?? ''}`}>{visit.mode === 'seek' ? <Search /> : <HeartHandshake />}{visitPurpose(visit)}</span>}
                 {visit.workOn && <span>بشتغل على: {visit.workOn}</span>}
-                {visit.canHelp && <span>أقدر أساعد في: {visit.canHelp}</span>}
               </div>
             )}
             <button className="home-visit-add" onClick={onPlanVisit}><CalendarPlus /> زيارة جديدة</button>
@@ -796,8 +795,8 @@ function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, onLocati
           <button className="home-visit-cta" onClick={onPlanVisit}>
             <span className="home-visit-icon"><CalendarPlus /></span>
             <span className="home-visit-copy">
-              <b>خطّط لزيارتك للكافيه</b>
-              <em>اختر المكان والوقت، وقل ليش بتزور</em>
+              <b>حدد موعد زيارتك</b>
+              <em>اختر الكافيه والوقت وهدف زيارتك</em>
             </span>
             <ChevronLeft />
           </button>
@@ -1027,7 +1026,7 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
         </div>
         <button className="plan-visit" onClick={onPlan}>
           <CalendarPlus />
-          <span><b>{visit ? 'زيارتك القادمة هنا' : 'خطط زيارة'}</b>{visit && <small>{visitWhen(visit.at, now)}{visit.why ? ` · ${visit.why}` : ''}</small>}</span>
+          <span><b>{visit ? 'زيارتك القادمة هنا' : 'حدد موعد زيارة هنا'}</b>{visit && <small>{visitWhen(visit.at, now)}{visit.mode ? ` · ${visit.mode === 'seek' ? COPY.seek : COPY.help}` : ''}</small>}</span>
           <ChevronLeft />
         </button>
         <section className="cafe-section">
@@ -1242,7 +1241,7 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
 
         <div className="section-head account-section-head">
           <h2>زياراتك القادمة</h2>
-          <button onClick={onPlanVisit}>خطط زيارة</button>
+          <button onClick={onPlanVisit}>زيارة جديدة</button>
         </div>
         {visits.length === 0 && <p className="visit-empty">ما عندك زيارات قادمة</p>}
         {visits.map(v => {
@@ -1251,7 +1250,7 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
             <div key={v.id} className="history-card visit-card">
               <button className="visit-open" onClick={() => onCafe(v.cafe)}>
                 <img src={c?.image} alt="" onError={hidePhoto} />
-                <div><h3>{v.cafe}</h3><small>{c?.area}</small><p><CalendarClock /> {visitWhen(v.at, now)}</p>{v.why && <small>{v.why}</small>}{v.workOn && <small>بشتغل على: {v.workOn}</small>}{v.canHelp && <small>أقدر أساعد في: {v.canHelp}</small>}</div>
+                <div><h3>{v.cafe}</h3><small>{c?.area}</small><p><CalendarClock /> {visitWhen(v.at, now)}</p>{visitPurpose(v) && <small>{visitPurpose(v)}</small>}{v.workOn && <small>بشتغل على: {v.workOn}</small>}</div>
               </button>
               <button className="visit-cancel" onClick={() => onCancelVisit(v.id)} aria-label="إلغاء الزيارة"><X /></button>
             </div>
@@ -1437,74 +1436,154 @@ const useDemoText = () => {
 }
 
 // ---------- Planned visits ----------
-export type Visit = { id: string; cafe: string; at: number; why?: string; workOn?: string; canHelp?: string }
-const VISIT_REASONS = ['أشتغل على مشروعي', 'أبحث عن مساعدة', 'أبغى أساعد غيري', 'ألتقي شخصًا']
+// mode: what the visit is for, the same two choices as the home screen. why is kept for visits saved before mode existed.
+export type Visit = { id: string; cafe: string; at: number; mode?: ActionMode; detail?: string; workOn?: string; why?: string; canHelp?: string }
 const VISIT_GRACE = 60 * 60000 // a visit stays listed for an hour after its start time
-const SLOT_STEP = 30
+const VISIT_DAYS = 7
+const MINUTE_STEP = 5
 const dayStart = (offset: number, now: number) => { const d = new Date(now); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + offset); return d.getTime() }
-// Half-hour slots from 8:00 to 22:30 on the chosen day; today only offers the ones still ahead.
-const visitSlots = (offset: number, now: number) => {
-  const base = dayStart(offset, now), out: number[] = []
-  for (let m = 8 * 60; m <= 22 * 60 + 30; m += SLOT_STEP) {
-    const ts = new Date(base).setHours(0, m, 0, 0)
-    if (ts > now) out.push(ts)
-  }
-  return out
-}
-const VISIT_PERIODS = [{ label: 'الصباح', from: 0, to: 12 }, { label: 'الظهر', from: 12, to: 17 }, { label: 'المساء', from: 17, to: 24 }]
-const inPeriod = (ts: number, pd: { from: number; to: number }) => { const h = new Date(ts).getHours(); return h >= pd.from && h < pd.to }
+const WEEKDAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
 const visitDay = (at: number, now: number) => {
   const diff = Math.round((dayStart(0, at) - dayStart(0, now)) / 86400000)
-  return diff <= 0 ? 'اليوم' : diff === 1 ? 'غدًا' : new Date(at).toLocaleDateString('ar-SA', { weekday: 'long' })
+  return diff <= 0 ? 'اليوم' : diff === 1 ? 'غدًا' : WEEKDAYS[new Date(at).getDay()]
 }
 const visitWhen = (at: number, now: number) => `${visitDay(at, now)} · ${clock(at)}`
+// One line for a visit's purpose, wherever the visit is shown.
+const visitPurpose = (v: Visit) => {
+  if (v.mode === 'seek') return v.detail ? `أحتاج مساعدة في: ${v.detail}` : COPY.seek
+  if (v.mode === 'help') return v.detail ? `أقدر أساعد في: ${v.detail}` : COPY.help
+  return v.canHelp ? `أقدر أساعد في: ${v.canHelp}` : v.why ?? ''
+}
 
-function PlanVisitSheet({ cafes, initialCafe, now, skills, close, save }: { cafes: string[]; initialCafe: string; now: number; skills: string[]; close: () => void; save: (v: Omit<Visit, 'id'>) => void }) {
-  const [cafe, setCafe] = useState(() => (cafes.includes(initialCafe) ? initialCafe : cafes[0] ?? ''))
-  const [why, setWhy] = useState('')
-  const [workOn, setWorkOn] = useState('')
+const WHEEL_ROW = 40
+// A scroll wheel like the phone's own time picker: drag or scroll, and the row in the middle band is the value.
+function Wheel({ items, index, onChange, label }: { items: string[]; index: number; onChange: (i: number) => void; label: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const settle = useRef<number | undefined>(undefined)
+  useEffect(() => {
+    const el = ref.current
+    if (el && Math.round(el.scrollTop / WHEEL_ROW) !== index) el.scrollTop = index * WHEEL_ROW
+  }, [index])
+  const onScroll = () => {
+    window.clearTimeout(settle.current)
+    settle.current = window.setTimeout(() => {
+      const el = ref.current
+      if (!el) return
+      const i = Math.max(0, Math.min(items.length - 1, Math.round(el.scrollTop / WHEEL_ROW)))
+      if (i !== index) onChange(i)
+    }, 90)
+  }
+  const step = (d: number) => { const i = Math.max(0, Math.min(items.length - 1, index + d)); ref.current?.scrollTo({ top: i * WHEEL_ROW, behavior: 'smooth' }); onChange(i) }
+  return (
+    <div className="wheel" ref={ref} onScroll={onScroll} role="listbox" aria-label={label} tabIndex={0}
+      onKeyDown={e => { if (e.key === 'ArrowDown') { e.preventDefault(); step(1) } if (e.key === 'ArrowUp') { e.preventDefault(); step(-1) } }}>
+      {items.map((it, i) => (
+        <div key={it} role="option" aria-selected={i === index} className={`wheel-item ${i === index ? 'active' : ''}`}
+          onClick={() => step(i - index)}>{it}</div>
+      ))}
+    </div>
+  )
+}
+
+const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1))
+const MINUTES = Array.from({ length: 60 / MINUTE_STEP }, (_, i) => String(i * MINUTE_STEP).padStart(2, '0'))
+const MERIDIEM = ['ص', 'م']
+// The first suggested time: an hour from now, on the next 15 minutes.
+const suggestedStart = (now: number) => { const q = 15 * 60000; return Math.ceil((now + 60 * 60000) / q) * q }
+
+function PlanVisitSheet({ cafes, initialCafe, now, skills, need, close, save }: { cafes: Cafe[]; initialCafe: string; now: number; skills: string[]; need: string; close: () => void; save: (v: Omit<Visit, 'id'>) => void }) {
   const { language } = useLanguage()
-  // The field is prefilled from the profile, so it starts in the current language like the rest of the sheet.
-  const [canHelp, setCanHelp] = useState(() => { const v = skills.slice(0, 3).join('، '); return language === 'en' ? toEnglish(v) : v })
-  const [day, setDay] = useState(() => (visitSlots(0, now).length ? 0 : 1))
-  const [at, setAt] = useState<number | null>(null)
-  const allSlots = visitSlots(day, now)
-  // Times are grouped into morning / afternoon / evening so the sheet shows a handful at once.
-  const periods = VISIT_PERIODS.filter(pd => allSlots.some(ts => inPeriod(ts, pd)))
-  const [periodPick, setPeriodPick] = useState<string | null>(null)
-  const period = periods.find(pd => pd.label === periodPick) ?? periods[0]
-  const slots = period ? allSlots.filter(ts => inPeriod(ts, period)) : []
-  const picked = at !== null && slots.includes(at) ? at : null
+  const inLanguage = (v: string) => (language === 'en' ? toEnglish(v) : v)
+  const [cafe, setCafe] = useState(() => (cafes.some(c => c.name === initialCafe) ? initialCafe : cafes[0]?.name ?? ''))
+  const [query, setQuery] = useState('')
+  const match = useSearch(query)
+  const shown = cafes.filter(c => match(c.name) || match(c.area))
+  const start = new Date(suggestedStart(now))
+  const [day, setDay] = useState(() => Math.round((dayStart(0, start.getTime()) - dayStart(0, now)) / 86400000))
+  const [hour, setHour] = useState(() => (start.getHours() % 12 || 12) - 1)
+  const [minute, setMinute] = useState(() => start.getMinutes() / MINUTE_STEP)
+  const [pm, setPm] = useState(() => (start.getHours() >= 12 ? 1 : 0))
+  const [mode, setMode] = useState<ActionMode | null>(null)
+  // Prefilled from the profile, in the language the sheet is shown in.
+  const [helpWith, setHelpWith] = useState(() => inLanguage(skills.slice(0, 3).join('، ')))
+  const [needWith, setNeedWith] = useState(() => inLanguage(need))
+  const [workOn, setWorkOn] = useState('')
+  const at = new Date(dayStart(day, now)).setHours(((hour + 1) % 12) + pm * 12, minute * MINUTE_STEP, 0, 0)
+  const past = at <= now
+  const detail = (mode === 'seek' ? needWith : helpWith).trim()
+  const ready = cafes.some(c => c.name === cafe) && !past && mode !== null && detail.length >= 3
+  const pickCafe = (name: string) => { setCafe(name); setQuery('') }
+  const listRef = useRef<HTMLDivElement>(null)
+  useEffect(() => { listRef.current?.querySelector('.active')?.scrollIntoView({ block: 'nearest' }) }, [])
   return (
     <BottomSheet onClose={close} tall>
       <div className="sheet-title">
         <span className="sheet-icon"><CalendarPlus /></span>
         <div>
-          <h2>خطّط لزيارتك</h2>
-          <p>اختر الكافيه والوقت، ونحفظ الزيارة في حسابك</p>
+          <h2>زيارة جديدة</h2>
+          <p>اختر الكافيه والوقت وهدف زيارتك</p>
         </div>
       </div>
-      <label className="field-label">أي كافيه؟</label>
-      {cafes.length
-        ? <div className="chip-row visit-cafes">{cafes.map(n => <Chip key={n} active={cafe === n} onClick={() => setCafe(n)}>{n}</Chip>)}</div>
-        : <p className="visit-empty">ما فيه كافيهات متاحة في مدينتك حاليًا</p>}
+
+      <label className="field-label" htmlFor="visit-cafe-search">أي كافيه؟</label>
+      {cafes.length ? (
+        <>
+          <div className="search-field visit-search">
+            <Search />
+            <input id="visit-cafe-search" value={query} onChange={e => setQuery(e.target.value)} placeholder="ابحث عن كافيه أو حي" />
+          </div>
+          <div className="visit-cafe-list" ref={listRef} role="radiogroup" aria-label="أي كافيه؟">
+            {shown.map(c => (
+              <button key={c.id} type="button" role="radio" aria-checked={cafe === c.name} className={`visit-cafe ${cafe === c.name ? 'active' : ''}`} onClick={() => pickCafe(c.name)}>
+                <img src={c.image} alt="" onError={hidePhoto} />
+                <span><b>{c.name}</b><small>{c.area} · {c.distance}</small></span>
+                {cafe === c.name && <Check />}
+              </button>
+            ))}
+            {shown.length === 0 && <p className="visit-empty">ما لقينا كافيه بهالاسم</p>}
+          </div>
+        </>
+      ) : <p className="visit-empty">ما فيه كافيهات متاحة في مدينتك حاليًا</p>}
+
       <label className="field-label">أي يوم؟</label>
-      <div className="chip-row">
-        <Chip active={day === 0} onClick={() => setDay(0)}>اليوم</Chip>
-        <Chip active={day === 1} onClick={() => setDay(1)}>غدًا</Chip>
+      <div className="chip-row visit-days">
+        {Array.from({ length: VISIT_DAYS }, (_, i) => <Chip key={i} active={day === i} onClick={() => setDay(i)}>{visitDay(dayStart(i, now), now)}</Chip>)}
       </div>
+
       <label className="field-label">أي وقت؟</label>
-      {periods.length > 1 && <div className="service-segmented-tabs visit-periods" role="tablist">{periods.map(pd => <button key={pd.label} role="tab" aria-selected={period === pd} className={`service-tab-btn ${period === pd ? 'active' : ''}`} onClick={() => setPeriodPick(pd.label)}>{pd.label}</button>)}</div>}
-      {slots.length
-        ? <div className="chip-row visit-times">{slots.map(ts => <Chip key={ts} active={picked === ts} onClick={() => setAt(ts)}>{clock(ts)}</Chip>)}</div>
-        : <p className="visit-empty">ما فيه أوقات متاحة اليوم</p>}
-      <label className="field-label">ليش بتزور؟</label>
-      <div className="chip-row visit-cafes">{VISIT_REASONS.map(r => <Chip key={r} active={why === r} onClick={() => setWhy(r)}>{r}</Chip>)}</div>
-      <label className="field-label" htmlFor="visit-work">وش بتشتغل عليه؟</label>
+      <div className="time-wheel" dir="ltr">
+        <span className="time-wheel-band" aria-hidden="true" />
+        <Wheel items={HOURS} index={hour} onChange={setHour} label="الساعة" />
+        <span className="time-wheel-colon" aria-hidden="true">:</span>
+        <Wheel items={MINUTES} index={minute} onChange={setMinute} label="الدقيقة" />
+        <Wheel items={language === 'en' ? ['AM', 'PM'] : MERIDIEM} index={pm} onChange={setPm} label="صباحًا أو مساءً" />
+      </div>
+      <p className={`visit-when ${past ? 'is-past' : ''}`}>{past ? 'هالوقت راح، اختر وقت بعده' : visitWhen(at, now)}</p>
+
+      <label className="field-label">وش هدف زيارتك؟</label>
+      <div className="visit-modes" role="radiogroup" aria-label="وش هدف زيارتك؟">
+        <button type="button" role="radio" aria-checked={mode === 'seek'} className={`visit-mode seek ${mode === 'seek' ? 'active' : ''}`} onClick={() => setMode('seek')}>
+          <span className="journey-icon"><Search /></span><b>{COPY.seek}</b><small>عندي شيء أبي أنجزه</small>
+        </button>
+        <button type="button" role="radio" aria-checked={mode === 'help'} className={`visit-mode help ${mode === 'help' ? 'active' : ''}`} onClick={() => setMode('help')}>
+          <span className="journey-icon"><HeartHandshake /></span><b>{COPY.help}</b><small>عندي خبرة أقدر أشاركها</small>
+        </button>
+      </div>
+      {mode === 'seek' && (
+        <>
+          <label className="field-label" htmlFor="visit-detail">وش تحتاج مساعدة فيه؟</label>
+          <input id="visit-detail" className="field" value={needWith} onChange={e => setNeedWith(e.target.value)} maxLength={120} placeholder="مثلاً: مراجعة تصميم تطبيقي" />
+        </>
+      )}
+      {mode === 'help' && (
+        <>
+          <label className="field-label" htmlFor="visit-detail">وش تقدر تساعد فيه؟</label>
+          <input id="visit-detail" className="field" value={helpWith} onChange={e => setHelpWith(e.target.value)} maxLength={120} placeholder="مثلاً: مراجعة كود React" />
+        </>
+      )}
+      <label className="field-label" htmlFor="visit-work">وش بتشتغل عليه هناك؟ <span className="field-optional">اختياري</span></label>
       <input id="visit-work" className="field" value={workOn} onChange={e => setWorkOn(e.target.value)} maxLength={80} placeholder="مثلاً: أبني واجهة تطبيقي الجديد" />
-      <label className="field-label" htmlFor="visit-help">وش تقدر تساعد فيه؟</label>
-      <input id="visit-help" className="field" value={canHelp} onChange={e => setCanHelp(e.target.value)} maxLength={80} placeholder="مثلاً: مراجعة كود React" />
-      <PrimaryButton onClick={() => picked !== null && save({ cafe, at: picked, why, workOn: workOn.trim(), canHelp: canHelp.trim() })} icon={<CalendarClock />} disabled={!cafes.includes(cafe) || picked === null || !why || workOn.trim().length < 3}>ثبّت الزيارة</PrimaryButton>
+      <PrimaryButton onClick={() => ready && mode && save({ cafe, at, mode, detail, workOn: workOn.trim() })} icon={<CalendarClock />} disabled={!ready}>ثبّت الزيارة</PrimaryButton>
     </BottomSheet>
   )
 }
@@ -2112,7 +2191,7 @@ export default function App() {
         />
       )}
       {sheet === 'planVisit' && (
-        <PlanVisitSheet cafes={data.cafes.map(c => c.name)} initialCafe={visitCafe} now={clockNow} skills={mySkills} close={() => setSheet(null)} save={saveVisit} />
+        <PlanVisitSheet cafes={data.cafes} initialCafe={visitCafe} now={clockNow} skills={mySkills} need={myNeedDesc} close={() => setSheet(null)} save={saveVisit} />
       )}
       {sheet === 'request' && target && <RequestSheet target={target} privateMode={privateMode} close={() => setSheet(null)} send={sendRequest} />}
       {sheet === 'pending' && pending && (
