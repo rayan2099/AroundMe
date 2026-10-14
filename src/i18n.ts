@@ -2,6 +2,30 @@ export type Language = 'ar' | 'en'
 
 // Ordered longest-first so complete phrases win before individual terms.
 const EN: [string, string][] = [
+  ['قهوة', 'Coffee'], ['مشروبات', 'Drinks'], ['أكل', 'Food'], ['المنيو', 'Menu'],
+  ['لاتيه', 'Latte'], ['إسبريسو مع حليب مبخر', 'Espresso with steamed milk'], ['سبانش لاتيه', 'Spanish latte'], ['لاتيه بالحليب المكثف', 'Latte with condensed milk'], ['فلات وايت', 'Flat white'], ['دبل شوت بطبقة حليب خفيفة', 'Double shot with a thin layer of milk'], ['قهوة مقطرة، محصول اليوم', "Pour-over, today's single origin"], ['كولد برو', 'Cold brew'], ['منقوعة 18 ساعة', 'Steeped for 18 hours'], ['إسبريسو', 'Espresso'], ['دبل شوت', 'Double shot'],
+  ['ماتشا لاتيه', 'Matcha latte'], ['ماتشا ياباني مع حليب', 'Japanese matcha with milk'], ['شاي', 'Tea'], ['أحمر أو أخضر', 'Black or green'], ['عصير برتقال', 'Orange juice'], ['طازج', 'Fresh'], ['ماء', 'Water'], ['330 مل', '330 ml'],
+  ['كرواسون بالزبدة', 'Butter croissant'], ['مخبوز اليوم', 'Baked today'], ['ساندويتش حلومي', 'Halloumi sandwich'], ['حلومي وطماطم وزعتر', 'Halloumi, tomato and zaatar'], ['تشيز كيك', 'Cheesecake'], ['قطعة', 'A slice'], ['كوكيز', 'Cookie'], ['بالشوكولاتة', 'Chocolate chip'],
+  ['طاولة لشخصين', 'Table for 2'], ['طاولة لشخص', 'Table for 1'], ['طاولة لـ', 'Table for '], ['أشخاص', 'people'], ['لحالي', 'Just me'], ['شخصين', '2 people'],
+  ['أي مكان', 'Anywhere'], ['منطقة هادئة', 'Quiet area'], ['قريب من مقبس', 'Near a socket'],
+  ['البطاقة في محفظتك', 'Card in your wallet'], ['عن طريق AroundMe', 'via AroundMe'], ['المبلغ', 'Amount'], ['ادفع الحين', 'Pay now'], ['جاري الدفع…', 'Paying…'], ['تم الدفع', 'Paid'],
+  ['تم الدفع وثبّتنا زيارتك', 'Paid, and your visit is set'], ['ثبّتنا زيارتك', 'Your visit is set'], ['رقم طلبك', 'Your order number'], ['يجهز وقت وصولك. ما تدفع شي هناك.', 'Ready when you arrive. Nothing to pay there.'],
+  ['نمسكها لك', 'Held for'], ['من موعدك. تقدر تلغيه أي وقت قبل موعدك.', 'after your time. Cancel any time before it.'], ['من موعدك', 'after your time'], ['مدفوع بـ', 'Paid with'],
+  ['بدون حجز طاولة أو طلب', 'No table or order'], ['تقدر تضيفهم من تفاصيل الزيارة', 'You can add them from the visit details'], ['أضف للتقويم', 'Add to calendar'], ['تفاصيل الزيارة', 'Visit details'],
+  ['احجز طاولتك واطلب قبل توصل', 'Book your table and order before you arrive'], ['احجز طاولتك', 'Book your table'], ['اطلب قبل توصل', 'Order before you arrive'], ['راجع وادفع', 'Review and pay'],
+  ['الحجز مجاني، ونمسك طاولتك وقت وصولك', 'Booking is free, and we hold your table for when you arrive'], ['اختياري، ويجهز طلبك', 'Optional. Ready for'], ['تدفع الحين، وما تدفع شي عند وصولك', 'Pay now, nothing to pay when you arrive'], ['الخطوات', 'Steps'],
+  ['مقفل هالوقت. يفتح', 'is closed then. Open'], ['أقرب وقت', 'Soonest'], ['احجز لي طاولة', 'Book me a table'], ['كم شخص؟', 'How many people?'], ['وين تحب تجلس؟', 'Where would you like to sit?'],
+  ['الحجز مجاني، ونمسك طاولتك', 'Booking is free, and we hold your table for'], ['ملاحظة للكافيه', 'Note for the coffee shop'], ['مثلاً: حليب شوفان، بدون سكر', 'e.g. Oat milk, no sugar'],
+  ['بدون حجز طاولة', 'No table booked'], ['بدون طلب مسبق', 'No order ahead'], ['أضف طلب', 'Add an order'], ['الإجمالي', 'Total'], ['شامل الضريبة', 'Tax included'],
+  ['ما تدفع شي عند وصولك. إذا ألغيت قبل موعدك نرجع المبلغ كامل لنفس طريقة الدفع.', 'Nothing to pay when you arrive. Cancel before your time and we refund the full amount to the same payment method.'],
+  ['الحجز مجاني. تقدر تضيف طلب أو تلغي من تفاصيل الزيارة.', 'Booking is free. You can add an order or cancel from the visit details.'],
+  ['راجع الطلب', 'Review order'], ['تابع بدون طلب', 'Continue without an order'], ['ثبّت الحجز', 'Confirm booking'], ['ادفع', 'Pay'],
+  ['زيارتك الحين', 'Your visit is now'], ['وريه الكاشير أو قول اسمك، طلبك جاهز ومدفوع', 'Show this at the counter. Your order is ready and paid'], ['يجهز وقت وصولك، وما تدفع شي هناك', 'Ready when you arrive, nothing to pay there'],
+  ['صفحة الكافيه', 'Coffee shop page'], ['ألغِ الزيارة', 'Cancel visit'], ['نلغي الحجز والطلب ونرجع', 'We cancel the booking and the order and refund'], ['نلغي الطلب ونرجع', 'We cancel the order and refund'], ['لـ Apple Pay', 'to Apple Pay'], ['لـ Google Pay', 'to Google Pay'],
+  ['نلغي حجز الطاولة.', 'We cancel the table booking.'], ['نلغي الزيارة.', 'We cancel the visit.'], ['لا، خلها', 'No, keep it'], ['نعم، ألغِ', 'Yes, cancel'], ['ألغينا الزيارة، ونرجع', 'Visit cancelled. Refunding'],
+  ['صارت طريقة الدفع المفضلة', 'is now your preferred payment'], ['طلبك مدفوع', 'Order paid'], ['مدفوع', 'Paid'], ['ملاحظتك:', 'Note:'], ['بدأت زيارتك · رقم طلبك', 'Your visit has started · Order'],
+  ['تطلب وتدفع من التطبيق قبل توصل، وما تدفع شي في الكافيه.', 'Order and pay in the app before you arrive. Nothing to pay at the coffee shop.'], ['تدفع طلباتك من التطبيق قبل توصل، وما تدفع شي في الكافيه.', 'You pay for orders in the app before you arrive. Nothing to pay at the coffee shop.'],
+  ['طريقة الدفع المفضلة', 'Preferred payment method'], ['استخدمها كطريقة مفضلة', 'Make it your preferred method'], ['أصناف', 'items'], ['صنفين', '2 items'], ['أضف', 'Add'], ['شيل', 'Remove'],
   ['جَدوِل زيارتك القادمة', 'Schedule your next visit'],
   ['اختر الكافيه والوقت وهدف زيارتك', 'Pick the coffee shop, the time, and what the visit is for'], ['وش هدف زيارتك؟', 'What is the visit for?'], ['جَدوِل زيارتك هنا', 'Schedule your visit here'],
   ['هالوقت راح، اختر وقت بعده', 'That time has passed, pick a later one'], ['ما لقينا كافيه بهالاسم', 'No coffee shop by that name'],
@@ -88,12 +112,13 @@ const EN: [string, string][] = [
 const arabic = /[\u0600-\u06ff]/
 
 // Short presence words that only appear on their own, so they are matched whole rather than inside other words.
-const EXACT: Record<string, string> = { 'طلع': 'Left', 'طلعت': 'Left', 'وصل': 'Arrived', 'وصلت': 'Arrived', 'وقته خلص': 'Time is up', 'أقل من دقيقة': 'under 1 min', 'مهارة': '1 skill', 'مهارتين': '2 skills', 'مجال': '1 area', 'مجالين': '2 areas' }
+const EXACT: Record<string, string> = { 'طلع': 'Left', 'طلعت': 'Left', 'وصل': 'Arrived', 'وصلت': 'Arrived', 'وقته خلص': 'Time is up', 'أقل من دقيقة': 'under 1 min', 'مهارة': '1 skill', 'مهارتين': '2 skills', 'مجال': '1 area', 'مجالين': '2 areas', 'تم': 'Done', 'صنف': '1 item', 'صنفين': '2 items', 'مدفوع': 'Paid', 'الدفع': 'Payment', 'الطلب': 'Order', 'الطاولة': 'Table', 'الزيارة': 'Visit', 'تعديل': 'Edit', 'إلغاء': 'Cancel' }
 
 export function toEnglish(value: string): string {
   if (!arabic.test(value)) return value
   if (EXACT[value.trim()]) return value.replace(value.trim(), EXACT[value.trim()])
   let result = value
+    .replace(/(\d+(?:\.\d+)?) ر\.س/g, (_, n: string) => `$${(Number(n) * 0.37).toFixed(2)}`)
     .replace(/(\d+) حولك يقدرون يساعدون الآن/g, '$1 people nearby can help now')
     .replace(/(\d+) احتياجات حولك اليوم/g, '$1 nearby requests today')
     .replace(/(\d+) من (\d+) مهارات/g, '$1 of $2 skills')
