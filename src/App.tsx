@@ -1268,7 +1268,7 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
               <div>
                 <h3>{v.cafe}</h3>
                 <p><CalendarClock /> {visitWhen(v.at, now)}</p>
-                {(v.table || v.order) && <span className="visit-badges">{v.table && <i><Armchair />{tableLabel(v.table)}</i>}{v.order && <i><Receipt />{`مدفوع ${sar(v.order.total)}`}</i>}</span>}
+                {(v.table || v.order) && <span className="visit-badges">{v.table && <i><Armchair />{tableLabel(v.table)}</i>}{visitPaid(v) > 0 && <i><Receipt />{`مدفوع ${sar(visitPaid(v))}`}</i>}</span>}
                 {visitPurpose(v) && <small>{visitPurpose(v)}</small>}
               </div>
               <ChevronLeft />
@@ -1491,7 +1491,8 @@ const visitPurpose = (v: Visit) => {
 export type WalletKind = 'apple' | 'google'
 const WALLET_NAME: Record<WalletKind, string> = { apple: 'Apple Pay', google: 'Google Pay' }
 const deviceWallet = (): WalletKind => (typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) ? 'apple' : 'google')
-export type TableHold = { party: number; seat: string }
+// The table fee is paid ahead with the order, and holds the table for an hour after the visit time.
+export type TableHold = { party: number; seat: string; fee?: number; wallet?: WalletKind }
 export type OrderLine = { id: string; qty: number }
 export type Order = { lines: OrderLine[]; note?: string; total: number; wallet: WalletKind; code: string }
 type MenuCat = 'coffee' | 'drinks' | 'food'
@@ -1529,7 +1530,19 @@ const seatOptions = (c?: { amenities: string[] }) => [
   'عند النافذة',
   ...(c?.amenities.includes('جلسات خارجية') ? ['جلسات خارجية'] : []),
 ]
-const TABLE_HOLD_MIN = 15
+const TABLE_FEE = 5
+const HOLD_LABEL = 'ساعة'
+// What was paid for a visit (table fee plus order), and with which wallet.
+const visitPaid = (v: Visit) => (v.table?.fee ?? 0) + (v.order?.total ?? 0)
+const visitWallet = (v: Visit) => v.order?.wallet ?? v.table?.wallet
+// Cancelling before the visit time refunds everything; after it, the table was held and the order made.
+const refundOf = (v: Visit, now: number) => (v.at > now ? visitPaid(v) : 0)
+const refundNote = (v: Visit, now: number) => {
+  const what = v.table && v.order ? 'الحجز والطلب' : v.order ? 'الطلب' : v.table ? 'حجز الطاولة' : 'الزيارة'
+  const paid = visitPaid(v), w = visitWallet(v)
+  if (!paid || !w) return `نلغي ${what}.`
+  return refundOf(v, now) ? `نلغي ${what} ونرجع ${sar(paid)} لـ ${WALLET_NAME[w]}.` : `نلغي ${what}. موعدك بدأ، فما نقدر نرجع المبلغ.`
+}
 const hourClock = (h: number) => clock(new Date(2020, 0, 1, h % 24).getTime())
 const hoursLine = (c: { hours: [number, number] }) => `${hourClock(c.hours[0])} – ${hourClock(c.hours[1])}`
 // Open at that time, with at least half an hour before closing.
@@ -1659,8 +1672,11 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
   const visitReady = !!place && !past && !closed && mode !== null && detail.length >= 3
   const qty = (id: string) => lines.find(l => l.id === id)?.qty ?? 0
   const setQty = (id: string, n: number) => setLines(ls => (n <= 0 ? ls.filter(l => l.id !== id) : ls.some(l => l.id === id) ? ls.map(l => (l.id === id ? { ...l, qty: n } : l)) : [...ls, { id, qty: n }]))
-  const total = linesTotal(lines)
   const items = linesCount(lines)
+  // The table fee is charged once, when the table is first booked.
+  const fee = bookTable && !existing?.table ? TABLE_FEE : 0
+  const total = linesTotal(lines)
+  const due = total + fee
   const soonest = () => {
     const t = new Date(Math.ceil((now + 15 * 60000) / (MINUTE_STEP * 60000)) * MINUTE_STEP * 60000)
     setDay(Math.round((dayStart(0, t.getTime()) - dayStart(0, now)) / 86400000)); setHour((t.getHours() % 12 || 12) - 1); setMinute(t.getMinutes() / MINUTE_STEP); setPm(t.getHours() >= 12 ? 1 : 0)
@@ -1669,7 +1685,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
     const v = save({
       ...existing,
       cafe, at, mode: mode ?? undefined, detail, workOn: workOn.trim(),
-      table: bookTable ? { party, seat } : undefined,
+      table: bookTable ? (existing?.table ?? { party, seat, fee: TABLE_FEE, wallet: paidWith }) : undefined,
       order: paidWith && items ? { lines, note: note.trim() || undefined, total, wallet: paidWith, code: orderCode() } : undefined,
     })
     setPaying(null); setSaved(v); setStep(4)
@@ -1681,12 +1697,13 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
       <BottomSheet onClose={close} tall>
         <div className="plan-done">
           <span className="plan-done-icon"><CircleCheck /></span>
-          <h2>{saved.order ? 'تم الدفع وثبّتنا زيارتك' : 'ثبّتنا زيارتك'}</h2>
+          <h2>{visitPaid(saved) > 0 ? 'تم الدفع وثبّتنا زيارتك' : 'ثبّتنا زيارتك'}</h2>
           <p>{saved.cafe} · {visitWhen(saved.at, now)}</p>
           {saved.order && <div className="order-code"><small>رقم طلبك</small><b dir="ltr">#{saved.order.code}</b><span>يجهز وقت وصولك. ما تدفع شي هناك.</span></div>}
           <ul className="plan-done-list">
-            {saved.table && <li><Armchair />{tableLabel(saved.table)}<small>نمسكها لك {mins(TABLE_HOLD_MIN)} من موعدك</small></li>}
+            {saved.table && <li><Armchair />{tableLabel(saved.table)}<small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small></li>}
             {saved.order && <li><Receipt />{`${itemsLabel(linesCount(saved.order.lines))} · ${sar(saved.order.total)}`}<small>{`مدفوع بـ ${WALLET_NAME[saved.order.wallet]}`}</small></li>}
+            {!saved.order && saved.table?.wallet && <li><Receipt />{`رسوم الحجز · ${sar(saved.table.fee ?? TABLE_FEE)}`}<small>{`مدفوعة بـ ${WALLET_NAME[saved.table.wallet]}`}</small></li>}
             {!saved.table && !saved.order && <li><CalendarClock />بدون حجز طاولة أو طلب<small>تقدر تضيفهم من تفاصيل الزيارة</small></li>}
           </ul>
           <a className="secondary-button" href={calendarHref(saved)} download="aroundme-visit.ics"><CalendarPlus />أضف للتقويم</a>
@@ -1707,7 +1724,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
           : <span className="sheet-icon"><CalendarPlus /></span>}
         <div>
           <h2>{step === 0 ? 'زيارة جديدة' : step === 1 ? 'احجز طاولتك' : step === 2 ? 'اطلب قبل توصل' : 'راجع وادفع'}</h2>
-          <p>{step === 0 ? 'اختر الكافيه والوقت وهدف زيارتك' : step === 1 ? 'الحجز مجاني، ونمسك طاولتك وقت وصولك' : step === 2 ? `اختياري، ويجهز طلبك ${visitWhen(at, now)}` : 'تدفع الحين، وما تدفع شي عند وصولك'}</p>
+          <p>{step === 0 ? 'اختر الكافيه والوقت وهدف زيارتك' : step === 1 ? `رسوم الحجز ${sar(TABLE_FEE)}، ونمسك طاولتك ${HOLD_LABEL}` : step === 2 ? `اختياري، ويجهز طلبك ${visitWhen(at, now)}` : 'تدفع الحين، وما تدفع شي عند وصولك'}</p>
         </div>
       </div>
       <ol className="plan-steps" aria-label="الخطوات">
@@ -1791,7 +1808,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
               <div className="chip-row">{[1, 2, 3, 4].map(n => <Chip key={n} active={party === n} onClick={() => setParty(n)}>{partyLabel(n)}</Chip>)}</div>
               <label className="field-label">وين تحب تجلس؟</label>
               <div className="chip-row">{seatOptions(place).map(s => <Chip key={s} active={seat === s} onClick={() => setSeat(s)}>{s}</Chip>)}</div>
-              <p className="plan-note"><ShieldCheck />الحجز مجاني، ونمسك طاولتك {mins(TABLE_HOLD_MIN)} من موعدك. تقدر تلغيه أي وقت قبل موعدك.</p>
+              <p className="plan-note"><ShieldCheck />{existing?.table ? `طاولتك محجوزة، ونمسكها لك ${HOLD_LABEL} من موعدك.` : `رسوم الحجز ${sar(TABLE_FEE)} تدفعها مع طلبك، ونمسك طاولتك ${HOLD_LABEL} كاملة من موعدك. إذا ألغيت قبل موعدك نرجعها لك.`}</p>
             </>
           )}
         </>
@@ -1828,20 +1845,20 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
               <span><b>{cafe}</b><small>{visitWhen(at, now)}</small></span>
               {!existing && <button type="button" className="text-button" onClick={() => setStep(0)}>تعديل</button>}
             </div>
-            <div className="checkout-row"><Armchair /><span>{bookTable ? tableLabel({ party, seat }) : 'بدون حجز طاولة'}</span>{!existing && <button type="button" className="text-button" onClick={() => setStep(1)}>تعديل</button>}</div>
+            <div className="checkout-row"><Armchair /><span>{bookTable ? tableLabel({ party, seat }) : 'بدون حجز طاولة'}{fee > 0 && <small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small>}</span>{fee > 0 && <b className="checkout-fee">{sar(fee)}</b>}{!existing && <button type="button" className="text-button" onClick={() => setStep(1)}>تعديل</button>}</div>
             {items > 0 ? (
               <>
                 <ul className="checkout-lines">
                   {lines.map(l => { const m = menuItem(l.id)!; return <li key={l.id}><span>{l.qty}× {m.name}</span><b>{sar(m.price * l.qty)}</b></li> })}
                 </ul>
                 {note.trim() && <p className="checkout-note">ملاحظتك: {note.trim()}</p>}
-                <div className="checkout-total"><span>الإجمالي<small>شامل الضريبة</small></span><b>{sar(total)}</b></div>
-              </>
+                </>
             ) : (
               <div className="checkout-row"><Receipt /><span>بدون طلب مسبق</span><button type="button" className="text-button" onClick={() => setStep(2)}>أضف طلب</button></div>
             )}
+            {due > 0 && <div className="checkout-total"><span>الإجمالي<small>شامل الضريبة</small></span><b>{sar(due)}</b></div>}
           </div>
-          <p className="plan-note"><ShieldCheck />{items > 0 ? 'ما تدفع شي عند وصولك. إذا ألغيت قبل موعدك نرجع المبلغ كامل لنفس طريقة الدفع.' : 'الحجز مجاني. تقدر تضيف طلب أو تلغي من تفاصيل الزيارة.'}</p>
+          <p className="plan-note"><ShieldCheck />{due > 0 ? 'ما تدفع شي عند وصولك. إذا ألغيت قبل موعدك نرجع المبلغ كامل لنفس طريقة الدفع.' : 'تقدر تضيف طلب أو تلغي من تفاصيل الزيارة.'}</p>
         </>
       )}
 
@@ -1849,11 +1866,11 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
         {step === 0 && <PrimaryButton onClick={() => visitReady && setStep(1)} disabled={!visitReady}>التالي</PrimaryButton>}
         {step === 1 && <PrimaryButton onClick={() => setStep(2)}>التالي</PrimaryButton>}
         {step === 2 && <PrimaryButton onClick={() => setStep(3)} icon={items ? <Receipt /> : undefined}>{items ? `راجع الطلب · ${itemsLabel(items)} · ${sar(total)}` : 'تابع بدون طلب'}</PrimaryButton>}
-        {step === 3 && (items > 0
-          ? <div className="wallet-buttons">{wallets.map(w => <button key={w} type="button" className={`wallet-button ${w}`} onClick={() => setPaying(w)}><span dir="ltr">{WALLET_NAME[w]}</span><small>{`ادفع ${sar(total)}`}</small></button>)}</div>
-          : <PrimaryButton onClick={() => finish()} icon={<CalendarClock />}>{bookTable ? 'ثبّت الحجز' : 'ثبّت الزيارة'}</PrimaryButton>)}
+        {step === 3 && (due > 0
+          ? <div className="wallet-buttons">{wallets.map(w => <button key={w} type="button" className={`wallet-button ${w}`} onClick={() => setPaying(w)}><span dir="ltr">{WALLET_NAME[w]}</span><small>{`ادفع ${sar(due)}`}</small></button>)}</div>
+          : <PrimaryButton onClick={() => finish()} icon={<CalendarClock />}>{'ثبّت الزيارة'}</PrimaryButton>)}
       </div>
-      {paying && <WalletPay wallet={paying} total={total} merchant={cafe} onCancel={() => setPaying(null)} onPaid={() => finish(paying)} />}
+      {paying && <WalletPay wallet={paying} total={due} merchant={cafe} onCancel={() => setPaying(null)} onPaid={() => finish(paying)} />}
     </BottomSheet>
   )
 }
@@ -1876,18 +1893,21 @@ function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder }: { visit
         </div>
       )}
       <ul className="visit-facts">
-        {v.table ? <li><Armchair /><span><b>{tableLabel(v.table)}</b><small>نمسكها لك {mins(TABLE_HOLD_MIN)} من موعدك</small></span></li> : <li><Armchair /><span><b>بدون حجز طاولة</b></span></li>}
+        {v.table ? <li><Armchair /><span><b>{tableLabel(v.table)}</b><small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small></span></li> : <li><Armchair /><span><b>بدون حجز طاولة</b></span></li>}
         {visitPurpose(v) && <li>{v.mode === 'seek' ? <Search /> : <HeartHandshake />}<span><b>{visitPurpose(v)}</b>{v.workOn && <small>بشتغل على: {v.workOn}</small>}</span></li>}
       </ul>
       {v.order ? (
         <div className="checkout-card">
           <ul className="checkout-lines">
             {v.order.lines.map(l => { const m = menuItem(l.id); return m ? <li key={l.id}><span>{l.qty}× {m.name}</span><b>{sar(m.price * l.qty)}</b></li> : null })}
+            {v.table?.fee ? <li><span>رسوم حجز الطاولة</span><b>{sar(v.table.fee)}</b></li> : null}
           </ul>
           {v.order.note && <p className="checkout-note">ملاحظتك: {v.order.note}</p>}
-          <div className="checkout-total"><span>مدفوع<small>{WALLET_NAME[v.order.wallet]} · شامل الضريبة</small></span><b>{sar(v.order.total)}</b></div>
+          <div className="checkout-total"><span>مدفوع<small>{WALLET_NAME[v.order.wallet]} · شامل الضريبة</small></span><b>{sar(visitPaid(v))}</b></div>
         </div>
-      ) : !started && <button type="button" className="secondary-button" onClick={onOrder}><Receipt />اطلب قبل توصل</button>}
+      ) : null}
+      {!v.order && !!v.table?.fee && v.table.wallet && <div className="checkout-card"><div className="checkout-total"><span>رسوم الحجز مدفوعة<small>{WALLET_NAME[v.table.wallet]} · شامل الضريبة</small></span><b>{sar(v.table.fee)}</b></div></div>}
+      {!v.order && !started && <button type="button" className="secondary-button" onClick={onOrder}><Receipt />اطلب قبل توصل</button>}
       <div className="visit-actions">
         <button type="button" className="secondary-button" onClick={onCafe}><Store />صفحة الكافيه</button>
         <a className="secondary-button" href={calendarHref(v)} download="aroundme-visit.ics"><CalendarPlus />أضف للتقويم</a>
@@ -1896,7 +1916,7 @@ function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder }: { visit
         ? <button type="button" className="text-button danger visit-cancel-link" onClick={() => setConfirming(true)}>ألغِ الزيارة</button>
         : (
           <div className="cancel-confirm" role="alert">
-            <p>{v.order ? `نلغي ${v.table ? 'الحجز والطلب' : 'الطلب'} ونرجع ${sar(v.order.total)} لـ ${WALLET_NAME[v.order.wallet]}.` : v.table ? 'نلغي حجز الطاولة.' : 'نلغي الزيارة.'}</p>
+            <p>{refundNote(v, now)}</p>
             <div><button type="button" className="secondary-button" onClick={() => setConfirming(false)}>لا، خلها</button><button type="button" className="danger-button" onClick={onCancel}>نعم، ألغِ</button></div>
           </div>
         )}
@@ -2325,7 +2345,8 @@ export default function App() {
     const next = visits.filter(x => x.id !== id)
     setVisits(next); store('around-visits', next)
     setSheet(null)
-    say(v?.order ? `ألغينا الزيارة، ونرجع ${sar(v.order.total)} لـ ${WALLET_NAME[v.order.wallet]}` : 'ألغينا الزيارة')
+    const back = v ? refundOf(v, Date.now()) : 0, w = v && visitWallet(v)
+    say(back && w ? `ألغينا الزيارة، ونرجع ${sar(back)} لـ ${WALLET_NAME[w]}` : 'ألغينا الزيارة')
   }
   const visitOpen = visits.find(v => v.id === openVisitId)
   const orderVisit = visits.find(v => v.id === orderFor)
