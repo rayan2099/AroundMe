@@ -1451,6 +1451,8 @@ const visitSlots = (offset: number, now: number) => {
   }
   return out
 }
+const VISIT_PERIODS = [{ label: 'الصباح', from: 0, to: 12 }, { label: 'الظهر', from: 12, to: 17 }, { label: 'المساء', from: 17, to: 24 }]
+const inPeriod = (ts: number, pd: { from: number; to: number }) => { const h = new Date(ts).getHours(); return h >= pd.from && h < pd.to }
 const visitDay = (at: number, now: number) => {
   const diff = Math.round((dayStart(0, at) - dayStart(0, now)) / 86400000)
   return diff <= 0 ? 'اليوم' : diff === 1 ? 'غدًا' : new Date(at).toLocaleDateString('ar-SA', { weekday: 'long' })
@@ -1461,11 +1463,18 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, close, save }: { cafe
   const [cafe, setCafe] = useState(initialCafe)
   const [why, setWhy] = useState('')
   const [workOn, setWorkOn] = useState('')
-  const [canHelp, setCanHelp] = useState(skills.slice(0, 3).join('، '))
+  const { language } = useLanguage()
+  // The field is prefilled from the profile, so it starts in the current language like the rest of the sheet.
+  const [canHelp, setCanHelp] = useState(() => { const v = skills.slice(0, 3).join('، '); return language === 'en' ? toEnglish(v) : v })
   const [day, setDay] = useState(() => (visitSlots(0, now).length ? 0 : 1))
   const [at, setAt] = useState<number | null>(null)
-  const slots = visitSlots(day, now)
-  const picked = at !== null && slots.includes(at) ? at : null
+  const allSlots = visitSlots(day, now)
+  // Times are grouped into morning / afternoon / evening so the sheet shows a handful at once.
+  const periods = VISIT_PERIODS.filter(pd => allSlots.some(ts => inPeriod(ts, pd)))
+  const [periodPick, setPeriodPick] = useState<string | null>(null)
+  const period = periods.find(pd => pd.label === periodPick) ?? periods[0]
+  const slots = period ? allSlots.filter(ts => inPeriod(ts, period)) : []
+  const picked = at !== null && allSlots.includes(at) ? at : null
   return (
     <BottomSheet onClose={close} tall>
       <div className="sheet-title">
@@ -1483,6 +1492,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, close, save }: { cafe
         <Chip active={day === 1} onClick={() => setDay(1)}>غدًا</Chip>
       </div>
       <label className="field-label">أي وقت؟</label>
+      {periods.length > 1 && <div className="service-segmented-tabs visit-periods" role="tablist">{periods.map(pd => <button key={pd.label} role="tab" aria-selected={period === pd} className={`service-tab-btn ${period === pd ? 'active' : ''}`} onClick={() => setPeriodPick(pd.label)}>{pd.label}</button>)}</div>}
       {slots.length
         ? <div className="chip-row visit-times">{slots.map(ts => <Chip key={ts} active={picked === ts} onClick={() => setAt(ts)}>{clock(ts)}</Chip>)}</div>
         : <p className="visit-empty">ما فيه أوقات متاحة اليوم</p>}

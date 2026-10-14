@@ -5988,3 +5988,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .screen::-webkit-scrollbar { d
   border: 1px solid var(--border);
   border-radius: 16px;
 }
+
+/* Plan a visit: morning / afternoon / evening above the time slots */
+.service-segmented-tabs.visit-periods { margin: 2px 0 10px; }
+.chip-row.visit-times { grid-template-columns: repeat(3, 1fr); }

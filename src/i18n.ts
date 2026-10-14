@@ -10,6 +10,7 @@ const EN: [string, string][] = [
   ['خطط زيارة', 'Plan a visit'], ['خطّط لزيارتك', 'Plan your visit'], ['اختر الكافيه والوقت، ونحفظ الزيارة في حسابك', 'Pick the coffee shop and time, and we save the visit to your account'],
   ['أي كافيه؟', 'Which coffee shop?'], ['أي يوم؟', 'Which day?'], ['أي وقت؟', 'What time?'], ['غدًا', 'Tomorrow'], ['ثبّت الزيارة', 'Confirm visit'],
   ['زياراتك القادمة', 'Upcoming visits'], ['زيارتك القادمة هنا', 'Your upcoming visit here'], ['إلغاء الزيارة', 'Cancel visit'], ['ألغينا الزيارة', 'Visit cancelled'],
+  ['الصباح', 'Morning'], ['الظهر', 'Afternoon'], ['المساء', 'Evening'],
   ['ما فيه أوقات متاحة اليوم', 'No times left today'], ['ما عندك زيارات قادمة', 'No upcoming visits'], ['ثبّتنا زيارتك:', 'Your visit is set:'],
   ['لا تبحث بالنت،', "Don't search online,"], ['ابحث حولك.', 'look around you.'],
   ['في نفس الكوفي، وعلى طاولة قريبة… تلقى اللي تحتاجه.', 'In the same coffee shop, at a nearby table… find what you need.'],
