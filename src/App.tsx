@@ -10,7 +10,7 @@ import {
 import { BUSINESS } from './constants'
 import { toEnglish, type Language } from './i18n'
 
-export type Screen = 'onboarding' | 'phone' | 'otp' | 'location' | 'home' | 'intent' | 'map' | 'cafe' | 'people' | 'account' | 'settings' | 'inbox' | 'chat' | 'matchProfile'
+export type Screen = 'onboarding' | 'phone' | 'otp' | 'location' | 'home' | 'intent' | 'map' | 'cafe' | 'people' | 'account' | 'settings' | 'inbox' | 'chat' | 'cafeChat' | 'matchProfile'
 export type Sheet = null | 'profileSetup' | 'editProfile' | 'skills' | 'request' | 'pending' | 'match' | 'chatMenu' | 'report' | 'location' | 'planVisit' | 'visit'
 export type Tab = 'home' | 'map' | 'people' | 'inbox' | 'account'
 // The app does one thing: connect people nearby to ask for help or offer it.
@@ -1368,7 +1368,7 @@ function SettingsScreen({ back, privateMode, setPrivateMode, notifications, setN
   )
 }
 
-function InboxScreen({ onTab, unread, connections, openChat }: { onTab: (t: Tab) => void; unread: number; connections: Connection[]; openChat: (id: string) => void }) {
+function InboxScreen({ onTab, unread, connections, openChat, cafeVisits, now, openCafeChat }: { onTab: (t: Tab) => void; unread: number; connections: Connection[]; openChat: (id: string) => void; cafeVisits: Visit[]; now: number; openCafeChat: (id: string) => void }) {
   const hasActive = connections.some(c => c.status === 'active')
   const [seg, setSeg] = useState<'active' | 'past'>(() => hasActive || !connections.length ? 'active' : 'past')
   const list = connections.filter(c => c.status === seg)
@@ -1382,14 +1382,28 @@ function InboxScreen({ onTab, unread, connections, openChat }: { onTab: (t: Tab)
         <button role="tab" aria-selected={seg === 'past'} className={seg === 'past' ? 'active' : ''} onClick={() => setSeg('past')}>سابقة</button>
       </div>
       <main>
-        {list.length === 0 ? (
+        {seg === 'active' && cafeVisits.map(v => {
+          const t = cafeThread(v, now), last = t[t.length - 1], c = allCafes.find(x => x.name === v.cafe)
+          return (
+            <button className="conversation cafe-conversation" key={v.id} onClick={() => openCafeChat(v.id)}>
+              <Avatar src={c?.image ?? ''} size={64} name={v.cafe} online={false} />
+              <div>
+                <div><h3>{v.cafe}</h3><time>{clock(last.at)}</time></div>
+                <p>{last.from === 'me' ? 'أنت: ' : ''}{last.text}</p>
+                <small><Receipt /> {v.order ? `طلب #${v.order.code}` : tableLabel(v.table!)} · {visitWhen(v.at, now)}</small>
+              </div>
+              {cafeUnread(v, now) > 0 && <i aria-label="رسائل جديدة" />}
+            </button>
+          )
+        })}
+        {list.length === 0 ? (seg === 'active' && cafeVisits.length ? null : (
           <div className="empty-note">
             <MessageCircle />
             <b>{seg === 'active' ? 'ما عندك محادثات الحين' : 'ما فيه محادثات سابقة'}</b>
             <small>{seg === 'active' ? 'لما توافق أنت وشخص ثاني، تنفتح بينكم محادثة هنا.' : 'المحادثات اللي انتهت تظهر هنا.'}</small>
             {seg === 'active' && <button className="text-button" onClick={() => onTab('people')}>شوف مين حولك</button>}
           </div>
-        ) : (
+        )) : (
           list.map(c => {
             const last = c.messages[c.messages.length - 1]
             return (
@@ -1468,7 +1482,7 @@ const useDemoText = () => {
 
 // ---------- Planned visits ----------
 // mode: what the visit is for, the same two choices as the home screen. why is kept for visits saved before mode existed.
-export type Visit = { id: string; cafe: string; at: number; mode?: ActionMode; detail?: string; workOn?: string; why?: string; canHelp?: string; table?: TableHold; order?: Order }
+export type Visit = { id: string; cafe: string; at: number; mode?: ActionMode; detail?: string; workOn?: string; why?: string; canHelp?: string; table?: TableHold; order?: Order; chat?: CafeMessage[]; chatSeen?: number }
 const VISIT_GRACE = 60 * 60000 // a visit stays listed for an hour after its start time
 const VISIT_DAYS = 7
 const MINUTE_STEP = 5
@@ -1492,9 +1506,9 @@ export type WalletKind = 'apple' | 'google'
 const WALLET_NAME: Record<WalletKind, string> = { apple: 'Apple Pay', google: 'Google Pay' }
 const deviceWallet = (): WalletKind => (typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) ? 'apple' : 'google')
 // The table fee is paid ahead with the order, and holds the table for an hour after the visit time.
-export type TableHold = { party: number; seat: string; fee?: number; wallet?: WalletKind }
+export type TableHold = { party: number; seat: string; fee?: number; wallet?: WalletKind; bookedAt?: number }
 export type OrderLine = { id: string; qty: number }
-export type Order = { lines: OrderLine[]; note?: string; total: number; wallet: WalletKind; code: string }
+export type Order = { lines: OrderLine[]; note?: string; total: number; wallet: WalletKind; code: string; paidAt?: number }
 type MenuCat = 'coffee' | 'drinks' | 'food'
 type MenuItem = { id: string; cat: MenuCat; name: string; desc: string; price: number; icon: React.ReactNode }
 const MENU_CATS: { id: MenuCat; label: string }[] = [{ id: 'coffee', label: 'قهوة' }, { id: 'drinks', label: 'مشروبات' }, { id: 'food', label: 'أكل' }]
@@ -1535,13 +1549,70 @@ const HOLD_LABEL = 'ساعة'
 // What was paid for a visit (table fee plus order), and with which wallet.
 const visitPaid = (v: Visit) => (v.table?.fee ?? 0) + (v.order?.total ?? 0)
 const visitWallet = (v: Visit) => v.order?.wallet ?? v.table?.wallet
-// Cancelling before the visit time refunds everything; after it, the table was held and the order made.
-const refundOf = (v: Visit, now: number) => (v.at > now ? visitPaid(v) : 0)
-const refundNote = (v: Visit, now: number) => {
+// Payments are final: cancelling frees the table and stops the order, but nothing is refunded.
+const refundNote = (v: Visit) => {
   const what = v.table && v.order ? 'الحجز والطلب' : v.order ? 'الطلب' : v.table ? 'حجز الطاولة' : 'الزيارة'
-  const paid = visitPaid(v), w = visitWallet(v)
-  if (!paid || !w) return `نلغي ${what}.`
-  return refundOf(v, now) ? `نلغي ${what} ونرجع ${sar(paid)} لـ ${WALLET_NAME[w]}.` : `نلغي ${what}. موعدك بدأ، فما نقدر نرجع المبلغ.`
+  const paid = visitPaid(v)
+  return paid ? `نلغي ${what}، والمبلغ المدفوع ${sar(paid)} ما يُسترجع.` : `نلغي ${what}.`
+}
+
+// ---------- The café's thread for a visit ----------
+// The café writes as the booking and order move along; what the person writes is kept on the visit.
+export type CafeMessage = { from: 'me' | 'them'; text: string; at: number }
+const CAFE_PREP_MIN = 10
+const cafeThread = (v: Visit, now: number): CafeMessage[] => {
+  if (!v.table && !v.order) return []
+  const out: CafeMessage[] = []
+  const first = Math.min(v.table?.bookedAt ?? Infinity, v.order?.paidAt ?? Infinity)
+  const start = Number.isFinite(first) ? first : v.at - 60 * 60000
+  out.push({ from: 'them', at: start, text: `أهلًا فيك في ${v.cafe}! هنا تقدر تكلمنا عن زيارتك ${visitWhen(v.at, start)}.` })
+  if (v.table) out.push({ from: 'them', at: (v.table.bookedAt ?? start) + 1, text: `طاولتك محجوزة: ${tableLabel(v.table)}. نمسكها لك ${HOLD_LABEL} من ${clock(v.at)}.` })
+  if (v.order) out.push({ from: 'them', at: (v.order.paidAt ?? start) + 2, text: `استلمنا طلبك #${v.order.code} (${itemsLabel(linesCount(v.order.lines))}). بنجهزه على وقت وصولك.` })
+  const prep = v.at - CAFE_PREP_MIN * 60000
+  if (v.order && now >= prep) out.push({ from: 'them', at: Math.max(prep, start + 3), text: 'بدأنا نجهز طلبك ☕' })
+  if (now >= v.at) out.push({ from: 'them', at: v.at, text: v.order ? `طلبك جاهز عند الكاشير. قول رقم الطلب #${v.order.code}.` : 'طاولتك جاهزة، حياك!' })
+  return [...out, ...(v.chat ?? [])].sort((a, b) => a.at - b.at)
+}
+const cafeUnread = (v: Visit, now: number) => cafeThread(v, now).filter(m => m.from === 'them' && m.at > (v.chatSeen ?? 0)).length
+const CAFE_QUICK = ['أنا في الطريق', 'بتأخر شوي', 'وين الطاولة؟']
+const CAFE_REPLY = 'وصلتنا رسالتك، وبنبلغ الفريق. شكرًا لك!'
+
+function CafeChatScreen({ v, now, back, send, onVisit }: { v: Visit; now: number; back: () => void; send: (text: string) => void; onVisit: () => void }) {
+  const [draft, setDraft] = useState('')
+  const scroller = useRef<HTMLDivElement>(null)
+  const thread = cafeThread(v, now)
+  const c = allCafes.find(x => x.name === v.cafe)
+  useEffect(() => { scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: 'smooth' }) }, [thread.length])
+  const submit = (text: string) => { if (text.trim()) { send(text.trim()); setDraft('') } }
+  const open = v.at + VISIT_GRACE > now
+  return (
+    <div className="screen chat-screen cafe-chat">
+      <StatusBar />
+      <header className="chat-header">
+        <button className="icon-btn" onClick={back} aria-label="رجوع"><ChevronRight /></button>
+        <Avatar src={c?.image ?? ''} size={43} name={v.cafe} online={false} />
+        <div>
+          <h3>{v.cafe}</h3>
+          <p>{v.order ? `طلب #${v.order.code} · ` : ''}{visitWhen(v.at, now)}</p>
+        </div>
+        <button className="icon-btn" onClick={onVisit} aria-label="تفاصيل الزيارة"><Receipt /></button>
+      </header>
+      <div className="chat-scroll" ref={scroller}>
+        {thread.map((m, i) => <div key={i} className={`bubble ${m.from === 'me' ? 'mine' : 'theirs'}`}>{m.text}<time>{clock(m.at)}</time></div>)}
+      </div>
+      {open ? (
+        <div className="chat-compose">
+          <div className="quick-row">{CAFE_QUICK.map(q => <Chip key={q} onClick={() => submit(q)}>{q}</Chip>)}</div>
+          <div className="composer">
+            <input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit(draft)} placeholder="اكتب للكافيه" aria-label="رسالة للكافيه" />
+            <button onClick={() => submit(draft)} aria-label="إرسال" disabled={!draft.trim()}><Send /></button>
+          </div>
+        </div>
+      ) : (
+        <div className="chat-compose chat-readonly"><span>انتهت الزيارة، وتقدر تقرا المحادثة بس.</span></div>
+      )}
+    </div>
+  )
 }
 const hourClock = (h: number) => clock(new Date(2020, 0, 1, h % 24).getTime())
 const hoursLine = (c: { hours: [number, number] }) => `${hourClock(c.hours[0])} – ${hourClock(c.hours[1])}`
@@ -1651,7 +1722,12 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
 }) {
   const { language } = useLanguage()
   const inLanguage = (v: string) => (language === 'en' ? toEnglish(v) : v)
-  const [step, setStep] = useState(existing ? 2 : 0)
+  // Adding to a planned visit starts at the table when none is booked yet, otherwise at the menu.
+  const firstStep = existing ? (existing.table ? 2 : 1) : 0
+  const [step, setStepRaw] = useState(firstStep)
+  // A quick second tap on the same footer spot shouldn't skip the next step.
+  const stepAt = useRef(0)
+  const setStep = (n: number) => { if (n > step && Date.now() - stepAt.current < 450) return; stepAt.current = Date.now(); setStepRaw(n) }
   const [cafe, setCafe] = useState(() => existing?.cafe ?? (cafes.some(c => c.name === initialCafe) ? initialCafe : cafes[0]?.name ?? ''))
   const [query, setQuery] = useState('')
   const match = useSearch(query)
@@ -1666,7 +1742,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
   const [helpWith, setHelpWith] = useState(() => inLanguage(skills.slice(0, 3).join('، ')))
   const [needWith, setNeedWith] = useState(() => inLanguage(need))
   const [workOn, setWorkOn] = useState(existing?.workOn ?? '')
-  const [bookTable, setBookTable] = useState(existing ? !!existing.table : true)
+  const [bookTable, setBookTable] = useState(true)
   const [party, setParty] = useState(existing?.table?.party ?? 1)
   const [seat, setSeat] = useState(existing?.table?.seat ?? SEAT_ANY)
   const [cat, setCat] = useState<MenuCat>('coffee')
@@ -1699,8 +1775,8 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
     const v = save({
       ...existing,
       cafe, at, mode: mode ?? undefined, detail, workOn: workOn.trim(),
-      table: bookTable ? (existing?.table ?? { party, seat, fee: TABLE_FEE, wallet: paidWith }) : undefined,
-      order: paidWith && items ? { lines, note: note.trim() || undefined, total, wallet: paidWith, code: orderCode() } : undefined,
+      table: bookTable ? (existing?.table ?? { party, seat, fee: TABLE_FEE, wallet: paidWith, bookedAt: Date.now() }) : undefined,
+      order: paidWith && items ? { lines, note: note.trim() || undefined, total, wallet: paidWith, code: orderCode(), paidAt: Date.now() } : undefined,
     })
     setPaying(null); setSaved(v); setStep(4)
   }
@@ -1721,6 +1797,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
             {!saved.table && !saved.order && <li><CalendarClock />بدون حجز طاولة أو طلب<small>تقدر تضيفهم من تفاصيل الزيارة</small></li>}
           </ul>
           <a className="secondary-button" href={calendarHref(saved)} download="aroundme-visit.ics"><CalendarPlus />أضف للتقويم</a>
+          {(saved.table || saved.order) && <p className="plan-note"><MessageCircle />{`${saved.cafe} بيراسلك عن طلبك في الرسائل، وتقدر ترد عليهم.`}</p>}
         </div>
         <div className="sheet-footer">
           <PrimaryButton onClick={close} icon={<Check />}>تم</PrimaryButton>
@@ -1733,7 +1810,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
   return (
     <BottomSheet onClose={close} tall>
       <div ref={sheetTop} className="sheet-title plan-head">
-        {step > (existing ? 2 : 0)
+        {step > firstStep
           ? <button type="button" className="plan-back" onClick={() => setStep(step - 1)} aria-label="رجوع"><ChevronRight /></button>
           : <span className="sheet-icon"><CalendarPlus /></span>}
         <div>
@@ -1822,7 +1899,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
               <div className="chip-row">{[1, 2, 3, 4].map(n => <Chip key={n} active={party === n} onClick={() => setParty(n)}>{partyLabel(n)}</Chip>)}</div>
               <label className="field-label">وين تحب تجلس؟</label>
               <div className="chip-row">{seatOptions(place).map(s => <Chip key={s} active={seat === s} onClick={() => setSeat(s)}>{s}</Chip>)}</div>
-              <p className="plan-note"><ShieldCheck />{existing?.table ? `طاولتك محجوزة، ونمسكها لك ${HOLD_LABEL} من موعدك.` : `رسوم الحجز ${sar(TABLE_FEE)} تدفعها مع طلبك، ونمسك طاولتك ${HOLD_LABEL} كاملة من موعدك. إذا ألغيت قبل موعدك نرجعها لك.`}</p>
+              <p className="plan-note"><ShieldCheck />{existing?.table ? `طاولتك محجوزة، ونمسكها لك ${HOLD_LABEL} من موعدك.` : `رسوم الحجز ${sar(TABLE_FEE)} تدفعها مع طلبك، ونمسك طاولتك ${HOLD_LABEL} كاملة من موعدك. المبالغ المدفوعة ما تُسترجع عند الإلغاء.`}</p>
             </>
           )}
         </>
@@ -1880,7 +1957,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
         {step === 1 && <PrimaryButton onClick={() => setStep(2)}>التالي</PrimaryButton>}
         {step === 2 && <PrimaryButton onClick={() => setStep(3)} icon={items ? <Receipt /> : undefined}>{items ? `راجع الطلب · ${itemsLabel(items)} · ${sar(total)}` : 'تابع بدون طلب'}</PrimaryButton>}
         {step === 3 && (due > 0
-          ? <div className="wallet-buttons">{wallets.map(w => <button key={w} type="button" className={`wallet-button ${w}`} onClick={() => setPaying(w)}><WalletMark kind={w} /><small>{`ادفع ${sar(due)}`}</small></button>)}</div>
+          ? <div className="wallet-buttons">{wallets.map(w => <button key={w} type="button" className={`wallet-button ${w}`} onClick={() => setPaying(w)}><WalletMark kind={w} /></button>)}</div>
           : <PrimaryButton onClick={() => finish()} icon={<CalendarClock />}>{'ثبّت الزيارة'}</PrimaryButton>)}
       </div>
       {paying && <WalletPay wallet={paying} total={due} merchant={cafe} onCancel={() => setPaying(null)} onPaid={() => finish(paying)} />}
@@ -1889,7 +1966,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
 }
 
 // Everything about one visit in one place: order number, table, what was paid, and cancelling.
-function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder }: { visit: Visit; now: number; close: () => void; onCafe: () => void; onCancel: () => void; onOrder: () => void }) {
+function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder, onChat }: { visit: Visit; now: number; close: () => void; onCafe: () => void; onCancel: () => void; onOrder: () => void; onChat: () => void }) {
   const [confirming, setConfirming] = useState(false)
   const c = allCafes.find(x => x.name === v.cafe)
   const started = v.at <= now
@@ -1920,7 +1997,11 @@ function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder }: { visit
         </div>
       ) : null}
       {!v.order && !!v.table?.fee && v.table.wallet && <div className="checkout-card"><div className="checkout-total"><span>رسوم الحجز مدفوعة<small>{WALLET_NAME[v.table.wallet]} · شامل الضريبة</small></span><b>{sar(v.table.fee)}</b></div></div>}
-      {!v.order && !started && <button type="button" className="secondary-button" onClick={onOrder}><Receipt />اطلب قبل توصل</button>}
+      {!v.order && !started && <button type="button" className="secondary-button" onClick={onOrder}><Receipt />{v.table ? 'اطلب قبل توصل' : 'احجز طاولة أو اطلب قبل توصل'}</button>}
+      {(v.table || v.order) && (() => { const t = cafeThread(v, now), last = t[t.length - 1], n = cafeUnread(v, now); return (
+        <button type="button" className="cafe-thread-link" onClick={onChat}>
+          <MessageCircle /><span><b>رسائل الكافيه</b><small>{last.text}</small></span>{n > 0 && <i aria-label="رسائل جديدة">{n}</i>}<ChevronLeft />
+        </button>) })()}
       <div className="visit-actions">
         <button type="button" className="secondary-button" onClick={onCafe}><Store />صفحة الكافيه</button>
         <a className="secondary-button" href={calendarHref(v)} download="aroundme-visit.ics"><CalendarPlus />أضف للتقويم</a>
@@ -1929,7 +2010,7 @@ function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder }: { visit
         ? <button type="button" className="text-button danger visit-cancel-link" onClick={() => setConfirming(true)}>ألغِ الزيارة</button>
         : (
           <div className="cancel-confirm" role="alert">
-            <p>{refundNote(v, now)}</p>
+            <p>{refundNote(v)}</p>
             <div><button type="button" className="secondary-button" onClick={() => setConfirming(false)}>لا، خلها</button><button type="button" className="danger-button" onClick={onCancel}>نعم، ألغِ</button></div>
           </div>
         )}
@@ -2202,7 +2283,8 @@ export default function App() {
   const setLoc = (l: Loc) => { setLocRaw(l); store('around-loc', l); setSheet(null); say(l.city === LIVE_CITY ? `نعرض لك الأقرب من ${locLabel(l)}` : `اخترت ${l.city}`) }
   const clockNow = useNow(15000)
   const data = buildData(loc, myGender, meetPref, clockNow)
-  const unread = connections.reduce((n, c) => n + c.unread, 0)
+  const cafeVisits = visits.filter(v => (v.table || v.order) && v.at + VISIT_GRACE > clockNow).sort((a, b) => a.at - b.at)
+  const unread = connections.reduce((n, c) => n + c.unread, 0) + cafeVisits.reduce((n, v) => n + cafeUnread(v, clockNow), 0)
   const active = connections.find(c => c.status === 'active')
   const chat = connections.find(c => c.id === chatId)
   const say = (text: string) => {
@@ -2353,13 +2435,22 @@ export default function App() {
     setVisits(vs => { const next = [...vs.filter(x => x.id !== v.id), v]; store('around-visits', next); return next })
     return v
   }
+  const updateVisit = (id: string, fn: (v: Visit) => Visit) => setVisits(vs => { const next = vs.map(v => (v.id === id ? fn(v) : v)); store('around-visits', next); return next })
+  const [cafeChatId, setCafeChatId] = useState<string | null>(null)
+  const cafeChat = visits.find(v => v.id === cafeChatId)
+  const openCafeChat = (id: string) => { setSheet(null); setCafeChatId(id); updateVisit(id, v => ({ ...v, chatSeen: Date.now() })); go('cafeChat') }
+  // While the thread is open, everything in it counts as read.
+  useEffect(() => { if (screen === 'cafeChat' && cafeChat && cafeUnread(cafeChat, clockNow)) updateVisit(cafeChat.id, v => ({ ...v, chatSeen: Date.now() })) }, [screen, cafeChat, clockNow])
+  const sendCafe = (id: string, text: string) => {
+    updateVisit(id, v => ({ ...v, chat: [...(v.chat ?? []), { from: 'me', text, at: Date.now() }], chatSeen: Date.now() }))
+    window.setTimeout(() => updateVisit(id, v => ({ ...v, chat: [...(v.chat ?? []), { from: 'them', text: CAFE_REPLY, at: Date.now() }] })), 1500)
+  }
   const cancelVisit = (id: string) => {
     const v = visits.find(x => x.id === id)
     const next = visits.filter(x => x.id !== id)
     setVisits(next); store('around-visits', next)
     setSheet(null)
-    const back = v ? refundOf(v, Date.now()) : 0, w = v && visitWallet(v)
-    say(back && w ? `ألغينا الزيارة، ونرجع ${sar(back)} لـ ${WALLET_NAME[w]}` : 'ألغينا الزيارة')
+    say(v && visitPaid(v) ? 'ألغينا الزيارة، والمبلغ المدفوع ما يُسترجع' : 'ألغينا الزيارة')
   }
   const visitOpen = visits.find(v => v.id === openVisitId)
   const orderVisit = visits.find(v => v.id === orderFor)
@@ -2533,7 +2624,10 @@ export default function App() {
             setWallet={setWallet}
           />
         )}
-        {screen === 'inbox' && <InboxScreen onTab={onTab} unread={unread} connections={connections} openChat={openChat} />}
+        {screen === 'inbox' && <InboxScreen onTab={onTab} unread={unread} connections={connections} openChat={openChat} cafeVisits={cafeVisits} now={clockNow} openCafeChat={openCafeChat} />}
+        {screen === 'cafeChat' && cafeChat && (
+          <CafeChatScreen v={cafeChat} now={clockNow} back={back} send={text => sendCafe(cafeChat.id, text)} onVisit={() => openVisit(cafeChat.id)} />
+        )}
         {screen === 'chat' && chat && (
           <ChatScreen c={chat} back={back} send={sendMessage} onMenu={() => setSheet('chatMenu')} onMet={met => answerMet(chat.id, met)} />
         )}
@@ -2565,6 +2659,7 @@ export default function App() {
           onCafe={() => { setSheet(null); openCafe(visitOpen.cafe) }}
           onCancel={() => cancelVisit(visitOpen.id)}
           onOrder={() => { setOrderFor(visitOpen.id); setSheet('planVisit') }}
+          onChat={() => openCafeChat(visitOpen.id)}
         />
       )}
       {sheet === 'request' && target && <RequestSheet target={target} privateMode={privateMode} close={() => setSheet(null)} send={sendRequest} />}
