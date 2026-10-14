@@ -1460,7 +1460,7 @@ const visitDay = (at: number, now: number) => {
 const visitWhen = (at: number, now: number) => `${visitDay(at, now)} · ${clock(at)}`
 
 function PlanVisitSheet({ cafes, initialCafe, now, skills, close, save }: { cafes: string[]; initialCafe: string; now: number; skills: string[]; close: () => void; save: (v: Omit<Visit, 'id'>) => void }) {
-  const [cafe, setCafe] = useState(initialCafe)
+  const [cafe, setCafe] = useState(() => (cafes.includes(initialCafe) ? initialCafe : cafes[0] ?? ''))
   const [why, setWhy] = useState('')
   const [workOn, setWorkOn] = useState('')
   const { language } = useLanguage()
@@ -1474,7 +1474,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, close, save }: { cafe
   const [periodPick, setPeriodPick] = useState<string | null>(null)
   const period = periods.find(pd => pd.label === periodPick) ?? periods[0]
   const slots = period ? allSlots.filter(ts => inPeriod(ts, period)) : []
-  const picked = at !== null && allSlots.includes(at) ? at : null
+  const picked = at !== null && slots.includes(at) ? at : null
   return (
     <BottomSheet onClose={close} tall>
       <div className="sheet-title">
@@ -1485,7 +1485,9 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, close, save }: { cafe
         </div>
       </div>
       <label className="field-label">أي كافيه؟</label>
-      <div className="chip-row visit-cafes">{cafes.map(n => <Chip key={n} active={cafe === n} onClick={() => setCafe(n)}>{n}</Chip>)}</div>
+      {cafes.length
+        ? <div className="chip-row visit-cafes">{cafes.map(n => <Chip key={n} active={cafe === n} onClick={() => setCafe(n)}>{n}</Chip>)}</div>
+        : <p className="visit-empty">ما فيه كافيهات متاحة في مدينتك حاليًا</p>}
       <label className="field-label">أي يوم؟</label>
       <div className="chip-row">
         <Chip active={day === 0} onClick={() => setDay(0)}>اليوم</Chip>
@@ -1502,7 +1504,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, close, save }: { cafe
       <input id="visit-work" className="field" value={workOn} onChange={e => setWorkOn(e.target.value)} maxLength={80} placeholder="مثلاً: أبني واجهة تطبيقي الجديد" />
       <label className="field-label" htmlFor="visit-help">وش تقدر تساعد فيه؟</label>
       <input id="visit-help" className="field" value={canHelp} onChange={e => setCanHelp(e.target.value)} maxLength={80} placeholder="مثلاً: مراجعة كود React" />
-      <PrimaryButton onClick={() => picked !== null && save({ cafe, at: picked, why, workOn: workOn.trim(), canHelp: canHelp.trim() })} icon={<CalendarClock />} disabled={picked === null || !why || workOn.trim().length < 3}>ثبّت الزيارة</PrimaryButton>
+      <PrimaryButton onClick={() => picked !== null && save({ cafe, at: picked, why, workOn: workOn.trim(), canHelp: canHelp.trim() })} icon={<CalendarClock />} disabled={!cafes.includes(cafe) || picked === null || !why || workOn.trim().length < 3}>ثبّت الزيارة</PrimaryButton>
     </BottomSheet>
   )
 }

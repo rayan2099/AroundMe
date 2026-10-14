@@ -11,6 +11,7 @@ const EN: [string, string][] = [
   ['أي كافيه؟', 'Which coffee shop?'], ['أي يوم؟', 'Which day?'], ['أي وقت؟', 'What time?'], ['غدًا', 'Tomorrow'], ['ثبّت الزيارة', 'Confirm visit'],
   ['زياراتك القادمة', 'Upcoming visits'], ['زيارتك القادمة هنا', 'Your upcoming visit here'], ['إلغاء الزيارة', 'Cancel visit'], ['ألغينا الزيارة', 'Visit cancelled'],
   ['الصباح', 'Morning'], ['الظهر', 'Afternoon'], ['المساء', 'Evening'],
+  ['ما فيه كافيهات متاحة في مدينتك حاليًا', 'No coffee shops available in your city yet'],
   ['ما فيه أوقات متاحة اليوم', 'No times left today'], ['ما عندك زيارات قادمة', 'No upcoming visits'], ['ثبّتنا زيارتك:', 'Your visit is set:'],
   ['لا تبحث بالنت،', "Don't search online,"], ['ابحث حولك.', 'look around you.'],
   ['في نفس الكوفي، وعلى طاولة قريبة… تلقى اللي تحتاجه.', 'In the same coffee shop, at a nearby table… find what you need.'],
