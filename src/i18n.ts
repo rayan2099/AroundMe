@@ -2,6 +2,12 @@ export type Language = 'ar' | 'en'
 
 // Ordered longest-first so complete phrases win before individual terms.
 const EN: [string, string][] = [
+  ['حدد موعد زيارتك', 'Plan your next visit'],
+  ['اختر الكافيه والوقت وهدف زيارتك', 'Pick the coffee shop, the time, and what the visit is for'], ['وش هدف زيارتك؟', 'What is the visit for?'], ['حدد موعد زيارة هنا', 'Plan a visit here'],
+  ['هالوقت راح، اختر وقت بعده', 'That time has passed, pick a later one'], ['ما لقينا كافيه بهالاسم', 'No coffee shop by that name'],
+  ['وش تحتاج مساعدة فيه؟', 'What do you need help with?'], ['مثلاً: مراجعة تصميم تطبيقي', 'e.g. Reviewing my app design'], ['وش بتشتغل عليه هناك؟', 'What will you work on there?'], ['اختياري', 'optional'],
+  ['أحتاج مساعدة في:', 'Need help with:'], ['الساعة', 'Hour'], ['الدقيقة', 'Minute'], ['صباحًا أو مساءً', 'AM or PM'],
+  ['الأحد', 'Sunday'], ['الاثنين', 'Monday'], ['الثلاثاء', 'Tuesday'], ['الأربعاء', 'Wednesday'], ['الخميس', 'Thursday'], ['الجمعة', 'Friday'], ['السبت', 'Saturday'],
   ['زيارتك القادمة', 'Your next visit'], ['بدأت زيارتك', 'Your visit has started'], ['زيارة جديدة', 'New visit'], ['خطّط لزيارتك للكافيه', 'Plan your coffee shop visit'], ['اختر المكان والوقت، وقل ليش بتزور', 'Pick the place and time, and say why you are visiting'], ['تبدأ بعد', 'Starts in'],
   ['أشتغل على مشروعي', 'Working on my project'], ['أبحث عن مساعدة', 'Looking for help'], ['أبغى أساعد غيري', 'Here to help others'], ['ألتقي شخصًا', 'Meeting someone'],
   ['ليش بتزور؟', 'Why are you visiting?'], ['وش بتشتغل عليه؟', 'What will you work on?'], ['وش تقدر تساعد فيه؟', 'What can you help with?'],
