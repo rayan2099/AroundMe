@@ -776,7 +776,7 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
             <i><ChevronLeft /></i>
           </button>
         </div>
-        <div className="gateway-trust"><Sparkles /><span><small>الكوفي مليان خبرات مخفية. هنا تلقى اللي يساعدك، أو تساعد اللي حولك.</small></span></div>
+        <div className="gateway-trust"><Sparkles /><span><small>يمكن تكون جالس جنب شخص يملك حل مشكلتك أو يحتاج خبرتك! AroundMe يبيّن لك اهتمامات ومهارات الناس المتواجدين معك بالكوفي، ويحوّل الجلسة لفرصة تعاون.</small></span></div>
       </section>
 
       {visit && (
