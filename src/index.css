@@ -6190,3 +6190,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .screen::-webkit-scrollbar { d
 .intent-here { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin: 0 0 4px; padding: 6px 12px; border-radius: 999px; background: var(--green-soft); color: var(--green-dark); font-size: 13px; font-weight: 600; }
 .intent-here svg { width: 15px; }
 .home-screen .moments.is-last { margin-bottom: 112px; }
+
+/* Visit steps: equal columns for 3 or 4 steps, joined by a line that turns green once a step is done */
+.plan-steps { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 1fr; }
+.plan-steps li > span { position: relative; z-index: 1; }
+.plan-steps li:not(:last-child)::after { content: ""; position: absolute; top: 11px; inset-inline-start: calc(50% + 18px); width: calc(100% + 6px - 36px); height: 2px; border-radius: 2px; background: #e4dfd5; }
+.plan-steps li.done:not(:last-child)::after { background: var(--green); }
+.sheet-title.plan-head { padding-inline-end: 48px; }
