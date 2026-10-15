@@ -748,13 +748,13 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
       {/* Three moments: already at a café, on the way, or planning a later visit. */}
       <section className={`journey-gateway moments ${visit ? '' : 'is-last'}`}>
         <div className="gateway-intro">
-          <h1>وش خطتك مع الكافيه؟</h1>
+          <h1>وش وضعك الحين؟</h1>
         </div>
         <div className="journey-cards">
           <button className="journey-card seek moment" onClick={onHereNow}>
             <span className="journey-icon"><MapPin /></span>
             <span className="journey-copy">
-              <b>أنا في الكافيه الحين</b>
+              <b>أنا في الكوفي الحين</b>
               <em>{d.live ? `${helpersNow} حولك في الكافيهات الحين` : `ما وصلنا ${d.loc.city} للحين`}</em>
             </span>
             <i><ChevronLeft /></i>
@@ -762,7 +762,7 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
           <button className="journey-card help moment" onClick={onGoing}>
             <span className="journey-icon"><Navigation /></span>
             <span className="journey-copy">
-              <b>رايح للكافيه</b>
+              <b>رايح للكوفي الآن</b>
               <em>قلهم إنك جاي، واطلب قبل توصل</em>
             </span>
             <i><ChevronLeft /></i>
@@ -1711,7 +1711,7 @@ const suggestedStart = (now: number) => { const q = 15 * 60000; return Math.ceil
 const PLAN_STEPS = ['الزيارة', 'الطاولة', 'الطلب', 'الدفع']
 const ARRIVE_IN = [5, 10, 15, 20, 30, 45]
 
-// "أنا في الكافيه الحين": confirm the café, then what you want to get done today.
+// "أنا في الكوفي الحين": confirm the café, then what you want to get done today.
 function HereNowSheet({ cafes, initialCafe, close, next }: { cafes: Cafe[]; initialCafe?: string; close: () => void; next: (cafe: string, mode: ActionMode) => void }) {
   const open = cafes.filter(c => c.isOpen)
   const [cafe, setCafe] = useState(() => (open.some(c => c.name === initialCafe) ? initialCafe! : open[0]?.name ?? ''))
@@ -1723,7 +1723,7 @@ function HereNowSheet({ cafes, initialCafe, close, next }: { cafes: Cafe[]; init
     <BottomSheet onClose={close} tall>
       <div className="sheet-title plan-head">
         <span className="sheet-icon"><MapPin /></span>
-        <div><h2>أنا في الكافيه الحين</h2><p>أكّد الكافيه، ونعرض لك مين فيه الحين</p></div>
+        <div><h2>أنا في الكوفي الحين</h2><p>أكّد الكافيه، ونعرض لك مين فيه الحين</p></div>
       </div>
       {open.length ? (
         <>
@@ -1762,7 +1762,7 @@ function HereNowSheet({ cafes, initialCafe, close, next }: { cafes: Cafe[]; init
 
 function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferred, existing, going: goingNow = false, close, save, onOpenVisit, onSeeCafe }: {
   cafes: Cafe[]; initialCafe: string; now: number; skills: string[]; need: string; wallet: WalletKind;
-  // "رايح للكافيه": you pick when you'll arrive instead of a day and time, and there's no table step.
+  // "رايح للكوفي الآن": you pick when you'll arrive instead of a day and time, and there's no table step.
   going?: boolean; onSeeCafe?: (cafe: string, mode?: ActionMode) => void;
   // An already planned visit: the sheet opens on the menu to add an order to it.
   existing?: Visit;
@@ -1870,7 +1870,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
           ? <button type="button" className="plan-back" onClick={() => setStep(prevStep(step - 1))} aria-label="رجوع"><ChevronRight /></button>
           : <span className="sheet-icon">{going ? <Navigation /> : <CalendarPlus />}</span>}
         <div>
-          <h2>{step === 0 ? (going ? 'رايح للكافيه' : 'زيارة جديدة') : step === 1 ? 'احجز طاولتك' : step === 2 ? 'اطلب قبل توصل' : 'راجع وادفع'}</h2>
+          <h2>{step === 0 ? (going ? 'رايح للكوفي الآن' : 'زيارة جديدة') : step === 1 ? 'احجز طاولتك' : step === 2 ? 'اطلب قبل توصل' : 'راجع وادفع'}</h2>
           <p>{step === 0 ? (going ? 'اختر الكافيه ومتى توصل وهدف زيارتك' : 'اختر الكافيه والوقت وهدف زيارتك') : step === 1 ? `رسوم الحجز ${sar(TABLE_FEE)}، ونمسك طاولتك ${HOLD_LABEL}` : step === 2 ? (going ? 'اختياري، ويجهز طلبك وقت وصولك' : `اختياري، ويجهز طلبك ${visitWhen(at, now)}`) : 'تدفع الحين، وما تدفع شي عند وصولك'}</p>
         </div>
       </div>
@@ -2493,7 +2493,7 @@ export default function App() {
   const upcomingVisits = visits.filter(v => v.at + VISIT_GRACE > clockNow).sort((a, b) => a.at - b.at)
   const [goingNow, setGoingNow] = useState(false)
   const planVisit = (cafe: string, going = false) => { setVisitCafe(cafe); setOrderFor(null); setGoingNow(going); setSheet('planVisit') }
-  // The café picked in "أنا في الكافيه الحين"; the intent screen then shows who's there.
+  // The café picked in "أنا في الكوفي الحين"; the intent screen then shows who's there.
   const [hereCafe, setHereCafe] = useState<string | null>(null)
   const openVisit = (id: string) => { setOpenVisitId(id); setSheet('visit') }
   // The sheet stays open on its confirmation step, so saving doesn't close it.
