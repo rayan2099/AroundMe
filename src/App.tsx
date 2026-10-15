@@ -722,7 +722,6 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
 }) {
   const d = useData()
   const last = active && [...active.messages].reverse().find(m => m.from !== 'system')
-  const helpersNow = d.people.filter(p => p.presence === 'now').length
   return (
     <div className={`screen app-screen home-screen ${active ? 'has-connection' : ''}`}>
       <StatusBar />
@@ -755,7 +754,7 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
             <span className="journey-icon"><MapPin /></span>
             <span className="journey-copy">
               <b>أنا في الكوفي الحين</b>
-              <em>{d.live ? `${helpersNow} حولك في الكافيهات الحين` : `ما وصلنا ${d.loc.city} للحين`}</em>
+              <em>{d.live ? 'شوف مهارات واحتياجات اللي حولك' : `ما وصلنا ${d.loc.city} للحين`}</em>
             </span>
             <i><ChevronLeft /></i>
           </button>
