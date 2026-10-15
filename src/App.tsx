@@ -748,7 +748,7 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
       {/* Three moments: already at a café, on the way, or planning a later visit. */}
       <section className={`journey-gateway moments ${visit ? '' : 'is-last'}`}>
         <div className="gateway-intro">
-          <h1>وش وضعك الحين؟</h1>
+          <h1>تحديد حالة الزيارة</h1>
         </div>
         <div className="journey-cards">
           <button className="journey-card seek moment" onClick={onHereNow}>
