@@ -6197,3 +6197,9 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .screen::-webkit-scrollbar { d
 .plan-steps li:not(:last-child)::after { content: ""; position: absolute; top: 11px; inset-inline-start: calc(50% + 18px); width: calc(100% + 6px - 36px); height: 2px; border-radius: 2px; background: #e4dfd5; }
 .plan-steps li.done:not(:last-child)::after { background: var(--green); }
 .sheet-title.plan-head { padding-inline-end: 48px; }
+
+/* Café brand logos: shown in full next to the name, on a white tile */
+.cafe-browse-copy > div:first-child { align-items: center; gap: 10px; }
+.cafe-browse-copy > div:first-child h3 { flex: 1; min-width: 0; }
+.cafe-browse-copy > div:first-child img.cafe-brand-logo { flex: none; width: 44px; height: 44px; padding: 3px; object-fit: contain; background: #fff; border: 1px solid var(--border); border-radius: 12px; }
+.cafe-title-logo { width: 76px; height: 76px; padding: 6px; border-radius: 18px; box-shadow: 0 2px 8px rgba(28, 27, 25, 0.08); }

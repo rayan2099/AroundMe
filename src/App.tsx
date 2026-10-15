@@ -985,9 +985,9 @@ function MapScreen({ onTab, unread, onCafe, actionMode, onActionModeChange, cont
             {visible.length === 0 && <EmptyState title="ما لقينا كافيه بهالخيارات" hint={query ? 'جرّب اسم الحي بدل اسم الكافيه.' : 'جرّب فلتر ثاني.'} action="اعرض الكل" onAction={() => { setQuery(''); setFilter('all') }} />}
             {visible.map(cafe => (
               <button className="cafe-browse-card" key={cafe.id} onClick={() => onCafe(cafe.name)}>
-                <div className="cafe-image"><img src={cafe.image} alt="" onError={hidePhoto} />{badgeFor(cafe)}{cafeLogo(cafe, language) && <img className="cafe-logo" src={cafeLogo(cafe, language)} alt="" />}</div>
+                <div className="cafe-image"><img src={cafe.image} alt="" onError={hidePhoto} />{badgeFor(cafe)}</div>
                 <div className="cafe-browse-copy">
-                  <div><h3>{cafe.name}</h3><ChevronLeft /></div>
+                  <div>{cafeLogo(cafe, language) && <img className="cafe-brand-logo" src={cafeLogo(cafe, language)} alt="" />}<h3>{cafe.name}</h3><ChevronLeft /></div>
                   <p>{cafe.area} · {cafe.distance} · {cafe.eta}</p>
                   {!cafe.isOpen && <span className="open-now closing">{cafe.open}</span>}
                   <div className="cafe-amenities">{cafe.amenities.slice(0, 2).map(t => <span key={t}>{t}</span>)}</div>
