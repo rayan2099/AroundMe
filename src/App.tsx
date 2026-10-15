@@ -776,7 +776,7 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
             <i><ChevronLeft /></i>
           </button>
         </div>
-        <div className="gateway-trust"><ShieldCheck /><span><small>{COPY.consent}</small></span></div>
+        <div className="gateway-trust"><Sparkles /><span><small>الكوفي مليان خبرات مخفية. هنا تلقى اللي يساعدك، أو تساعد اللي حولك.</small></span></div>
       </section>
 
       {visit && (
