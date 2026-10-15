@@ -5,13 +5,13 @@ import {
   Handshake, HeartHandshake, Home, LocateFixed, LogOut, MapPin, MessageCircle,
   MoreHorizontal, Phone, Search, Send, Settings, Footprints, ShieldCheck, Sparkles, UserRound,
   UsersRound, X, Wifi, Volume2, PlugZap, Car, Bookmark, XCircle, Smartphone, Monitor, Trees, DoorOpen, Languages, CalendarPlus, CalendarClock,
-  Croissant, Sandwich, CakeSlice, CupSoda, GlassWater, Cookie, Minus, Plus, CreditCard, Receipt, Armchair, CircleCheck, LoaderCircle, Store, ScanFace
+  Croissant, Sandwich, CakeSlice, CupSoda, GlassWater, Cookie, Minus, Plus, CreditCard, Receipt, Armchair, CircleCheck, LoaderCircle, Store, ScanFace, Navigation
 } from 'lucide-react'
 import { BUSINESS } from './constants'
 import { toEnglish, type Language } from './i18n'
 
 export type Screen = 'onboarding' | 'phone' | 'otp' | 'location' | 'home' | 'intent' | 'map' | 'cafe' | 'people' | 'account' | 'settings' | 'inbox' | 'chat' | 'cafeChat' | 'matchProfile'
-export type Sheet = null | 'profileSetup' | 'editProfile' | 'skills' | 'request' | 'pending' | 'match' | 'chatMenu' | 'report' | 'location' | 'planVisit' | 'visit'
+export type Sheet = null | 'profileSetup' | 'editProfile' | 'skills' | 'request' | 'pending' | 'match' | 'chatMenu' | 'report' | 'location' | 'planVisit' | 'visit' | 'hereNow'
 export type Tab = 'home' | 'map' | 'people' | 'inbox' | 'account'
 // The app does one thing: connect people nearby to ask for help or offer it.
 export type ActionMode = 'seek' | 'help'
@@ -715,9 +715,9 @@ function MetPrompt({ name, onAnswer }: { name: string; onAnswer: (met: boolean) 
   )
 }
 
-function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, onLocation, visit, now, onPlanVisit, onOpenVisit }: {
-  visit?: Visit; now: number; onPlanVisit: () => void; onOpenVisit: (id: string) => void;
-  onTab: (t: Tab) => void; unread: number; openIntent: (mode: ActionMode) => void; active?: Connection;
+function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, onLocation, visit, now, onPlanVisit, onOpenVisit }: {
+  visit?: Visit; now: number; onPlanVisit: () => void; onOpenVisit: (id: string) => void; onHereNow: () => void; onGoing: () => void;
+  onTab: (t: Tab) => void; unread: number; active?: Connection;
   onChat: () => void; onMet: (met: boolean) => void; onLocation: () => void;
 }) {
   const d = useData()
@@ -745,26 +745,33 @@ function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, onLocati
         </div>
       )}
 
-      <section className="journey-gateway">
+      {/* Three moments: already at a café, on the way, or planning a later visit. */}
+      <section className={`journey-gateway moments ${visit ? '' : 'is-last'}`}>
         <div className="gateway-intro">
-          <h1>وش حاب تسوي اليوم؟</h1>
+          <h1>وش خطتك مع الكافيه؟</h1>
         </div>
         <div className="journey-cards">
-          <button className="journey-card seek" onClick={() => openIntent('seek')}>
-            <span className="journey-icon"><Search /></span>
+          <button className="journey-card seek moment" onClick={onHereNow}>
+            <span className="journey-icon"><MapPin /></span>
             <span className="journey-copy">
-              <small>عندي شيء أبي أنجزه</small>
-              <b>{COPY.seek}</b>
-              <em>{d.live ? `${helpersNow} حولك يقدرون يساعدون الآن` : `ما وصلنا ${d.loc.city} للحين`}</em>
+              <b>أنا في الكافيه الحين</b>
+              <em>{d.live ? `${helpersNow} حولك في الكافيهات الحين` : `ما وصلنا ${d.loc.city} للحين`}</em>
             </span>
             <i><ChevronLeft /></i>
           </button>
-          <button className="journey-card help" onClick={() => openIntent('help')}>
-            <span className="journey-icon"><HeartHandshake /></span>
+          <button className="journey-card help moment" onClick={onGoing}>
+            <span className="journey-icon"><Navigation /></span>
             <span className="journey-copy">
-              <small>عندي خبرة أقدر أشاركها</small>
-              <b>{COPY.help}</b>
-              <em>{d.live ? `${d.needs.length} احتياجات حولك اليوم` : `ما وصلنا ${d.loc.city} للحين`}</em>
+              <b>رايح للكافيه</b>
+              <em>قلهم إنك جاي، واطلب قبل توصل</em>
+            </span>
+            <i><ChevronLeft /></i>
+          </button>
+          <button className="journey-card help moment" onClick={onPlanVisit}>
+            <span className="journey-icon"><CalendarPlus /></span>
+            <span className="journey-copy">
+              <b>جَدوِل زيارتك القادمة</b>
+              <em>احجز طاولتك واطلب قبل توصل</em>
             </span>
             <i><ChevronLeft /></i>
           </button>
@@ -772,52 +779,40 @@ function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, onLocati
         <div className="gateway-trust"><ShieldCheck /><span><small>{COPY.consent}</small></span></div>
       </section>
 
-      <section className="home-visit">
-        {visit ? (
-          <>
-            <button className="home-visit-card" onClick={() => onOpenVisit(visit.id)}>
-              <img src={allCafes.find(c => c.name === visit.cafe)?.image} alt="" onError={hidePhoto} />
-              <span className="home-visit-copy">
-                <small><CalendarClock /> زيارتك القادمة</small>
-                <b>{visit.cafe}</b>
-                <em>{visitWhen(visit.at, now)}</em>
-                <i>{visit.at <= now ? (visit.order ? `بدأت زيارتك · رقم طلبك #${visit.order.code}` : 'بدأت زيارتك') : `تبدأ بعد ${timeLeft(visit.at, now)}`}</i>
-              </span>
-              <ChevronLeft />
-            </button>
-            {(visit.table || visit.order) && (
-              <div className="home-visit-notes booking">
-                {visit.table && <span><Armchair />{tableLabel(visit.table)}</span>}
-                {visit.order && <span><Receipt />{`طلبك مدفوع · ${itemsLabel(linesCount(visit.order.lines))}`}</span>}
-              </div>
-            )}
-            {(visitPurpose(visit) || visit.workOn) && (
-              <div className="home-visit-notes">
-                {visitPurpose(visit) && <span className={`visit-purpose ${visit.mode ?? ''}`}>{visit.mode === 'seek' ? <Search /> : <HeartHandshake />}{visitPurpose(visit)}</span>}
-                {visit.workOn && <span>بشتغل على: {visit.workOn}</span>}
-              </div>
-            )}
-            <button className="home-visit-add" onClick={onPlanVisit}><CalendarPlus /> زيارة جديدة</button>
-          </>
-        ) : (
-          <button className="home-visit-cta" onClick={onPlanVisit}>
-            <span className="home-visit-icon"><CalendarPlus /></span>
+      {visit && (
+        <section className="home-visit">
+          <button className="home-visit-card" onClick={() => onOpenVisit(visit.id)}>
+            <img src={allCafes.find(c => c.name === visit.cafe)?.image} alt="" onError={hidePhoto} />
             <span className="home-visit-copy">
-              <b>جَدوِل زيارتك القادمة</b>
-              <em>احجز طاولتك واطلب قبل توصل</em>
+              <small>{visit.going ? <Navigation /> : <CalendarClock />} {visit.going ? 'في طريقك' : 'زيارتك القادمة'}</small>
+              <b>{visit.cafe}</b>
+              <em>{visitWhen(visit.at, now)}</em>
+              <i>{visit.at <= now ? (visit.order ? `بدأت زيارتك · رقم طلبك #${visit.order.code}` : 'بدأت زيارتك') : `${visit.going ? 'توصل' : 'تبدأ'} بعد ${timeLeft(visit.at, now)}`}</i>
             </span>
             <ChevronLeft />
           </button>
-        )}
-      </section>
+          {(visit.table || visit.order) && (
+            <div className="home-visit-notes booking">
+              {visit.table && <span><Armchair />{tableLabel(visit.table)}</span>}
+              {visit.order && <span><Receipt />{`طلبك مدفوع · ${itemsLabel(linesCount(visit.order.lines))}`}</span>}
+            </div>
+          )}
+          {(visitPurpose(visit) || visit.workOn) && (
+            <div className="home-visit-notes">
+              {visitPurpose(visit) && <span className={`visit-purpose ${visit.mode ?? ''}`}>{visit.mode === 'seek' ? <Search /> : <HeartHandshake />}{visitPurpose(visit)}</span>}
+              {visit.workOn && <span>بشتغل على: {visit.workOn}</span>}
+            </div>
+          )}
+        </section>
+      )}
 
       <TabBar tab="home" onTab={onTab} unread={unread} />
     </div>
   )
 }
 
-function IntentScreen({ mode, back, mySkills, privateMode, onContinue }: {
-  mode: ActionMode; back: () => void; mySkills: string[]; privateMode: boolean; onContinue: (text: string, skills: string[]) => void;
+function IntentScreen({ mode, cafe, back, mySkills, privateMode, onContinue }: {
+  mode: ActionMode; cafe?: string; back: () => void; mySkills: string[]; privateMode: boolean; onContinue: (text: string, skills: string[]) => void;
 }) {
   const [text, setText] = useState('')
   const seek = mode === 'seek'
@@ -832,6 +827,7 @@ function IntentScreen({ mode, back, mySkills, privateMode, onContinue }: {
       <TopBar title={seek ? COPY.seek : COPY.help} back={back} />
       <main>
         <span className="intent-hero-icon">{seek ? <Search /> : <HeartHandshake />}</span>
+        {cafe && <span className="intent-here"><MapPin />أنت في {cafe}</span>}
         <h1>{seek ? 'وش تحتاج تنجز اليوم؟' : 'وش تقدر تساعد فيه؟'}</h1>
         <p>{seek ? 'اكتب احتياجك بشكل بسيط أو اختر من الاقتراحات.' : 'اختر مهارة أو أكثر، وأضف تفاصيل لو تبي.'}</p>
         {seek && (
@@ -856,7 +852,7 @@ function IntentScreen({ mode, back, mySkills, privateMode, onContinue }: {
       </main>
       <div className="sticky-action">
         <PrimaryButton onClick={() => onContinue(text.trim(), selected)} disabled={!ready}>
-          {seek ? 'اعرض اللي يقدرون يساعدوني' : 'اعرض اللي يحتاجون مساعدتي'}
+          {cafe ? (seek ? `اعرض اللي يقدرون يساعدوني هنا` : `اعرض اللي يحتاجون مساعدتي هنا`) : seek ? 'اعرض اللي يقدرون يساعدوني' : 'اعرض اللي يحتاجون مساعدتي'}
         </PrimaryButton>
       </div>
     </div>
@@ -1482,7 +1478,7 @@ const useDemoText = () => {
 
 // ---------- Planned visits ----------
 // mode: what the visit is for, the same two choices as the home screen. why is kept for visits saved before mode existed.
-export type Visit = { id: string; cafe: string; at: number; mode?: ActionMode; detail?: string; workOn?: string; why?: string; canHelp?: string; table?: TableHold; order?: Order; chat?: CafeMessage[]; chatSeen?: number }
+export type Visit = { id: string; cafe: string; at: number; mode?: ActionMode; detail?: string; workOn?: string; why?: string; canHelp?: string; table?: TableHold; order?: Order; chat?: CafeMessage[]; chatSeen?: number; going?: boolean }
 const VISIT_GRACE = 60 * 60000 // a visit stays listed for an hour after its start time
 const VISIT_DAYS = 7
 const MINUTE_STEP = 5
@@ -1713,18 +1709,74 @@ const MERIDIEM = ['ص', 'م']
 const suggestedStart = (now: number) => { const q = 15 * 60000; return Math.ceil((now + 60 * 60000) / q) * q }
 
 const PLAN_STEPS = ['الزيارة', 'الطاولة', 'الطلب', 'الدفع']
+const ARRIVE_IN = [5, 10, 15, 20, 30, 45]
 
-function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferred, existing, close, save, onOpenVisit }: {
+// "أنا في الكافيه الحين": confirm the café, then what you want to get done today.
+function HereNowSheet({ cafes, initialCafe, close, next }: { cafes: Cafe[]; initialCafe?: string; close: () => void; next: (cafe: string, mode: ActionMode) => void }) {
+  const open = cafes.filter(c => c.isOpen)
+  const [cafe, setCafe] = useState(() => (open.some(c => c.name === initialCafe) ? initialCafe! : open[0]?.name ?? ''))
+  const [query, setQuery] = useState('')
+  const [mode, setMode] = useState<ActionMode | null>(null)
+  const match = useSearch(query)
+  const shown = open.filter(c => match(c.name) || match(c.area))
+  return (
+    <BottomSheet onClose={close} tall>
+      <div className="sheet-title plan-head">
+        <span className="sheet-icon"><MapPin /></span>
+        <div><h2>أنا في الكافيه الحين</h2><p>أكّد الكافيه، ونعرض لك مين فيه الحين</p></div>
+      </div>
+      {open.length ? (
+        <>
+          <label className="field-label" htmlFor="here-cafe-search">أنت في أي كافيه؟</label>
+          <div className="search-field visit-search">
+            <Search />
+            <input id="here-cafe-search" value={query} onChange={e => setQuery(e.target.value)} placeholder="ابحث عن كافيه أو حي" />
+          </div>
+          <div className="visit-cafe-list" role="radiogroup" aria-label="أنت في أي كافيه؟">
+            {shown.map((c, i) => (
+              <button key={c.id} type="button" role="radio" aria-checked={cafe === c.name} className={`visit-cafe ${cafe === c.name ? 'active' : ''}`} onClick={() => { setCafe(c.name); setQuery('') }}>
+                <img src={c.image} alt="" onError={hidePhoto} />
+                <span><b>{c.name}</b><small>{i === 0 && !query ? 'الأقرب لك' : c.area} · {c.distance}</small></span>
+                {cafe === c.name && <Check />}
+              </button>
+            ))}
+            {shown.length === 0 && <p className="visit-empty">ما لقينا كافيه بهالاسم</p>}
+          </div>
+          <label className="field-label">وش حاب تسوي اليوم؟</label>
+          <div className="visit-modes" role="radiogroup" aria-label="وش حاب تسوي اليوم؟">
+            <button type="button" role="radio" aria-checked={mode === 'seek'} className={`visit-mode seek ${mode === 'seek' ? 'active' : ''}`} onClick={() => setMode('seek')}>
+              <span className="journey-icon"><Search /></span><b>{COPY.seek}</b><small>عندي شيء أبي أنجزه</small>
+            </button>
+            <button type="button" role="radio" aria-checked={mode === 'help'} className={`visit-mode help ${mode === 'help' ? 'active' : ''}`} onClick={() => setMode('help')}>
+              <span className="journey-icon"><HeartHandshake /></span><b>{COPY.help}</b><small>عندي خبرة أقدر أشاركها</small>
+            </button>
+          </div>
+        </>
+      ) : <p className="visit-empty">ما فيه كافيهات مفتوحة حولك حاليًا</p>}
+      <div className="sheet-footer">
+        <PrimaryButton onClick={() => cafe && mode && next(cafe, mode)} disabled={!cafe || !mode}>التالي</PrimaryButton>
+      </div>
+    </BottomSheet>
+  )
+}
+
+function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferred, existing, going: goingNow = false, close, save, onOpenVisit, onSeeCafe }: {
   cafes: Cafe[]; initialCafe: string; now: number; skills: string[]; need: string; wallet: WalletKind;
+  // "رايح للكافيه": you pick when you'll arrive instead of a day and time, and there's no table step.
+  going?: boolean; onSeeCafe?: (cafe: string, mode?: ActionMode) => void;
   // An already planned visit: the sheet opens on the menu to add an order to it.
   existing?: Visit;
   close: () => void; save: (v: Omit<Visit, 'id'>) => Visit; onOpenVisit: (id: string) => void;
 }) {
+  const going = existing?.going ?? goingNow
   const { language } = useLanguage()
   const inLanguage = (v: string) => (language === 'en' ? toEnglish(v) : v)
   // Adding to a planned visit starts at the table when none is booked yet, otherwise at the menu.
-  const firstStep = existing ? (existing.table ? 2 : 1) : 0
+  const firstStep = existing ? (existing.table || going ? 2 : 1) : 0
   const [step, setStepRaw] = useState(firstStep)
+  // On the way there's no table step: the visit step leads straight to the menu.
+  const nextStep = (n: number) => (going && n === 1 ? 2 : n)
+  const prevStep = (n: number) => (going && n === 1 ? 0 : n)
   // A quick second tap on the same footer spot shouldn't skip the next step.
   const stepAt = useRef(0)
   const setStep = (n: number) => { if (n > step && Date.now() - stepAt.current < 450) return; stepAt.current = Date.now(); setStepRaw(n) }
@@ -1742,7 +1794,8 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
   const [helpWith, setHelpWith] = useState(() => inLanguage(skills.slice(0, 3).join('، ')))
   const [needWith, setNeedWith] = useState(() => inLanguage(need))
   const [workOn, setWorkOn] = useState(existing?.workOn ?? '')
-  const [bookTable, setBookTable] = useState(true)
+  const [bookTable, setBookTable] = useState(!going)
+  const [arriveIn, setArriveIn] = useState(15)
   const [party, setParty] = useState(existing?.table?.party ?? 1)
   const [seat, setSeat] = useState(existing?.table?.seat ?? SEAT_ANY)
   const [cat, setCat] = useState<MenuCat>('coffee')
@@ -1755,7 +1808,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
   useEffect(() => { listRef.current?.querySelector('.active')?.scrollIntoView({ block: 'nearest' }) }, [])
   useEffect(() => { sheetTop.current?.scrollIntoView({ block: 'start' }) }, [step])
 
-  const at = new Date(dayStart(day, now)).setHours(((hour + 1) % 12) + pm * 12, minute * MINUTE_STEP, 0, 0)
+  const at = existing?.at ?? (going ? now + arriveIn * 60000 : new Date(dayStart(day, now)).setHours(((hour + 1) % 12) + pm * 12, minute * MINUTE_STEP, 0, 0))
   const past = at <= now
   const closed = !!place && !past && !openAt(place, at)
   const detail = existing ? existing.detail ?? '' : (mode === 'seek' ? needWith : helpWith).trim()
@@ -1774,7 +1827,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
   const finish = (paidWith?: WalletKind) => {
     const v = save({
       ...existing,
-      cafe, at, mode: mode ?? undefined, detail, workOn: workOn.trim(),
+      cafe, at, mode: mode ?? undefined, detail, workOn: workOn.trim(), going: going || undefined,
       table: bookTable ? (existing?.table ?? { party, seat, fee: TABLE_FEE, wallet: paidWith, bookedAt: Date.now() }) : undefined,
       order: paidWith && items ? { lines, note: note.trim() || undefined, total, wallet: paidWith, code: orderCode(), paidAt: Date.now() } : undefined,
     })
@@ -1787,16 +1840,19 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
       <BottomSheet onClose={close} tall>
         <div className="plan-done">
           <span className="plan-done-icon"><CircleCheck /></span>
-          <h2>{visitPaid(saved) > 0 ? 'تم الدفع وثبّتنا زيارتك' : 'ثبّتنا زيارتك'}</h2>
+          <h2>{going ? (saved.order ? 'تم الدفع، وطلبك يجهز لوصولك' : 'تمام، أنت في الطريق') : visitPaid(saved) > 0 ? 'تم الدفع وثبّتنا زيارتك' : 'ثبّتنا زيارتك'}</h2>
           <p>{saved.cafe} · {visitWhen(saved.at, now)}</p>
           {saved.order && <div className="order-code"><small>رقم طلبك</small><b dir="ltr">#{saved.order.code}</b><span>يجهز وقت وصولك. ما تدفع شي هناك.</span></div>}
           <ul className="plan-done-list">
             {saved.table && <li><Armchair />{tableLabel(saved.table)}<small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small></li>}
             {saved.order && <li><Receipt />{`${itemsLabel(linesCount(saved.order.lines))} · ${sar(saved.order.total)}`}<small>{`مدفوع بـ ${WALLET_NAME[saved.order.wallet]}`}</small></li>}
             {!saved.order && saved.table?.wallet && <li><Receipt />{`رسوم الحجز · ${sar(saved.table.fee ?? TABLE_FEE)}`}<small>{`مدفوعة بـ ${WALLET_NAME[saved.table.wallet]}`}</small></li>}
-            {!saved.table && !saved.order && <li><CalendarClock />بدون حجز طاولة أو طلب<small>تقدر تضيفهم من تفاصيل الزيارة</small></li>}
+            {going && <li><Navigation />{`توصل بعد ${timeLeft(saved.at, now)}`}<small>اللي في الكافيه يشوفون إنك جاي</small></li>}
+            {!going && !saved.table && !saved.order && <li><CalendarClock />بدون حجز طاولة أو طلب<small>تقدر تضيفهم من تفاصيل الزيارة</small></li>}
           </ul>
-          <a className="secondary-button" href={calendarHref(saved)} download="aroundme-visit.ics"><CalendarPlus />أضف للتقويم</a>
+          {going && onSeeCafe
+            ? <button type="button" className="secondary-button" onClick={() => onSeeCafe(saved.cafe, saved.mode)}><UsersRound />شوف مين هناك</button>
+            : <a className="secondary-button" href={calendarHref(saved)} download="aroundme-visit.ics"><CalendarPlus />أضف للتقويم</a>}
           {(saved.table || saved.order) && <p className="plan-note"><MessageCircle />{`${saved.cafe} بيراسلك عن طلبك في الرسائل، وتقدر ترد عليهم.`}</p>}
         </div>
         <div className="sheet-footer">
@@ -1811,15 +1867,15 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
     <BottomSheet onClose={close} tall>
       <div ref={sheetTop} className="sheet-title plan-head">
         {step > firstStep
-          ? <button type="button" className="plan-back" onClick={() => setStep(step - 1)} aria-label="رجوع"><ChevronRight /></button>
-          : <span className="sheet-icon"><CalendarPlus /></span>}
+          ? <button type="button" className="plan-back" onClick={() => setStep(prevStep(step - 1))} aria-label="رجوع"><ChevronRight /></button>
+          : <span className="sheet-icon">{going ? <Navigation /> : <CalendarPlus />}</span>}
         <div>
-          <h2>{step === 0 ? 'زيارة جديدة' : step === 1 ? 'احجز طاولتك' : step === 2 ? 'اطلب قبل توصل' : 'راجع وادفع'}</h2>
-          <p>{step === 0 ? 'اختر الكافيه والوقت وهدف زيارتك' : step === 1 ? `رسوم الحجز ${sar(TABLE_FEE)}، ونمسك طاولتك ${HOLD_LABEL}` : step === 2 ? `اختياري، ويجهز طلبك ${visitWhen(at, now)}` : 'تدفع الحين، وما تدفع شي عند وصولك'}</p>
+          <h2>{step === 0 ? (going ? 'رايح للكافيه' : 'زيارة جديدة') : step === 1 ? 'احجز طاولتك' : step === 2 ? 'اطلب قبل توصل' : 'راجع وادفع'}</h2>
+          <p>{step === 0 ? (going ? 'اختر الكافيه ومتى توصل وهدف زيارتك' : 'اختر الكافيه والوقت وهدف زيارتك') : step === 1 ? `رسوم الحجز ${sar(TABLE_FEE)}، ونمسك طاولتك ${HOLD_LABEL}` : step === 2 ? (going ? 'اختياري، ويجهز طلبك وقت وصولك' : `اختياري، ويجهز طلبك ${visitWhen(at, now)}`) : 'تدفع الحين، وما تدفع شي عند وصولك'}</p>
         </div>
       </div>
       <ol className="plan-steps" aria-label="الخطوات">
-        {PLAN_STEPS.map((s, i) => <li key={s} className={i === step ? 'current' : i < step ? 'done' : ''} aria-current={i === step ? 'step' : undefined}><span>{i < step ? <Check /> : i + 1}</span>{s}</li>)}
+        {PLAN_STEPS.map((s, i) => ({ s, i })).filter(({ i }) => !(going && i === 1)).map(({ s, i }, n) => <li key={s} className={i === step ? 'current' : i < step ? 'done' : ''} aria-current={i === step ? 'step' : undefined}><span>{i < step ? <Check /> : n + 1}</span>{s}</li>)}
       </ol>
 
       {step === 0 && (
@@ -1844,6 +1900,13 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
             </>
           ) : <p className="visit-empty">ما فيه كافيهات متاحة في مدينتك حاليًا</p>}
 
+          {going ? (
+            <>
+              <label className="field-label">متى توصل؟</label>
+              <div className="chip-row">{ARRIVE_IN.map(m => <Chip key={m} active={arriveIn === m} onClick={() => setArriveIn(m)}>{mins(m)}</Chip>)}</div>
+              <p className={`visit-when ${closed ? 'is-past' : ''}`}>{closed && place ? `${place.name} مقفل هالوقت. يفتح ${hoursLine(place)}` : `توصل تقريبًا ${clock(at)}`}</p>
+            </>
+          ) : (<>
           <label className="field-label">أي يوم؟</label>
           <div className="chip-row visit-days">
             {Array.from({ length: VISIT_DAYS }, (_, i) => <Chip key={i} active={day === i} onClick={() => setDay(i)}>{visitDay(dayStart(i, now), now)}</Chip>)}
@@ -1860,6 +1923,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
           <p className={`visit-when ${past || closed ? 'is-past' : ''}`}>
             {past ? 'هالوقت راح، اختر وقت بعده' : closed && place ? `${place.name} مقفل هالوقت. يفتح ${hoursLine(place)}` : visitWhen(at, now)}
           </p>
+          </>)}
 
           <label className="field-label">وش هدف زيارتك؟</label>
           <div className="visit-modes" role="radiogroup" aria-label="وش هدف زيارتك؟">
@@ -1936,7 +2000,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
               <span><b>{cafe}</b><small>{visitWhen(at, now)}</small></span>
               {!existing && <button type="button" className="text-button" onClick={() => setStep(0)}>تعديل</button>}
             </div>
-            <div className="checkout-row"><Armchair /><span>{bookTable ? tableLabel({ party, seat }) : 'بدون حجز طاولة'}{fee > 0 && <small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small>}</span>{fee > 0 && <b className="checkout-fee">{sar(fee)}</b>}{!existing && <button type="button" className="text-button" onClick={() => setStep(1)}>تعديل</button>}</div>
+            {!going && <div className="checkout-row"><Armchair /><span>{bookTable ? tableLabel({ party, seat }) : 'بدون حجز طاولة'}{fee > 0 && <small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small>}</span>{fee > 0 && <b className="checkout-fee">{sar(fee)}</b>}{!existing && <button type="button" className="text-button" onClick={() => setStep(1)}>تعديل</button>}</div>}
             {items > 0 ? (
               <>
                 <ul className="checkout-lines">
@@ -1953,12 +2017,12 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
       )}
 
       <div className="sheet-footer">
-        {step === 0 && <PrimaryButton onClick={() => visitReady && setStep(1)} disabled={!visitReady}>التالي</PrimaryButton>}
+        {step === 0 && <PrimaryButton onClick={() => visitReady && setStep(nextStep(1))} disabled={!visitReady}>التالي</PrimaryButton>}
         {step === 1 && <PrimaryButton onClick={() => setStep(2)}>التالي</PrimaryButton>}
         {step === 2 && <PrimaryButton onClick={() => setStep(3)} icon={items ? <Receipt /> : undefined}>{items ? `راجع الطلب · ${itemsLabel(items)} · ${sar(total)}` : 'تابع بدون طلب'}</PrimaryButton>}
         {step === 3 && (due > 0
           ? <div className="wallet-buttons">{wallets.map(w => <button key={w} type="button" className={`wallet-button ${w}`} onClick={() => setPaying(w)}><WalletMark kind={w} /></button>)}</div>
-          : <PrimaryButton onClick={() => finish()} icon={<CalendarClock />}>{'ثبّت الزيارة'}</PrimaryButton>)}
+          : <PrimaryButton onClick={() => finish()} icon={going ? <Navigation /> : <CalendarClock />}>{going ? 'تمام، أنا في الطريق' : 'ثبّت الزيارة'}</PrimaryButton>)}
       </div>
       {paying && <WalletPay wallet={paying} total={due} merchant={cafe} onCancel={() => setPaying(null)} onPaid={() => finish(paying)} />}
     </BottomSheet>
@@ -1974,7 +2038,7 @@ function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder, onChat }:
     <BottomSheet onClose={close} tall>
       <div className="visit-hero">
         <img src={c?.image} alt="" onError={hidePhoto} />
-        <div><small><CalendarClock /> {started ? 'زيارتك الحين' : 'زيارتك القادمة'}</small><h2>{v.cafe}</h2><p>{visitWhen(v.at, now)}{started ? '' : ` · تبدأ بعد ${timeLeft(v.at, now)}`}</p></div>
+        <div><small>{v.going ? <Navigation /> : <CalendarClock />} {started ? 'زيارتك الحين' : v.going ? 'في طريقك' : 'زيارتك القادمة'}</small><h2>{v.cafe}</h2><p>{visitWhen(v.at, now)}{started ? '' : ` · ${v.going ? 'توصل' : 'تبدأ'} بعد ${timeLeft(v.at, now)}`}</p></div>
       </div>
       {v.order && (
         <div className="order-code">
@@ -1983,7 +2047,7 @@ function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder, onChat }:
         </div>
       )}
       <ul className="visit-facts">
-        {v.table ? <li><Armchair /><span><b>{tableLabel(v.table)}</b><small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small></span></li> : <li><Armchair /><span><b>بدون حجز طاولة</b></span></li>}
+        {v.going && !v.table ? null : v.table ? <li><Armchair /><span><b>{tableLabel(v.table)}</b><small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small></span></li> : <li><Armchair /><span><b>بدون حجز طاولة</b></span></li>}
         {visitPurpose(v) && <li>{v.mode === 'seek' ? <Search /> : <HeartHandshake />}<span><b>{visitPurpose(v)}</b>{v.workOn && <small>بشتغل على: {v.workOn}</small>}</span></li>}
       </ul>
       {v.order ? (
@@ -1997,7 +2061,7 @@ function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder, onChat }:
         </div>
       ) : null}
       {!v.order && !!v.table?.fee && v.table.wallet && <div className="checkout-card"><div className="checkout-total"><span>رسوم الحجز مدفوعة<small>{WALLET_NAME[v.table.wallet]} · شامل الضريبة</small></span><b>{sar(v.table.fee)}</b></div></div>}
-      {!v.order && !started && <button type="button" className="secondary-button" onClick={onOrder}><Receipt />{v.table ? 'اطلب قبل توصل' : 'احجز طاولة أو اطلب قبل توصل'}</button>}
+      {!v.order && !started && <button type="button" className="secondary-button" onClick={onOrder}><Receipt />{v.table || v.going ? 'اطلب قبل توصل' : 'احجز طاولة أو اطلب قبل توصل'}</button>}
       {(v.table || v.order) && (() => { const t = cafeThread(v, now), last = t[t.length - 1], n = cafeUnread(v, now); return (
         <button type="button" className="cafe-thread-link" onClick={onChat}>
           <MessageCircle /><span><b>رسائل الكافيه</b><small>{last.text}</small></span>{n > 0 && <i aria-label="رسائل جديدة">{n}</i>}<ChevronLeft />
@@ -2427,7 +2491,10 @@ export default function App() {
   }
 
   const upcomingVisits = visits.filter(v => v.at + VISIT_GRACE > clockNow).sort((a, b) => a.at - b.at)
-  const planVisit = (cafe: string) => { setVisitCafe(cafe); setOrderFor(null); setSheet('planVisit') }
+  const [goingNow, setGoingNow] = useState(false)
+  const planVisit = (cafe: string, going = false) => { setVisitCafe(cafe); setOrderFor(null); setGoingNow(going); setSheet('planVisit') }
+  // The café picked in "أنا في الكافيه الحين"; the intent screen then shows who's there.
+  const [hereCafe, setHereCafe] = useState<string | null>(null)
   const openVisit = (id: string) => { setOpenVisitId(id); setSheet('visit') }
   // The sheet stays open on its confirmation step, so saving doesn't close it.
   const saveVisit = ({ cafe, at, ...details }: Omit<Visit, 'id'>): Visit => {
@@ -2511,7 +2578,8 @@ export default function App() {
           <HomeScreen
             onTab={onTab}
             unread={unread}
-            openIntent={mode => { setActionMode(mode); go('intent') }}
+            onHereNow={() => setSheet('hereNow')}
+            onGoing={() => planVisit(data.cafes[0]?.name ?? selectedCafe, true)}
             active={active}
             onChat={() => active && openChat(active.id)}
             onMet={met => active && answerMet(active.id, met)}
@@ -2525,13 +2593,14 @@ export default function App() {
         {screen === 'intent' && (
           <IntentScreen
             mode={actionMode}
+            cafe={hereCafe ?? undefined}
             back={back}
             mySkills={mySkills}
             privateMode={privateMode}
             onContinue={(text, skills) => {
               if (actionMode === 'seek') setNeedText(text || skills.join('، '))
               else setMySkills(skills)
-              onTab('people')
+              if (hereCafe) { setSelectedCafe(hereCafe); setStack(['home', 'cafe']) } else onTab('people')
             }}
           />
         )}
@@ -2648,9 +2717,16 @@ export default function App() {
       )}
       {sheet === 'planVisit' && (
         <PlanVisitSheet
-          key={orderFor ?? 'new'}
+          key={orderFor ?? (goingNow ? 'going' : 'new')}
           cafes={data.cafes} initialCafe={visitCafe} now={clockNow} skills={mySkills} need={myNeedDesc} wallet={wallet}
-          existing={orderVisit} close={() => setSheet(null)} save={saveVisit} onOpenVisit={openVisit}
+          existing={orderVisit} going={goingNow} close={() => setSheet(null)} save={saveVisit} onOpenVisit={openVisit}
+          onSeeCafe={(cafe, mode) => { setSheet(null); if (mode) setActionMode(mode); openCafe(cafe) }}
+        />
+      )}
+      {sheet === 'hereNow' && (
+        <HereNowSheet
+          cafes={data.cafes} initialCafe={selectedCafe} close={() => setSheet(null)}
+          next={(cafe, mode) => { setSheet(null); setHereCafe(cafe); setActionMode(mode); go('intent') }}
         />
       )}
       {sheet === 'visit' && visitOpen && (

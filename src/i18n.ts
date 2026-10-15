@@ -117,6 +117,12 @@ const EN: [string, string][] = [
   ['مراجعة تصميم وهوية', 'Design and brand review'], ['مراجعة عرض تقديمي', 'Presentation review'], ['Excel ونماذج مالية', 'Excel and financial models'], ['Excel ومالية', 'Excel and finance'], ['كتابة وتدقيق نصوص', 'Writing and proofreading'], ['تطوير تطبيق', 'App development'], ['مراجعة عرض', 'Presentation review'], ['بايثون', 'Python'], ['برمجة', 'Programming'], ['تصوير', 'Photography'], ['هوية', 'Branding'], ['شعار', 'Logo'], ['تطبيق', 'App'],
   ['أبني مشروع ناشئ وأحتاج مشورة في معمارية التطبيق وقاعدة البيانات.', 'I am building a startup and need advice on app architecture and the database.'],
   ['أقدر أساعد في', 'I can help with'], ['مجالات', 'areas'],
+  ['وش خطتك مع الكافيه؟', 'What are your coffee shop plans?'], ['أنا في الكافيه الحين', "I'm at a coffee shop now"], ['رايح للكافيه', "I'm heading to a coffee shop"], ['قلهم إنك جاي، واطلب قبل توصل', "Let them know you're coming, and order ahead"],
+  ['في طريقك', 'On your way'], ['توصل بعد', 'Arriving in'], ['توصل تقريبًا', 'Arriving around'], ['متى توصل؟', 'When will you get there?'], ['اختر الكافيه ومتى توصل وهدف زيارتك', 'Pick the coffee shop, when you will get there, and what the visit is for'], ['اختياري، ويجهز طلبك وقت وصولك', 'Optional. Your order will be ready when you arrive'],
+  ['تمام، أنا في الطريق', "OK, I'm on my way"], ['تمام، أنت في الطريق', "Great, you're on your way"], ['تم الدفع، وطلبك يجهز لوصولك', 'Paid. Your order will be ready when you arrive'], ['اللي في الكافيه يشوفون إنك جاي', "People at the coffee shop can see you're coming"], ['شوف مين هناك', "See who's there"],
+  ['أكّد الكافيه، ونعرض لك مين فيه الحين', "Confirm the coffee shop and we'll show you who's there now"], ['أنت في أي كافيه؟', 'Which coffee shop are you at?'], ['أنت في', "You're at"], ['الأقرب لك', 'Closest to you'], ['ما فيه كافيهات مفتوحة حولك حاليًا', 'No coffee shops are open near you right now'],
+  ['صنفين', '2 items'], ['أصناف', 'items'], ['صنف', '1 item'],
+  ['اعرض اللي يقدرون يساعدوني هنا', 'Show who can help me here'], ['اعرض اللي يحتاجون مساعدتي هنا', 'Show who needs my help here'],
   ['حفظ', 'Save'], ['رجوع', 'Back'], ['خيارات', 'Options'], ['حذف', 'Remove'], ['قريب منك', 'Near you'], ['منك', 'away'], ['متاح في', 'available in'], ['حاليًا', 'currently'], ['بس.', 'only.'], ['نبلغك أول ما نوصل مدينتك.', 'We will notify you when we launch in your city.'], ['لسا ما وصل', 'is not available in'], ['نفس الجنس فقط حسب تفضيلك.', 'Only the same gender is shown based on your preference.'], ['الاحتياجات تظهر بدون اسم أو صورة حتى الموافقة.', 'Requests stay anonymous until approval.'], ['يحتاج', 'Needs'], ['يوصل', 'Arrives'], ['الجلسة:', 'Seat:'], ['وقت التواجد', 'Availability'], ['نبذة', 'About'], ['يقدر يساعدك في', 'Can help you with'], ['تقدر تساعدك في', 'Can help you with'], ['الأنسب لـ:', 'Best matches for:'], ['حسب مهاراتك:', 'Based on your skills:'], ['إعادة التجربة من شاشة البداية', 'Restart from onboarding'], ['إعادة تعيين التجربة', 'Reset demo'], ['وضع العرض', 'Display mode'], ['محاكي الجوال', 'Phone preview'], ['العرض الموسع', 'Wide preview'],
 ]
 
@@ -132,6 +138,7 @@ export function toEnglish(value: string): string {
     .replace(/(\d+(?:\.\d+)?) ر\.س/g, (_, n: string) => `$${(Number(n) * 0.37).toFixed(2)}`)
     .replace(/(\d+) حولك يقدرون يساعدون الآن/g, '$1 people nearby can help now')
     .replace(/(\d+) احتياجات حولك اليوم/g, '$1 nearby requests today')
+    .replace(/(\d+) حولك في الكافيهات الحين/g, '$1 people at coffee shops nearby')
     .replace(/(\d+) من (\d+) مهارات/g, '$1 of $2 skills')
   for (const [source, target] of [...EN].sort((a, b) => b[0].length - a[0].length)) result = result.split(source).join(target)
   // Countdown durations: «ساعتين و30 دقيقة» → «2 h 30 min» (minutes are already «min» from the list above).

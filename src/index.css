@@ -6179,3 +6179,14 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .screen::-webkit-scrollbar { d
 .cafe-thread-link > i { font-style: normal; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--green); color: #fff; font-size: 11.5px; font-weight: 700; display: grid; place-items: center; }
 .cafe-thread-link > svg:last-child { width: 18px; color: var(--muted); flex: none; }
 .plan-done .plan-note { margin-top: 12px; text-align: start; }
+
+/* Home: the three moments (here now, on the way, planning) */
+.home-screen .moments .journey-cards { gap: 10px; }
+.journey-card.moment { min-height: 80px; padding: 13px 14px; grid-template-columns: 44px 1fr 28px; }
+.journey-card.moment .journey-icon { width: 44px; height: 44px; border-radius: 14px; }
+.journey-card.moment .journey-icon svg { width: 22px; height: 22px; }
+.journey-card.moment .journey-copy b { font-size: 17px; }
+.home-screen .moments + .home-visit { margin-top: 0; }
+.intent-here { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin: 0 0 4px; padding: 6px 12px; border-radius: 999px; background: var(--green-soft); color: var(--green-dark); font-size: 13px; font-weight: 600; }
+.intent-here svg { width: 15px; }
+.home-screen .moments.is-last { margin-bottom: 112px; }
