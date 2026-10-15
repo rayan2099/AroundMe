@@ -147,11 +147,11 @@ const images = {
   corner: '/assets/places/corner.jpg',
   garden: '/assets/places/garden.jpg',
   jjbeanLogo: '/assets/logos/jjbean.png',
-  unwanLogo: '/assets/logos/unwan.svg',
-  starbucksLogo: '/assets/logos/starbucks.svg',
-  dunkinLogo: '/assets/logos/dunkin.svg',
-  javatimeLogo: '/assets/logos/javatime.svg',
-  drcafeLogo: '/assets/logos/drcafe.svg',
+  unwanLogo: '/assets/logos/unwan.png',
+  starbucksLogo: '/assets/logos/starbucks.png',
+  dunkinLogo: '/assets/logos/dunkin.png',
+  javatimeLogo: '/assets/logos/javatime.png',
+  drcafeLogo: '/assets/logos/drcafe.png',
 }
 
 export type Person = {
