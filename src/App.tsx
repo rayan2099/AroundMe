@@ -763,7 +763,7 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
             <span className="journey-icon"><Navigation /></span>
             <span className="journey-copy">
               <b>رايح للكوفي الآن</b>
-              <em>قلهم إنك جاي، واطلب قبل توصل</em>
+              <em>علّمهم إنك بالطريق واطلب مسبقاً</em>
             </span>
             <i><ChevronLeft /></i>
           </button>
