@@ -198,6 +198,12 @@ const allCafes: CafeBase[] = [
 ]
 // The Arabic version shows Saudi brands; the English version keeps the Vancouver names, so each has its own logo.
 const cafeLogo = (c: CafeBase, language: Language) => (language === 'en' ? c.logoEn : c.logo)
+// A café's picture next to its name: its logo when it has one in this language, otherwise its photo.
+function CafeThumb({ cafe }: { cafe?: CafeBase }) {
+  const { language } = useLanguage()
+  const logo = cafe && cafeLogo(cafe, language)
+  return <img className={logo ? 'cafe-thumb-logo' : undefined} src={logo || cafe?.image} alt="" onError={hidePhoto} />
+}
 const amenityIcon: Record<string, React.ReactNode> = {
   'هادئ للعمل': <Volume2 />, 'واي فاي': <Wifi />, 'مقابس': <PlugZap />, 'مواقف': <Car />,
   'جلسات خارجية': <Trees />, 'غرف اجتماعات': <DoorOpen />,
@@ -789,7 +795,7 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
       {visit && (
         <section className="home-visit">
           <button className="home-visit-card" onClick={() => onOpenVisit(visit.id)}>
-            <img src={allCafes.find(c => c.name === visit.cafe)?.image} alt="" onError={hidePhoto} />
+            <CafeThumb cafe={allCafes.find(c => c.name === visit.cafe)} />
             <span className="home-visit-copy">
               <small>{visit.going ? <Navigation /> : <CalendarClock />} {visit.going ? 'في طريقك' : 'زيارتك القادمة'}</small>
               <b>{visit.cafe}</b>
@@ -985,9 +991,9 @@ function MapScreen({ onTab, unread, onCafe, actionMode, onActionModeChange, cont
             {visible.length === 0 && <EmptyState title="ما لقينا كافيه بهالخيارات" hint={query ? 'جرّب اسم الحي بدل اسم الكافيه.' : 'جرّب فلتر ثاني.'} action="اعرض الكل" onAction={() => { setQuery(''); setFilter('all') }} />}
             {visible.map(cafe => (
               <button className="cafe-browse-card" key={cafe.id} onClick={() => onCafe(cafe.name)}>
-                <div className="cafe-image"><img src={cafe.image} alt="" onError={hidePhoto} />{badgeFor(cafe)}</div>
+                <div className="cafe-image"><CafeThumb cafe={cafe} />{badgeFor(cafe)}</div>
                 <div className="cafe-browse-copy">
-                  <div>{cafeLogo(cafe, language) && <img className="cafe-brand-logo" src={cafeLogo(cafe, language)} alt="" />}<h3>{cafe.name}</h3><ChevronLeft /></div>
+                  <div><h3>{cafe.name}</h3><ChevronLeft /></div>
                   <p>{cafe.area} · {cafe.distance} · {cafe.eta}</p>
                   {!cafe.isOpen && <span className="open-now closing">{cafe.open}</span>}
                   <div className="cafe-amenities">{cafe.amenities.slice(0, 2).map(t => <span key={t}>{t}</span>)}</div>
@@ -1269,7 +1275,7 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
           const c = allCafes.find(x => x.name === v.cafe)
           return (
             <button key={v.id} className="history-card visit-card" onClick={() => onOpenVisit(v.id)}>
-              <img src={c?.image} alt="" onError={hidePhoto} />
+              <CafeThumb cafe={c} />
               <div>
                 <h3>{v.cafe}</h3>
                 <p><CalendarClock /> {visitWhen(v.at, now)}</p>
@@ -1288,7 +1294,7 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
               const c = cafeOf(d, n) ?? { ...allCafes.find(x => x.name === n)!, distance: '' }
               return (
                 <button key={n} className="history-card" onClick={() => onCafe(n)}>
-                  <img src={c.image} alt="" onError={hidePhoto} />
+                  <CafeThumb cafe={c} />
                   <div><h3>{n}</h3><small>{c.area}{c.distance ? ` · ${c.distance}` : ''}</small><p><Bookmark /> محفوظ</p></div>
                   <ChevronLeft />
                 </button>
@@ -1305,7 +1311,7 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
           const c = allCafes.find(x => x.name === v.name)!
           return (
             <button key={v.name} className="history-card" onClick={() => onCafe(v.name)}>
-              <img src={c.image} alt="" onError={hidePhoto} />
+              <CafeThumb cafe={c} />
               <div><h3>{v.name}</h3><small>{v.when} · {c.area}</small><p><UsersRound /> {v.note}</p></div>
               <ChevronLeft />
             </button>
@@ -1744,7 +1750,7 @@ function HereNowSheet({ cafes, initialCafe, close, next }: { cafes: Cafe[]; init
           <div className="visit-cafe-list" role="radiogroup" aria-label="أنت في أي كافيه؟">
             {shown.map((c, i) => (
               <button key={c.id} type="button" role="radio" aria-checked={cafe === c.name} className={`visit-cafe ${cafe === c.name ? 'active' : ''}`} onClick={() => { setCafe(c.name); setQuery('') }}>
-                <img src={c.image} alt="" onError={hidePhoto} />
+                <CafeThumb cafe={c} />
                 <span><b>{c.name}</b><small>{i === 0 && !query ? 'الأقرب لك' : c.area} · {c.distance}</small></span>
                 {cafe === c.name && <Check />}
               </button>
@@ -1899,7 +1905,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
               <div className="visit-cafe-list" ref={listRef} role="radiogroup" aria-label="أي كافيه؟">
                 {shown.map(c => (
                   <button key={c.id} type="button" role="radio" aria-checked={cafe === c.name} className={`visit-cafe ${cafe === c.name ? 'active' : ''}`} onClick={() => { setCafe(c.name); setQuery(''); setSeat(SEAT_ANY) }}>
-                    <img src={c.image} alt="" onError={hidePhoto} />
+                    <CafeThumb cafe={c} />
                     <span><b>{c.name}</b><small>{c.area} · {c.distance} · {hoursLine(c)}</small></span>
                     {cafe === c.name && <Check />}
                   </button>
@@ -2005,7 +2011,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
         <>
           <div className="checkout-card">
             <div className="checkout-place">
-              <img src={place?.image} alt="" onError={hidePhoto} />
+              <CafeThumb cafe={place} />
               <span><b>{cafe}</b><small>{visitWhen(at, now)}</small></span>
               {!existing && <button type="button" className="text-button" onClick={() => setStep(0)}>تعديل</button>}
             </div>
@@ -2046,7 +2052,7 @@ function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder, onChat }:
   return (
     <BottomSheet onClose={close} tall>
       <div className="visit-hero">
-        <img src={c?.image} alt="" onError={hidePhoto} />
+        <CafeThumb cafe={c} />
         <div><small>{v.going ? <Navigation /> : <CalendarClock />} {started ? 'زيارتك الحين' : v.going ? 'في طريقك' : 'زيارتك القادمة'}</small><h2>{v.cafe}</h2><p>{visitWhen(v.at, now)}{started ? '' : ` · ${v.going ? 'توصل' : 'تبدأ'} بعد ${timeLeft(v.at, now)}`}</p></div>
       </div>
       {v.order && (
