@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import {
-  Ban, Bell, Camera, Check, ChevronDown, ChevronLeft, ChevronRight,
+  Ban, Bell, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight,
   CircleUserRound, Clock3, Code2, Coffee, Compass, Edit3, EyeOff, Flag,
   Handshake, HeartHandshake, Home, LocateFixed, LogOut, MapPin, MessageCircle,
   MoreHorizontal, Phone, Search, Send, Settings, Footprints, ShieldCheck, Sparkles, UserRound,
@@ -1029,6 +1029,7 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
   const seek = actionMode === 'seek'
   const sortNow = <T extends { presence: Presence }>(xs: T[]) => [...xs].sort((a, b) => (a.presence === b.presence ? 0 : a.presence === 'now' ? -1 : 1))
 
+  const menuRef = useRef<HTMLElement>(null)
   return (
     <div className="screen cafe-detail-screen">
       <div className="cafe-cover">
@@ -1047,6 +1048,8 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
             <p>{cafe.area} · {cafe.distance} منك · {cafe.eta}</p>
             <p className="cafe-hours"><Clock3 /> {hoursLine(cafe)}</p>
           </div>
+          {/* A busy café pushes the menu far down, so this jumps straight to it. */}
+          <button type="button" className="cafe-menu-jump" onClick={() => menuRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}><BookOpen />المنيو</button>
         </div>
         {(visit || !here) && <button className="plan-visit" onClick={() => (visit ? onOpenVisit(visit.id) : onPlan())}>
           <CalendarPlus />
@@ -1066,7 +1069,7 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
             ? <div className="card-stack">{sortNow(cafeNeeds).map(n => <NeedCard key={n.id} n={n} h={h} showCafe={false} />)}</div>
             : <EmptyState title="ما فيه احتياجات هنا حاليًا" hint="جرّب كافيهًا آخر قريبًا." />)}
         </section>
-        <section className="cafe-section">
+        <section className="cafe-section cafe-menu" ref={menuRef}>
           <div className="section-head"><h2>المنيو</h2>{!here && <button type="button" className="text-button" onClick={() => (visit && !visit.order ? onOpenVisit(visit.id) : onPlan())}>اطلب قبل توصل</button>}</div>
           <ul className="menu-preview">
             {MENU.filter(m => ['latte', 'v60', 'matcha', 'croissant'].includes(m.id)).map(m => <li key={m.id}><span className="menu-icon">{m.icon}</span><b>{m.name}</b><em>{sar(m.price)}</em></li>)}

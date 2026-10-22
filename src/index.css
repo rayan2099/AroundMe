@@ -6231,3 +6231,8 @@ img.cafe-thumb-logo { object-fit: contain !important; background: #fff !importan
    and its padding follows the reading direction so the button sits evenly inside the box in Arabic too. */
 .add-tag-box { padding-block: 4px; padding-inline: 12px 6px; }
 .add-tag-box input { min-width: 0; }
+
+/* Café page: «المنيو» button beside the café name that jumps down to the menu */
+.cafe-menu-jump { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 68px; height: 68px; border-radius: 18px; background: var(--green-soft); color: var(--green-dark); font-size: 12px; font-weight: 700; }
+.cafe-menu-jump svg { width: 22px; height: 22px; }
+.cafe-section.cafe-menu { scroll-margin-top: 64px; }
