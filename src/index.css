@@ -6208,3 +6208,26 @@ html::-webkit-scrollbar, body::-webkit-scrollbar, .screen::-webkit-scrollbar { d
 img.cafe-thumb-logo { object-fit: contain !important; background: #fff !important; padding: 6px; box-sizing: border-box; border: 1px solid var(--border); }
 .cafe-image > img.cafe-thumb-logo { padding: 34px 16px 12px; border: 0; }
 .cafe-image:has(> img.cafe-thumb-logo) { background: #fff; box-shadow: inset 0 0 0 1px var(--border); }
+
+/* Layout and alignment fixes */
+/* Onboarding and location: keep a gap between the copy and the button when the copy runs long (English). */
+.onboard-copy p { margin-bottom: 24px; }
+/* Café list: with nobody to show, drop the empty avatar row so the line lines up with the text above. */
+.cafe-match .mini-avatars:empty { display: none; }
+/* Account: the empty-visits line sits on the same edge as its section heading. */
+.visit-empty { margin-inline: 4px; }
+/* Order list: the settings-style «.menu-list button» rule was overriding the quantity buttons,
+   leaving their «+» and «−» off-centre and the add button without its green circle. */
+.menu-list .stepper-add,
+.menu-list .stepper button { display: grid; place-items: center; padding: 0; border-bottom: 0; }
+.menu-list .stepper-add { background: var(--green); color: #fff; }
+.menu-list .stepper button { background: #fff; color: var(--green); }
+.menu-list .stepper-add svg, .menu-list .stepper svg { width: 16px; color: inherit; }
+/* «I can help» setup: the same gap above the privacy note as in «I need help», even when the copy runs long. */
+.intent-choice-grid + textarea { margin-bottom: 24px; }
+/* Bottom actions stay on screen when a form is taller than the phone (English copy wraps longer). */
+.sticky-action { position: sticky; bottom: 0; z-index: 5; }
+/* Skills: the add box no longer overflows its card (inputs keep a wide default width unless allowed to shrink),
+   and its padding follows the reading direction so the button sits evenly inside the box in Arabic too. */
+.add-tag-box { padding-block: 4px; padding-inline: 12px 6px; }
+.add-tag-box input { min-width: 0; }

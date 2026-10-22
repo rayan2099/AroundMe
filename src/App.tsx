@@ -691,6 +691,7 @@ function LocationScreen({ next, manual, back }: { next: () => void; manual: () =
 function LocationSheet({ current, close, save }: { current: Loc; close: () => void; save: (l: Loc) => void }) {
   const [city, setCity] = useState(current.city)
   const [area, setArea] = useState(current.area)
+  const { language } = useLanguage()
   return (
     <BottomSheet onClose={close}>
       <div className="sheet-title">
@@ -702,7 +703,8 @@ function LocationSheet({ current, close, save }: { current: Loc; close: () => vo
         <span><small>الأدق</small>استخدم موقعي الحالي</span>
         {current.mode === 'gps' && <Check className="row-check" />}
       </button>
-      <label className="field-label">المدينة</label>
+      {/* «المدينة» is also the city of Madinah, so the label is picked here rather than by the translator. */}
+      <label className="field-label" data-no-translate>{language === 'en' ? 'City' : 'المدينة'}</label>
       <div className="chip-row">{CITIES.map(c => <Chip key={c} active={city === c} onClick={() => setCity(c)}>{c}</Chip>)}</div>
       {city === LIVE_CITY ? (
         <>
@@ -1821,7 +1823,8 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
   const sheetTop = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   useEffect(() => { listRef.current?.querySelector('.active')?.scrollIntoView({ block: 'nearest' }) }, [])
-  useEffect(() => { sheetTop.current?.scrollIntoView({ block: 'start' }) }, [step])
+  // Scroll the sheet itself back to its top, so the grabber and close button stay in view on every step.
+  useEffect(() => { sheetTop.current?.closest('.bottom-sheet')?.scrollTo({ top: 0 }) }, [step])
 
   const at = existing?.at ?? (going ? now + arriveIn * 60000 : new Date(dayStart(day, now)).setHours(((hour + 1) % 12) + pm * 12, minute * MINUTE_STEP, 0, 0))
   const past = at <= now
@@ -2184,6 +2187,7 @@ function SkillsSheet({ close, initial, save }: { close: () => void; initial: str
 
 // One consent step for both ways of reaching someone: ask for help, or offer it.
 function RequestSheet({ target, privateMode, close, send }: { target: Target; privateMode: boolean; close: () => void; send: (minutes: number, text: string) => void }) {
+  const { language } = useLanguage()
   const [commit, setCommit] = useState(target.kind === 'offer' ? target.need.minutes : 15)
   const [text, setText] = useState(target.kind === 'ask' ? target.need : '')
   const person = target.kind === 'ask' ? target.person : null
@@ -2192,7 +2196,7 @@ function RequestSheet({ target, privateMode, close, send }: { target: Target; pr
     <BottomSheet onClose={close}>
       <div className="request-person">
         {person ? <Avatar src={person.image} size={78} name={person.name} online={person.presence === 'now'} /> : <span className="anonymous-avatar big"><UserRound /></span>}
-        <h2>{person ? `تطلب مساعدة ${first(person.name)}؟` : 'تعرض مساعدتك؟'}</h2>
+        <h2>{person ? `تطلب مساعدة ${first(language === 'en' ? toEnglish(person.name) : person.name)}؟` : 'تعرض مساعدتك؟'}</h2>
         <p>{privateMode ? `${who} طلبك بدون اسمك وصورتك، ويظهرون بعد الموافقة` : `${who} اسمك وصورتك مع الطلب`}</p>
       </div>
       {target.kind === 'offer' ? (
