@@ -1014,8 +1014,10 @@ function MapScreen({ onTab, unread, onCafe, actionMode, onActionModeChange, cont
   )
 }
 
-function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onActionModeChange, h, visit, onPlan, onOpenVisit, now }: {
+function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onActionModeChange, h, visit, onPlan, onOpenVisit, now, here = false }: {
   visit?: Visit; onPlan: () => void; onOpenVisit: (id: string) => void; now: number;
+  // The person said they're in this café right now («أنا في الكوفي الحين»), so booking and ordering ahead don't apply.
+  here?: boolean;
   cafeName: string; back: () => void; saved: boolean; onToggleSave: () => void; actionMode: ActionMode; onActionModeChange: (m: ActionMode) => void;
   h: CardHandlers;
 }) {
@@ -1046,11 +1048,11 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
             <p className="cafe-hours"><Clock3 /> {hoursLine(cafe)}</p>
           </div>
         </div>
-        <button className="plan-visit" onClick={() => (visit ? onOpenVisit(visit.id) : onPlan())}>
+        {(visit || !here) && <button className="plan-visit" onClick={() => (visit ? onOpenVisit(visit.id) : onPlan())}>
           <CalendarPlus />
           <span><b>{visit ? 'زيارتك القادمة هنا' : 'جَدوِل زيارتك هنا'}</b><small>{visit ? `${visitWhen(visit.at, now)}${visit.table ? ` · ${tableLabel(visit.table)}` : ''}${visit.order ? ' · طلبك مدفوع' : ''}` : 'احجز طاولتك واطلب قبل توصل'}</small></span>
           <ChevronLeft />
-        </button>
+        </button>}
         <section className="cafe-section">
           <IntentSwitch mode={actionMode} onChange={onActionModeChange} />
           <div className="section-head">
@@ -1065,11 +1067,11 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
             : <EmptyState title="ما فيه احتياجات هنا حاليًا" hint="جرّب كافيهًا آخر قريبًا." />)}
         </section>
         <section className="cafe-section">
-          <div className="section-head"><h2>المنيو</h2><button type="button" className="text-button" onClick={() => (visit && !visit.order ? onOpenVisit(visit.id) : onPlan())}>اطلب قبل توصل</button></div>
+          <div className="section-head"><h2>المنيو</h2>{!here && <button type="button" className="text-button" onClick={() => (visit && !visit.order ? onOpenVisit(visit.id) : onPlan())}>اطلب قبل توصل</button>}</div>
           <ul className="menu-preview">
             {MENU.filter(m => ['latte', 'v60', 'matcha', 'croissant'].includes(m.id)).map(m => <li key={m.id}><span className="menu-icon">{m.icon}</span><b>{m.name}</b><em>{sar(m.price)}</em></li>)}
           </ul>
-          <p className="plan-note"><ShieldCheck />تطلب وتدفع من التطبيق قبل توصل، وما تدفع شي في الكافيه.</p>
+          {!here && <p className="plan-note"><ShieldCheck />تطلب وتدفع من التطبيق قبل توصل، وما تدفع شي في الكافيه.</p>}
         </section>
         <section className="cafe-section">
           <div className="section-head"><h2>عن المكان</h2></div>
@@ -2511,7 +2513,7 @@ export default function App() {
 
   const upcomingVisits = visits.filter(v => v.at + VISIT_GRACE > clockNow).sort((a, b) => a.at - b.at)
   const [goingNow, setGoingNow] = useState(false)
-  const planVisit = (cafe: string, going = false) => { setVisitCafe(cafe); setOrderFor(null); setGoingNow(going); setSheet('planVisit') }
+  const planVisit = (cafe: string, going = false) => { setVisitCafe(cafe); setOrderFor(null); setGoingNow(going); setHereCafe(null); setSheet('planVisit') }
   // The café picked in "أنا في الكوفي الحين"; the intent screen then shows who's there.
   const [hereCafe, setHereCafe] = useState<string | null>(null)
   const openVisit = (id: string) => { setOpenVisitId(id); setSheet('visit') }
@@ -2647,6 +2649,7 @@ export default function App() {
             onPlan={() => planVisit(selectedCafe)}
             onOpenVisit={openVisit}
             now={clockNow}
+            here={hereCafe === selectedCafe}
           />
         )}
         {screen === 'people' && (
