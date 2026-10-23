@@ -1,22 +1,23 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
-  ArrowDown, ArrowUp, BadgeCheck, CakeSlice, Camera, Check, ChevronLeft, ChevronRight, CircleAlert, Coffee, Cookie, Croissant,
+  ArrowDown, ArrowUp, BadgeCheck, ChartColumn, CakeSlice, Camera, Check, ChevronLeft, ChevronRight, CircleAlert, Coffee, Cookie, Croissant,
   CupSoda, Eye, FileText, GlassWater, ImagePlus, Languages, Leaf, Link2, MapPin, PenLine, Plus, Salad, Sandwich, ScanLine,
   Search, Sparkles, Star, Store, Trash2, Upload, Utensils, X,
 } from 'lucide-react'
+import Insights from './Insights'
 import { PLACES, PLATFORMS, SUGGESTED, importedMenu, scannedMenu } from './data'
 import type { Category, IconKey, Item, Place, Text } from './data'
 
 type Lang = 'ar' | 'en'
 const LangCtx = createContext<{ lang: Lang; toggle: () => void }>({ lang: 'ar', toggle: () => undefined })
 // t('عربي', 'English'): every line of copy is written in both languages where it's used.
-function useT() {
+export function useT() {
   const { lang } = useContext(LangCtx)
   return useMemo(() => {
     const t = (ar: string, en: string) => (lang === 'ar' ? ar : en)
     const tx = (x: Text) => (lang === 'ar' ? x.ar || x.en : x.en || x.ar)
-    const sar = (n: number) => (lang === 'ar' ? `${n} ر.س` : `SAR ${n}`)
+    const sar = (n: number | string) => (lang === 'ar' ? `${n} ر.س` : `SAR ${n}`)
     // Counted nouns: Arabic changes the word with the number (صنف واحد، صنفين، 3 أصناف، 11 صنف).
     const count = (n: number, [one, two, few, many]: [string, string, string, string], en: string) =>
       lang === 'en' ? `${n} ${en}${n === 1 ? '' : 's'}` : n === 1 ? one : n === 2 ? two : n <= 10 ? `${n} ${few}` : `${n} ${many}`
@@ -671,6 +672,7 @@ function Live(props: MenuProps & { place: Place }) {
   const { t, tx } = useT()
   const [cur, setCur] = useState(cats[0]?.id ?? '')
   const [preview, setPreview] = useState(false)
+  const [view, setView] = useState<'insights' | 'menu'>('insights')
   const ed = useMenuEditor(props)
   useEffect(() => { if (!cats.some(c => c.id === cur)) setCur(cats[0]?.id ?? '') }, [cats, cur])
   const soldOut = items.filter(i => i.soldOut).length
@@ -697,13 +699,17 @@ function Live(props: MenuProps & { place: Place }) {
             </span>
           </div>
         </div>
+        <div className="o-segmented o-live-tabs" role="tablist">
+          <button type="button" role="tab" aria-selected={view === 'insights'} className={view === 'insights' ? 'active' : ''} onClick={() => setView('insights')}><ChartColumn />{t('الأداء', 'Performance')}</button>
+          <button type="button" role="tab" aria-selected={view === 'menu'} className={view === 'menu' ? 'active' : ''} onClick={() => setView('menu')}><Utensils />{t('المنيو', 'Menu')}{soldOut > 0 && <i className="o-dot" aria-label={t(`${soldOut} نفد`, `${soldOut} sold out`)}>{soldOut}</i>}</button>
+        </div>
+        {view === 'insights' ? <Insights items={items} /> : <>
         <div className="o-stats">
           <div><b>{items.length}</b><small>{t('صنف', 'items')}</small></div>
           <div><b>{cats.length}</b><small>{t('أقسام', 'sections')}</small></div>
           <div className={soldOut ? 'warn' : ''}><b>{soldOut}</b><small>{t('نفد', 'sold out')}</small></div>
         </div>
-        <label className="o-label">{t('المنيو', 'Menu')}</label>
-        <div className="o-tabs-with-edit">
+        <div className="o-tabs-with-edit o-live-cats">
           <MenuTabs cats={cats} current={cur} onPick={setCur} extra={<span className="o-tabs-end" />} />
           <button type="button" className="o-tabs-edit" onClick={ed.openCats} aria-label={t('عدّل الأقسام', 'Edit sections')}><PenLine /></button>
         </div>
@@ -718,6 +724,7 @@ function Live(props: MenuProps & { place: Place }) {
           ))}
         </ul>
         {cur && <button type="button" className="o-dashed" onClick={() => ed.add(cur)}><Plus />{t(`أضف صنف في ${tx(cats.find(c => c.id === cur)!.name)}`, `Add an item to ${tx(cats.find(c => c.id === cur)!.name)}`)}</button>}
+        </>}
       </div>
       {ed.sheets}
     </>
