@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { Armchair, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Clock, HeartHandshake, Lightbulb, Lock, MessageCircleHeart, Repeat, Sparkles, TrendingUp, UserPlus, Wallet, Zap } from 'lucide-react'
+import { Armchair, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Clock, HeartHandshake, Lightbulb, Lock, MessageCircleHeart, Repeat, ShoppingBag, Sparkles, TrendingUp, UserPlus, Wallet, Zap } from 'lucide-react'
 import { Sheet, useT } from './Owner'
 import type { Item } from './data'
 
@@ -59,7 +59,7 @@ export default function Insights({ items }: { items: Item[] }) {
   const [period, setPeriod] = useState<Period>('week')
   const [hover, setHover] = useState<number | null>(null)
   const [meetupsOpen, setMeetupsOpen] = useState(false)
-  const [tomorrowOpen, setTomorrowOpen] = useState(false)
+  const [tomorrowTab, setTomorrowTab] = useState<'visits' | 'orders' | 'tables' | null>(null)
   const pick = (x: T2) => (lang === 'ar' ? x[0] : x[1])
   const Fwd = lang === 'ar' ? ChevronLeft : ChevronRight
   // Gregorian dates with Western digits in both languages (plain 'ar' could fall back to the Hijri calendar on some devices).
@@ -83,6 +83,9 @@ export default function Insights({ items }: { items: Item[] }) {
     return acc
   }, {})).sort((a, b) => b.qty - a.qty)
   const people = (p: number) => t(p === 1 ? 'شخص' : p === 2 ? 'شخصين' : `${p} أشخاص`, `${p} ${p === 1 ? 'person' : 'people'}`)
+  const PARTS: [T2, number][] = [[['الصباح', 'Morning'], 12], [['الظهر', 'Midday'], 15], [['العصر', 'Afternoon'], 18], [['المساء', 'Evening'], 24]]
+  const parts = PARTS.map(([label, end], i) => ({ label, visits: TOMORROW.filter(v => v.at[0] < end && v.at[0] >= (i ? PARTS[i - 1][1] : 0)) })).filter(g => g.visits.length)
+  const orderText = (o: [string, number][]) => o.map(([en, q]) => `${q > 1 ? `${q}× ` : ''}${itemName(en)}`).join(t('، ', ', '))
   const kindLabel = (k: Visit['kind']) => k === 'visit' ? t('بس زيارة', 'Just visiting') : k === 'need' ? t('يبي مساعدة', 'Needs help') : t('يقدر يساعد', 'Can help')
   const an = (x: string) => `${/^[aeiou]/i.test(x) ? 'An' : 'A'} ${x.toLowerCase()}`
   const k = SCALE[period]
@@ -195,12 +198,12 @@ export default function Insights({ items }: { items: Item[] }) {
       <section className="o-card o-tomorrow">
         <h3><CalendarClock />{t('بكرة عندك', 'Tomorrow')}</h3>
         <div className="o-tomorrow-row">
-          <div><b>18</b><small>{t('زيارة مجدولة', 'planned visits')}</small></div>
-          <div><b>11</b><small>{t('طلب مسبق', 'pre-orders')}</small></div>
-          <div><b>6</b><small>{t('طاولات', 'tables')}</small></div>
+          <button type="button" onClick={() => setTomorrowTab('visits')}><b>{TOMORROW.length}</b><small>{t('زيارة مجدولة', 'planned visits')}</small></button>
+          <button type="button" onClick={() => setTomorrowTab('orders')}><b>{TOMORROW.filter(v => v.order).length}</b><small>{t('طلب مسبق', 'pre-orders')}</small></button>
+          <button type="button" onClick={() => setTomorrowTab('tables')}><b>{TOMORROW.filter(v => v.seat).length}</b><small>{t('طاولات', 'tables')}</small></button>
         </div>
         <p className="o-note"><Sparkles />{t(`أكثر وقت زحمة 4م، وأكثر صنف مطلوب مسبقًا ${top[0] ? tx(top[0].item.name) : ''}. جهّز له بدري.`, `Busiest at 4pm, and the most pre-ordered item is ${top[0] ? tx(top[0].item.name) : ''}. Get it ready early.`)}</p>
-        <button type="button" className="o-more" onClick={() => setTomorrowOpen(true)}>{t('شوف التفاصيل', 'See details')}<Fwd /></button>
+        <button type="button" className="o-more" onClick={() => setTomorrowTab('visits')}>{t('شوف التفاصيل', 'See details')}<Fwd /></button>
       </section>
 
       {lost && (
@@ -252,40 +255,77 @@ export default function Insights({ items }: { items: Item[] }) {
         </Sheet>
       )}
 
-      {tomorrowOpen && (
-        <Sheet title={t('زيارات بكرة', "Tomorrow's visits")} onClose={() => setTomorrowOpen(false)}>
+      {tomorrowTab && (
+        <Sheet title={t('زيارات بكرة', "Tomorrow's visits")} onClose={() => setTomorrowTab(null)}>
           <p className="o-range"><CalendarDays />{`${tomorrow.toLocaleDateString(loc, { weekday: 'long' })} ${dayMonth(tomorrow)}`}</p>
-          <div className="o-meet-stats">
-            <div><b>{TOMORROW.length}</b><small>{t('زيارة مجدولة', 'planned visits')}</small></div>
-            <div><b>{TOMORROW.filter(v => v.order).length}</b><small>{t('طلب مسبق', 'pre-orders')}</small></div>
-            <div><b>{TOMORROW.filter(v => v.seat).length}</b><small>{t('طاولات', 'tables')}</small></div>
+          <div className="o-segmented o-tm-tabs" role="tablist">
+            {([['visits', t('الزيارات', 'Visits'), TOMORROW.length], ['orders', t('الطلبات', 'Orders'), TOMORROW.filter(v => v.order).length], ['tables', t('الطاولات', 'Tables'), TOMORROW.filter(v => v.seat).length]] as const).map(([id, label, c]) => (
+              <button key={id} type="button" role="tab" aria-selected={tomorrowTab === id} className={tomorrowTab === id ? 'active' : ''} onClick={() => setTomorrowTab(id)}>{label}<span className="o-count">{c}</span></button>
+            ))}
           </div>
 
-          <h4 className="o-sheet-h">{t('جهّز هذي', 'Get these ready')}</h4>
-          <ul className="o-prep">
-            {prep.map(p => (
-              <li key={p.en}><b>{p.qty}×</b><span>{itemName(p.en)}</span><small>{t(`أول واحد ${clock(...p.at)}`, `first at ${clock(...p.at)}`)}</small></li>
-            ))}
-          </ul>
+          {tomorrowTab === 'visits' && (
+            <>
+              <div className="o-tm-mix">
+                {(['visit', 'need', 'help'] as const).map(k => <span key={k} className={`o-kind o-kind-${k}`}>{kindLabel(k)} <b>{TOMORROW.filter(v => v.kind === k).length}</b></span>)}
+              </div>
+              {parts.map(g => (
+                <section key={g.label[1]} className="o-tm-group">
+                  <h4>{pick(g.label)}<small>{t(`${g.visits.length} زيارات`, `${g.visits.length} visits`)}</small></h4>
+                  <ul className="o-tm-list">
+                    {g.visits.map((v, i) => (
+                      <li key={i}>
+                        <span className="o-visit-time">{clock(...v.at)}</span>
+                        <i className={`o-kdot o-kind-${v.kind}`} />
+                        <div>
+                          <b>{pick(v.tag)}</b>
+                          <small>{kindLabel(v.kind)} · {people(v.ppl)}</small>
+                        </div>
+                        <span className="o-tm-icons">
+                          {v.seat && <Armchair aria-label={t('طاولة محجوزة', 'Table booked')} />}
+                          {v.order && <ShoppingBag className="o-bag" aria-label={t('طلب مسبق', 'Pre-order')} />}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+              <p className="o-note"><Lock />{t('ما نعرض أسماء ولا صور. تشوف الوقت والعدد وسبب الزيارة بس.', 'No names or photos. You only see the time, party size and reason for the visit.')}</p>
+            </>
+          )}
 
-          <h4 className="o-sheet-h">{t('الجدول', 'Schedule')}</h4>
-          <p className="o-note"><Lock />{t('ما نعرض أسماء ولا صور. تشوف الوقت والعدد وسبب الزيارة بس.', 'No names or photos. You only see the time, party size and reason for the visit.')}</p>
-          <ul className="o-visit-list">
-            {TOMORROW.map((v, i) => (
-              <li key={i}>
-                <span className="o-visit-time">{clock(...v.at)}</span>
-                <div>
-                  <b>{kindLabel(v.kind)} · {pick(v.tag)}</b>
-                  <p>{people(v.ppl)}{v.seat && <> · <Armchair />{pick(v.seat)}</>}</p>
-                  {v.order && (
-                    <div className="o-meet-tags">
-                      {v.order.map(([en, q]) => <span key={en} className="o-meet-order">{q > 1 ? `${q}× ` : ''}{itemName(en)}</span>)}
-                    </div>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+          {tomorrowTab === 'orders' && (
+            <>
+              <h4 className="o-sheet-h">{t('جهّز هذي', 'Get these ready')}</h4>
+              <div className="o-prep-grid">
+                {prep.map(p => <div key={p.en}><b>{p.qty}</b><span>{itemName(p.en)}</span></div>)}
+              </div>
+              <h4 className="o-sheet-h">{t('حسب وقت الاستلام', 'By pickup time')}</h4>
+              <ul className="o-tm-list">
+                {TOMORROW.filter(v => v.order).map((v, i) => (
+                  <li key={i}>
+                    <span className="o-visit-time">{clock(...v.at)}</span>
+                    <div><b>{orderText(v.order!)}</b><small>{people(v.ppl)}{v.seat ? ` · ${pick(v.seat)}` : ''}</small></div>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {tomorrowTab === 'tables' && (
+            <>
+              <ul className="o-tm-list o-tm-tables">
+                {TOMORROW.filter(v => v.seat).map((v, i) => (
+                  <li key={i}>
+                    <span className="o-visit-time">{clock(...v.at)}</span>
+                    <div><b>{pick(v.seat!)}</b><small>{people(v.ppl)} · {pick(v.tag)}</small></div>
+                    <span className="o-held">{t(`محجوزة لين ${clock(v.at[0] + 1, v.at[1])}`, `held till ${clock(v.at[0] + 1, v.at[1])}`)}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="o-note"><Armchair />{t('كل طاولة محجوزة ساعة من وقت الزيارة، ورسوم الحجز مدفوعة مقدمًا.', 'Each table is held for an hour from the visit time, and the booking fee is paid ahead.')}</p>
+            </>
+          )}
         </Sheet>
       )}
 
