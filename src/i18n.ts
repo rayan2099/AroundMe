@@ -38,7 +38,7 @@ const EN: [string, string][] = [
   ['تطلب وتدفع من التطبيق قبل توصل، وما تدفع شي في الكافيه.', 'Order and pay in the app before you arrive. Nothing to pay at the coffee shop.'], ['تدفع طلباتك من التطبيق قبل توصل، وما تدفع شي في الكافيه.', 'You pay for orders in the app before you arrive. Nothing to pay at the coffee shop.'],
   ['طريقة الدفع المفضلة', 'Preferred payment method'], ['استخدمها كطريقة مفضلة', 'Make it your preferred method'], ['أصناف', 'items'], ['صنفين', '2 items'], ['أضف', 'Add'], ['شيل', 'Remove'],
   ['جَدوِل زيارتك القادمة', 'Schedule your next visit'],
-  ['أطلب وأجلس على راحتي', 'Order and settle in'], ['اختر سبب زيارتك', 'Pick what it is for'], ['واحد أو أكثر', 'one or more'], ['افتح المنيو', 'Open the menu'], ['بس زيارة', 'Just visiting'],
+  ['أطلب وأجلس على راحتي', 'Order and settle in'], ['اختر سبب زيارتك', 'Pick what it is for'], ['واحد أو أكثر', 'one or more'], ['افتح المنيو', 'Open the menu'], ['بس زيارة', 'Just visiting'], ['مثلاً: عندي اجتماع أونلاين ساعة', 'e.g. I have an hour-long online meeting'], ['ملاحظة', 'Note'],
   ['أقابل أصحاب', 'Meeting friends'], ['أطلب وأمشي', 'Grab and go'], ['مذاكرة', 'Studying'], ['اجتماع', 'Meeting'], ['أرتاح', 'Relaxing'], ['قراءة', 'Reading'], ['شغل', 'Work'],
   ['اختر الكافيه والوقت وهدف زيارتك', 'Pick the coffee shop, the time, and what the visit is for'], ['وش هدف زيارتك؟', 'What is the visit for?'], ['جَدوِل زيارتك هنا', 'Schedule your visit here'],
   ['هالوقت راح، اختر وقت بعده', 'That time has passed, pick a later one'], ['ما لقينا كافيه بهالاسم', 'No coffee shop by that name'],
