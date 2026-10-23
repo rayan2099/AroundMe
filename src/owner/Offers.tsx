@@ -9,6 +9,7 @@ import type { Ops } from './Ops'
 // booking or meetup, never a name.
 type Status = 'back' | 'waiting' | 'expired'
 const DAY = 86_400_000
+const hash = (code: string) => `\u2066#${code}\u2069`
 
 export default function Offers({ ops, onSend }: { ops: Ops; onSend: () => void }) {
   const { t, sar, lang } = useT()
@@ -44,9 +45,10 @@ export default function Offers({ ops, onSend }: { ops: Ops; onSend: () => void }
       <div className="o-offer-kpis">
         <div><Gift /><b>{list.length}</b><small>{t('عرض أُرسل', 'offers sent')}</small></div>
         <div className="good"><Repeat /><b>{back.length}</b><small>{t(`عادوا بسببها · ${rate}%`, `came back · ${rate}%`)}</small></div>
-        <div><Wallet /><b>{sar(spent)}</b><small>{t('أنفقها العائدون', 'spent by returners')}</small></div>
+        <div><Wallet /><b>{sar(spent)}</b><small>{t('دفعها العائدون بالعروض', 'paid by returners')}</small></div>
         <div><Sparkles /><b>{sar(given)}</b><small>{t('قيمة ما قدّمته', 'value you gave')}</small></div>
       </div>
+      <p className="o-note o-note-soft"><Check />{t('نحتسب العرض مستخدمًا عندما يطلب به العميل من التطبيق: يدفع طلبه بالعرض، أو يستلم المشروب المجاني. لا حاجة لأي تحقق عند الكاونتر.', 'An offer counts as used when the customer orders with it in the app: they pay for an order with it, or claim the free item. Nothing to check at the counter.')}</p>
       {given > 0 && <p className="o-note"><TrendingUp />{t(`كل 1 ر.س قدّمته في العروض أعاد لك ${(spent / given).toFixed(1)} ر.س من المبيعات.`, `Every SAR 1 you gave in offers brought back SAR ${(spent / given).toFixed(1)} in sales.`)}</p>}
 
       <section className="o-card">
@@ -88,7 +90,7 @@ export default function Offers({ ops, onSend }: { ops: Ops; onSend: () => void }
                 <b>{offerText(o, o.pair)}</b>
                 <small><SrcIcon s={o.src} />{pick(o.about)} · {t(`أُرسل ${ago(o.sentAt!)}`, `sent ${ago(o.sentAt!)}`)}</small>
                 <span className={`o-offer-status s-${st}`}>
-                  {st === 'back' ? <><Check />{t(`${o.pair ? 'عادا' : 'عاد'} ${ago(o.usedAt!)} · ${o.pair ? 'أنفقا' : 'أنفق'} ${sar(o.spent ?? 0)}`, `Came back ${ago(o.usedAt!)} · spent ${sar(o.spent ?? 0)}`)}</>
+                  {st === 'back' ? <><Check />{o.spent ? t(`${o.pair ? 'عادا' : 'عاد'} ${ago(o.usedAt!)} · طلب ودفع ${sar(o.spent)}${o.order ? ` · ${hash(o.order)}` : ''}`, `Came back ${ago(o.usedAt!)} · ordered and paid ${sar(o.spent)}${o.order ? ` · ${hash(o.order)}` : ''}`) : t(`${o.pair ? 'عادا واستلما' : 'عاد واستلم'} ${o.kind === 'sweet' ? 'الحلى' : 'المشروب'} مجانًا ${ago(o.usedAt!)}${o.order ? ` · ${hash(o.order)}` : ''}`, `Came back and claimed it ${ago(o.usedAt!)}${o.order ? ` · ${hash(o.order)}` : ''}`)}</>
                     : st === 'waiting' ? <><Clock />{t(`لم ${o.pair ? 'يعودا' : 'يعد'} بعد · بقي ${inDays(Math.max(1, left))}`, `Not back yet · ${inDays(Math.max(1, left))} left`)}</>
                     : t(`انتهى بعد ${daysText(o.days)} دون عودة`, `Expired after ${daysText(o.days)}, no return`)}
                 </span>

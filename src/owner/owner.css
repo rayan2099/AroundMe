@@ -817,3 +817,7 @@ button.o-meetups { width: 100%; text-align: start; }
 .o-offer-status.s-expired { background: #f0efec; color: #6a665f; }
 .o-side nav i.good { background: #1f7a4a; }
 html.o-web .o-offer-kpis { grid-template-columns: repeat(4, 1fr); }
+.o-order-offer { display: flex; align-items: center; gap: 6px; margin: 10px 0 0; padding: 7px 11px; border-radius: 11px; background: linear-gradient(135deg, #fff1dc, #fde6ea); color: #a35f0c; font-size: 12.5px; font-weight: 700; }
+.o-order-offer svg { width: 15px; flex: none; }
+.o-order-offer b { margin-inline-start: auto; white-space: nowrap; }
+.o-note-soft { background: #f0efec; color: #4a4743; }

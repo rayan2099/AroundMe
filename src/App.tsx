@@ -1868,7 +1868,7 @@ function OfferSheet({ offer, close, onSchedule }: { offer: CafeOffer; close: () 
         <p>{offer.note || 'شكرًا لزيارتك، ننتظرك في الزيارة القادمة.'}</p>
         <ul className="offer-terms">
           <li><CalendarClock />{offerValid(offer)}</li>
-          <li><Receipt />{offer.kind === 'off' ? 'يُطبَّق الخصم تلقائيًا عند الطلب المسبق' : 'يُضاف تلقائيًا عند الطلب المسبق'}</li>
+          <li><Receipt />{offer.kind === 'off' ? 'يُطبَّق الخصم تلقائيًا عند الطلب المسبق' : 'اطلبه وحده مجانًا، أو أضفه إلى طلبك'}</li>
         </ul>
       </div>
       <div className="sheet-footer">
@@ -1960,7 +1960,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
       table: bookTable ? (existing?.table ?? { party, seat, fee: TABLE_FEE, wallet: paidWith, bookedAt: Date.now() }) : undefined,
       order: paidWith && items ? { lines, note: note.trim() || undefined, total, wallet: paidWith, code: orderCode(), paidAt: Date.now(), saved: saving || undefined } : undefined,
     })
-    if (paidWith && saving) onOfferUsed?.()
+    if (paidWith && saving) onOfferUsed?.()  // ordering with it (paid, or a free claim) is what uses the offer
     setPaying(null); setSaved(v); setStep(4)
   }
   const wallets: WalletKind[] = preferred === 'apple' ? ['apple', 'google'] : ['google', 'apple']
@@ -1970,12 +1970,12 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
       <BottomSheet onClose={close} tall>
         <div className="plan-done">
           <span className="plan-done-icon"><CircleCheck /></span>
-          <h2>{here ? 'تم الدفع، وجارٍ تجهيز طلبك' : going ? (saved.order ? 'تم الدفع، وسيكون طلبك جاهزًا عند وصولك' : 'رائع، أنت في الطريق') : visitPaid(saved) > 0 ? 'تم الدفع وتأكدت زيارتك' : 'تأكدت زيارتك'}</h2>
+          <h2>{saved.order && !saved.order.total ? 'هديتك محجوزة لك 🎁' : here ? 'تم الدفع، وجارٍ تجهيز طلبك' : going ? (saved.order ? 'تم الدفع، وسيكون طلبك جاهزًا عند وصولك' : 'رائع، أنت في الطريق') : visitPaid(saved) > 0 ? 'تم الدفع وتأكدت زيارتك' : 'تأكدت زيارتك'}</h2>
           <p>{saved.cafe} · {visitWhen(saved.at, now)}</p>
           {saved.order && <div className="order-code"><small>رقم طلبك</small><b dir="ltr">#{saved.order.code}</b><span>{here ? 'جارٍ تجهيزه. لا شيء تدفعه عند الكاونتر.' : 'سيكون جاهزًا عند وصولك. لا شيء تدفعه هناك.'}</span></div>}
           <ul className="plan-done-list">
             {saved.table && <li><Armchair />{tableLabel(saved.table)}<small>{`نحجزها لك ${HOLD_LABEL} من موعدك`}</small></li>}
-            {saved.order && <li><Receipt />{`${itemsLabel(linesCount(saved.order.lines))} · ${sar(saved.order.total)}`}<small>{`مدفوع بـ ${WALLET_NAME[saved.order.wallet]}`}</small></li>}
+            {saved.order && <li><Receipt />{`${itemsLabel(linesCount(saved.order.lines))} · ${saved.order.total ? sar(saved.order.total) : 'مجانًا'}`}<small>{saved.order.total ? `مدفوع بـ ${WALLET_NAME[saved.order.wallet]}` : 'لا شيء للدفع'}</small></li>}
             {!!saved.order?.saved && <li className="offer-used"><Gift />{`استخدمت عرض ${saved.cafe}`}<small>{`وفّرت ${sar(saved.order.saved)}`}</small></li>}
             {!saved.order && saved.table?.wallet && <li><Receipt />{`رسوم الحجز · ${sar(saved.table.fee ?? TABLE_FEE)}`}<small>{`مدفوعة بـ ${WALLET_NAME[saved.table.wallet]}`}</small></li>}
             {going && !here && <li><Navigation />{`تصل بعد ${timeLeft(saved.at, now)}`}<small>يرى الموجودون في الكافيه أنك قادم</small></li>}
@@ -2001,8 +2001,8 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
           ? <button type="button" className="plan-back" onClick={() => setStep(prevStep(step - 1))} aria-label="رجوع"><ChevronRight /></button>
           : <span className="sheet-icon">{here ? <Receipt /> : going ? <Navigation /> : <CalendarPlus />}</span>}
         <div>
-          <h2>{step === 0 ? (going ? 'في طريقي إلى الكافيه' : 'زيارة جديدة') : step === 1 ? 'احجز طاولتك' : step === 2 ? (here ? 'اطلب الآن' : 'اطلب قبل وصولك') : 'راجع وادفع'}</h2>
-          <p>{step === 0 ? (going ? 'اختر الكافيه ووقت وصولك وهدف زيارتك' : 'اختر الكافيه والوقت وهدف زيارتك') : step === 1 ? `رسوم الحجز ${sar(TABLE_FEE)}، ونحجز طاولتك ${HOLD_LABEL}` : step === 2 ? (here ? 'اطلب وادفع من جوالك، ونبدأ تجهيز طلبك فورًا' : going ? 'اختياري، ويكون طلبك جاهزًا عند وصولك' : `اختياري، ويكون طلبك جاهزًا ${visitWhen(at, now)}`) : here ? 'ادفع من جوالك، ولا شيء تدفعه عند الكاونتر' : 'ادفع الآن، ولا شيء تدفعه عند وصولك'}</p>
+          <h2>{step === 0 ? (going ? 'في طريقي إلى الكافيه' : 'زيارة جديدة') : step === 1 ? 'احجز طاولتك' : step === 2 ? (here ? 'اطلب الآن' : 'اطلب قبل وصولك') : due === 0 && saving > 0 ? 'راجع طلبك' : 'راجع وادفع'}</h2>
+          <p>{step === 0 ? (going ? 'اختر الكافيه ووقت وصولك وهدف زيارتك' : 'اختر الكافيه والوقت وهدف زيارتك') : step === 1 ? `رسوم الحجز ${sar(TABLE_FEE)}، ونحجز طاولتك ${HOLD_LABEL}` : step === 2 ? (here ? 'اطلب وادفع من جوالك، ونبدأ تجهيز طلبك فورًا' : going ? 'اختياري، ويكون طلبك جاهزًا عند وصولك' : `اختياري، ويكون طلبك جاهزًا ${visitWhen(at, now)}`) : due === 0 && saving > 0 ? 'هديتك مجانية، ولا شيء تدفعه' : here ? 'ادفع من جوالك، ولا شيء تدفعه عند الكاونتر' : 'ادفع الآن، ولا شيء تدفعه عند وصولك'}</p>
         </div>
       </div>
       <ol className="plan-steps" aria-label="الخطوات">
@@ -2154,8 +2154,10 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
       <div className="sheet-footer">
         {step === 0 && <PrimaryButton onClick={() => visitReady && setStep(nextStep(1))} disabled={!visitReady}>التالي</PrimaryButton>}
         {step === 1 && <PrimaryButton onClick={() => setStep(2)}>التالي</PrimaryButton>}
-        {step === 2 && <PrimaryButton onClick={() => setStep(3)} disabled={here && !items} icon={items ? <Receipt /> : undefined}>{items ? `راجع الطلب · ${itemsLabel(items)} · ${sar(total)}` : here ? 'اختر من المنيو' : 'تابع بدون طلب'}</PrimaryButton>}
-        {step === 3 && (due > 0
+        {step === 2 && <PrimaryButton onClick={() => setStep(3)} disabled={here && !items} icon={items ? <Receipt /> : undefined}>{items ? `راجع الطلب · ${itemsLabel(items)} · ${total ? sar(total) : 'مجانًا'}` : here ? 'اختر من المنيو' : 'تابع بدون طلب'}</PrimaryButton>}
+        {step === 3 && (due === 0 && items > 0 && saving > 0
+          ? <PrimaryButton onClick={() => finish(preferred)} icon={<Gift />}>استلم هديتك مجانًا</PrimaryButton>
+          : due > 0
           ? <div className="wallet-buttons">{wallets.map(w => <button key={w} type="button" className={`wallet-button ${w}`} onClick={() => setPaying(w)}><WalletMark kind={w} /></button>)}</div>
           : <PrimaryButton onClick={() => finish()} icon={going ? <Navigation /> : <CalendarClock />}>{going ? 'حسنًا، أنا في الطريق' : 'ثبّت الزيارة'}</PrimaryButton>)}
       </div>

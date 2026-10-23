@@ -9,7 +9,7 @@ export type Offer = {
   kind: 'drink' | 'sweet' | 'off'; pct: number; days: number; note: string
   // Tracking: when it went out, who it went to (never a name), and whether they came back with it.
   sentAt?: number; src?: 'order' | 'booking' | 'meet'; about?: [string, string]; pair?: boolean
-  usedAt?: number; spent?: number; saved?: number
+  usedAt?: number; spent?: number; saved?: number; order?: string
 }
 const PCTS = [10, 15, 20, 25, 50]
 const DAYS = [7, 14, 30]
@@ -31,7 +31,7 @@ export function OfferSent({ offer, pair = false }: { offer: Offer; pair?: boolea
   return (
     <div className={`o-offer-sent ${offer.usedAt ? 'used' : ''}`}>
       <Gift />
-      <span><b>{offerText(offer, pair)}</b><small>{offer.usedAt ? t(pair ? 'استخدماه وعادا إلى الكافيه' : 'استخدمه وعاد إلى الكافيه', pair ? 'They used it and came back' : 'Used it and came back') : t(`أُرسل · صالح ${daysText(offer.days)} · لم يُستخدم بعد`, `Sent · valid ${daysText(offer.days)} · not used yet`)}</small></span>
+      <span><b>{offerText(offer, pair)}</b><small>{offer.usedAt ? t(`${pair ? 'عادا وطلبا به' : offer.spent === 0 ? 'عاد واستلم هديته' : 'عاد وطلب به'}${offer.order ? ` · \u2066#${offer.order}\u2069` : ''}`, `${offer.spent === 0 && !pair ? 'Came back and claimed it' : 'Came back and ordered with it'}${offer.order ? ` · #${offer.order}` : ''}`) : t(`أُرسل · صالح ${daysText(offer.days)} · لم يُستخدم بعد`, `Sent · valid ${daysText(offer.days)} · not used yet`)}</small></span>
       {offer.usedAt && <Check />}
     </div>
   )

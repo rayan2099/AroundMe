@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Armchair, BellRing, Check, ChefHat, CircleAlert, Clock, HandPlatter, MessageCircle, House, Navigation, Pause, PenLine, Play, Plus, Send, ShoppingBag, Timer, Users } from 'lucide-react'
+import { Armchair, BellRing, Check, ChefHat, CircleAlert, Clock, Gift, HandPlatter, MessageCircle, House, Navigation, Pause, PenLine, Play, Plus, Send, ShoppingBag, Timer, Users } from 'lucide-react'
 import { Sheet, useT } from './Owner'
-import { OfferButton, OfferSent, OfferSheet } from './Offer'
+import { OfferButton, OfferSent, OfferSheet, useOfferText } from './Offer'
 import type { Offer } from './Offer'
 import type { Item } from './data'
 
@@ -28,6 +28,8 @@ export type Order = {
   // Where the customer is right now: in the café, on the way (with an arrival time), or not left yet.
   where?: 'here' | 'way' | 'home'
   eta?: number
+  // Paid with a come-back offer: which one, and what it took off. This order is how the café knows the offer brought them back.
+  offer?: { id: string; saved: number }
 }
 export type Booking = { code: string; at: number; table: string; ppl: number; tag: T2; state: 'upcoming' | 'arrived' | 'noshow' | 'left'; order?: string }
 // A table as staff set it up: a name, where it is, how many seats, and how long a sitting lasts (0 = no limit).
@@ -54,7 +56,7 @@ export function useOps() {
   const [orders, setOrders] = useState<Order[]>(() => [
     { code: 'A31', kind: 'seat', where: 'here', placed: ago(1), seat: SEATS[0], ppl: 2, lines: [['Spanish latte', 1], ['Iced latte', 1], ['San Sebastián cheesecake', 1]], pay: 'apple', status: 'new' },
     { code: 'A30', kind: 'pickup', where: 'way', eta: ago(-6), placed: ago(3), ppl: 1, lines: [['Flat white', 1], ['Butter croissant', 1]], note: 'حليب شوفان من فضلكم', pay: 'google', status: 'new' },
-    { code: 'A28', kind: 'seat', where: 'here', placed: ago(7), started: ago(5), seat: SEATS[2], ppl: 1, lines: [['V60', 1], ['Cookie', 1]], pay: 'apple', status: 'prep' },
+    { code: 'A28', kind: 'seat', where: 'here', placed: ago(7), started: ago(5), seat: SEATS[2], ppl: 1, lines: [['V60', 1], ['Cookie', 1]], pay: 'apple', status: 'prep', offer: { id: 'H9', saved: 22 } },
     { code: 'A27', kind: 'pre', where: 'way', eta: ago(-4), placed: ago(140), due: ago(-4), started: ago(12), ppl: 3, lines: [['Latte', 2], ['Cortado', 1]], pay: 'apple', status: 'prep' },
     { code: 'A26', kind: 'pickup', where: 'here', placed: ago(11), started: ago(9), readyAt: ago(2), ppl: 1, lines: [['Iced Spanish latte', 1]], pay: 'apple', status: 'ready' },
     { code: 'A25', kind: 'seat', placed: ago(24), started: ago(22), readyAt: ago(14), doneAt: ago(13), seat: SEATS[1], ppl: 4, lines: [['Spanish latte', 3], ['Honey cake', 2]], pay: 'google', status: 'done' },
@@ -95,30 +97,50 @@ export function useOps() {
     const b = (code: string, tag: T2): T2 => [`حجز ${hash(code)} · ${tag[0]}`, `Booking ${hash(code)} · ${tag[1]}`]
     return {
       A23: { kind: 'off', pct: 15, days: 14, note: '', sentAt: ago(40), src: 'order', about: o('A23', 2) },
-      M0: { kind: 'drink', pct: 0, days: 14, note: '', sentAt: d(6), usedAt: d(2), spent: 58, saved: 42, src: 'meet', pair: true, about: ['تطبيقها يتوقف عند صفحة الدفع', 'Her app froze on the payment page'] },
-      H9: { kind: 'drink', pct: 0, days: 14, note: '', sentAt: d(2), usedAt: ago(95), spent: 38, saved: 19, src: 'order', about: o('A19', 1) },
+      M0: { kind: 'drink', pct: 0, days: 14, note: '', sentAt: d(6), usedAt: d(2), spent: 58, saved: 42, order: 'A12', src: 'meet', pair: true, about: ['تطبيقها يتوقف عند صفحة الدفع', 'Her app froze on the payment page'] },
+      H9: { kind: 'drink', pct: 0, days: 14, note: '', sentAt: d(2), usedAt: ago(7), spent: 9, saved: 22, order: 'A28', src: 'order', about: o('A19', 1) },
       H7: { kind: 'drink', pct: 0, days: 30, note: '', sentAt: d(3), src: 'booking', about: b('B09', ['عمل', 'Work']) },
-      H6: { kind: 'sweet', pct: 0, days: 14, note: '', sentAt: d(5), usedAt: d(3), spent: 97, saved: 22, src: 'order', about: o('A11', 3) },
+      H6: { kind: 'sweet', pct: 0, days: 14, note: '', sentAt: d(5), usedAt: d(3), spent: 97, saved: 22, order: 'A07', src: 'order', about: o('A11', 3) },
       H3: { kind: 'sweet', pct: 0, days: 14, note: '', sentAt: d(8), src: 'order', about: o('A14', 1) },
-      H5: { kind: 'off', pct: 25, days: 14, note: '', sentAt: d(9), usedAt: d(4), spent: 88, saved: 22, src: 'meet', pair: true, about: ['مراجعة سيرة ذاتية', 'Reviewing a CV'] },
-      H2: { kind: 'off', pct: 20, days: 14, note: '', sentAt: d(10), usedAt: d(6), spent: 146, saved: 29, src: 'booking', about: b('B05', ['اجتماع', 'Meeting']) },
-      H1: { kind: 'drink', pct: 0, days: 14, note: '', sentAt: d(12), usedAt: d(9), spent: 64, saved: 21, src: 'order', about: o('A09', 2) },
+      H5: { kind: 'off', pct: 25, days: 14, note: '', sentAt: d(9), usedAt: d(4), spent: 88, saved: 22, order: 'A05', src: 'meet', pair: true, about: ['مراجعة سيرة ذاتية', 'Reviewing a CV'] },
+      H2: { kind: 'off', pct: 20, days: 14, note: '', sentAt: d(10), usedAt: d(6), spent: 146, saved: 29, order: 'A02', src: 'booking', about: b('B05', ['اجتماع', 'Meeting']) },
+      H1: { kind: 'drink', pct: 0, days: 14, note: '', sentAt: d(12), usedAt: d(9), spent: 0, saved: 21, order: 'A01', src: 'order', about: o('A09', 2) },
       H4: { kind: 'drink', pct: 0, days: 7, note: '', sentAt: d(15), src: 'order', about: o('A03', 1) },
       H8: { kind: 'off', pct: 10, days: 7, note: '', sentAt: d(20), src: 'order', about: o('A06', 1) },
     }
   })
+  // Prototype: a little after an offer goes out, the customer comes back with it, which shows up as a new paid
+  // order carrying the offer. Paying with it in the app is the only thing that marks an offer as used.
+  const [nextCode, setNextCode] = useState(35)
+  const sendOffer = (id: string, offer: Offer, onBack: (code: string) => void) => {
+    setOffers(x => ({ ...x, [id]: offer }))
+    const code = `A${nextCode}`
+    setNextCode(n => n + 1)
+    setTimeout(() => {
+      const ppl = offer.pair ? 2 : 1
+      // A single free drink is usually just claimed on its own, at no charge; the rest come with a paid order.
+      const lines: [string, number][] = offer.kind === 'drink' && !offer.pair ? [['Spanish latte', 1]] : offer.kind === 'drink' ? [['Spanish latte', ppl], ['Butter croissant', 1]] : offer.kind === 'sweet' ? [['Flat white', ppl], ['San Sebastián cheesecake', ppl]] : [['Latte', ppl + 1], ['Honey cake', 1]]
+      const full = lines.reduce((s, [en, q]) => s + (PRICE[en] ?? 15) * q, 0)
+      const saved = offer.kind === 'drink' ? PRICE['Spanish latte'] * ppl : offer.kind === 'sweet' ? PRICE['San Sebastián cheesecake'] * ppl : Math.round((full * offer.pct) / 100)
+      setOrders(l => [{ code, kind: 'pre', where: 'way', eta: Date.now() + 12 * min, placed: Date.now(), due: Date.now() + 12 * min, ppl, lines, pay: 'apple', status: 'new', offer: { id, saved } }, ...l])
+      setOffers(x => ({ ...x, [id]: { ...x[id], usedAt: Date.now(), spent: full - saved, saved, order: code } }))
+      onBack(code)
+    }, 15_000)
+  }
   // Send a come-back offer automatically after someone's first visit.
   const [autoOffer, setAutoOffer] = useState(false)
   const [paused, setPaused] = useState<number | 'manual' | null>(null)
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id) }, [])
   useEffect(() => { if (typeof paused === 'number' && now >= paused) setPaused(null) }, [now, paused])
-  return { orders, setOrders, tables, setTables, bookings, setBookings, threads, setThreads, offers, setOffers, autoOffer, setAutoOffer, paused, setPaused, now }
+  return { orders, setOrders, tables, setTables, bookings, setBookings, threads, setThreads, offers, setOffers, sendOffer, autoOffer, setAutoOffer, paused, setPaused, now }
 }
 export type Ops = ReturnType<typeof useOps>
 
 function useFmt() {
   const { t, lang, tx, sar } = useT()
+  // Shown when a customer comes back and pays with an offer the café sent.
+  const backNote = (code: string) => t(`عاد عميل بعرضك 🎁 طلب جديد ${hash(code)}`, `A customer came back with your offer 🎁 New order ${hash(code)}`)
   const clock = (ms: number) => {
     const d = new Date(ms); const h = d.getHours(), m = d.getMinutes()
     return lang === 'ar' ? `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'ص' : 'م'}` : `${h % 12 || 12}:${String(m).padStart(2, '0')}${h < 12 ? 'am' : 'pm'}`
@@ -127,14 +149,16 @@ function useFmt() {
   const dur = (m: number) => t(m < 1 ? 'الآن' : `${m} د`, m < 1 ? 'now' : `${m} min`)
   const pick = (x: T2) => (lang === 'ar' ? x[0] : x[1])
   const people = (p: number) => t(p === 1 ? 'شخص' : p === 2 ? 'شخصين' : `${p} أشخاص`, `${p} ${p === 1 ? 'person' : 'people'}`)
-  return { t, lang, tx, sar, clock, mins, dur, pick, people }
+  return { t, lang, tx, sar, clock, mins, dur, pick, people, backNote }
 }
 
-const total = (o: Order) => o.lines.filter(([en]) => !o.refunded?.includes(en)).reduce((s, [en, q]) => s + (PRICE[en] ?? 15) * q, 0)
+const total = (o: Order) => o.lines.filter(([en]) => !o.refunded?.includes(en)).reduce((s, [en, q]) => s + (PRICE[en] ?? 15) * q, 0) - (o.offer?.saved ?? 0)
 
 /* ---------- Orders ---------- */
 export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { ops: Ops; items: Item[]; notify: (s: string) => void; openThread: (code: string) => void; startTab?: Status }) {
-  const { t, tx, sar, clock, mins, dur, pick, people } = useFmt()
+  const { t, tx, sar, clock, mins, dur, pick, people, backNote: back } = useFmt()
+  const backNote = (code: string) => notify(back(code))
+  const { offerText } = useOfferText()
   const { orders, setOrders, now, paused, setPaused } = ops
   const [tab, setTab] = useState<Status>(startTab)
   const [issue, setIssue] = useState<Order | null>(null)
@@ -235,7 +259,8 @@ export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { o
               {o.note && <p className="o-order-note">«{o.note}»</p>}
               {o.late && o.status !== 'done' && <p className="o-order-flag"><Clock />{t('أبلغنا العميل بأن الطلب سيتأخر 10 دقائق', 'We told the customer it will be 10 minutes late')}</p>}
               {slow && <p className="o-order-flag"><CircleAlert />{t(`تجاوز ${PREP_TARGET} دقائق`, `Over ${PREP_TARGET} minutes`)}</p>}
-              <p className="o-paid"><Check />{t('مدفوع', 'Paid')} {sar(total(o))} · {o.pay === 'apple' ? 'Apple Pay' : 'Google Pay'}</p>
+              {o.offer && <p className="o-order-offer"><Gift />{t(`${total(o) === 0 ? 'استلم هديته' : 'طلب بعرضك'}: ${offerText(ops.offers[o.offer.id] ?? { kind: 'drink', pct: 0, days: 0, note: '' }, ops.offers[o.offer.id]?.pair)}`, `${total(o) === 0 ? 'Claimed' : 'Ordered with your offer'}: ${offerText(ops.offers[o.offer.id] ?? { kind: 'drink', pct: 0, days: 0, note: '' }, ops.offers[o.offer.id]?.pair)}`)}<b>{`− ${sar(o.offer.saved)}`}</b></p>}
+              {o.offer && total(o) === 0 ? <p className="o-paid"><Gift />{t('مجاني بالكامل بعرضك، لا شيء للدفع', 'Free with your offer, nothing to pay')}</p> : <p className="o-paid"><Check />{t('مدفوع', 'Paid')} {sar(total(o))} · {o.pay === 'apple' ? 'Apple Pay' : 'Google Pay'}</p>}
               {o.status === 'done' && (ops.offers[o.code] ? <OfferSent offer={ops.offers[o.code]} /> : <OfferButton onClick={() => setOfferFor(o)} />)}
               <div className="o-order-actions">
                 {o.status !== 'done' && <button type="button" className="o-advance" onClick={() => advance(o)}>{icon}{label}</button>}
@@ -271,7 +296,7 @@ export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { o
       )}
 
       {offerFor && (
-        <OfferSheet onClose={() => setOfferFor(null)} onSend={offer => { ops.setOffers(x => ({ ...x, [offerFor.code]: { ...offer, sentAt: Date.now(), src: 'order', about: [`طلب ${hash(offerFor.code)} · ${people(offerFor.ppl)}`, `Order ${hash(offerFor.code)} · ${offerFor.ppl} ${offerFor.ppl === 1 ? 'person' : 'people'}`] } })); setOfferFor(null); notify(t('أرسلنا العرض، وسيصله إشعار «افتح هديتك»', 'Offer sent. They get an “Open your gift” notification')) }}
+        <OfferSheet onClose={() => setOfferFor(null)} onSend={offer => { ops.sendOffer(offerFor.code, { ...offer, sentAt: Date.now(), src: 'order', about: [`طلب ${hash(offerFor.code)} · ${people(offerFor.ppl)}`, `Order ${hash(offerFor.code)} · ${offerFor.ppl} ${offerFor.ppl === 1 ? 'person' : 'people'}`] }, backNote); setOfferFor(null); notify(t('أرسلنا العرض، وسيصله إشعار «افتح هديتك»', 'Offer sent. They get an “Open your gift” notification')) }}
           about={<p className="o-offer-for"><ShoppingBag /><span><b>{t(`طلب ${hash(offerFor.code)} · ${people(offerFor.ppl)}`, `Order ${hash(offerFor.code)} · ${people(offerFor.ppl)}`)}</b><small>{offerFor.lines.map(([en, q]) => `${q}× ${name(en)}`).join(t('، ', ', '))}</small></span></p>} />
       )}
 
@@ -293,7 +318,8 @@ export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { o
 /* ---------- Tables: the floor and today's bookings ---------- */
 const LIMITS = [30, 45, 60, 90, 120, 0]
 export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: string) => void; openThread: (code: string) => void }) {
-  const { t, clock, mins, pick, people } = useFmt()
+  const { t, clock, mins, pick, people, backNote: back } = useFmt()
+  const backNote = (code: string) => notify(back(code))
   const { tables, setTables, bookings, setBookings, now } = ops
   const [tab, setTab] = useState<'floor' | 'bookings'>('floor')
   const [open, setOpen] = useState<string | null>(null)
@@ -367,7 +393,7 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
 
       {tab === 'bookings' && renderBookings()}
       {offerBooking && (
-        <OfferSheet onClose={() => setOfferBooking(null)} onSend={offer => { ops.setOffers(x => ({ ...x, [offerBooking.order ?? offerBooking.code]: { ...offer, sentAt: Date.now(), src: 'booking', about: [`حجز ${hash(offerBooking.code)} · ${pick(offerBooking.tag)}`, `Booking ${hash(offerBooking.code)} · ${offerBooking.tag[1]}`] } })); setOfferBooking(null); notify(t('أرسلنا العرض، وسيصلهم إشعار «افتح هديتك»', 'Offer sent. They get an “Open your gift” notification')) }}
+        <OfferSheet onClose={() => setOfferBooking(null)} onSend={offer => { ops.sendOffer(offerBooking.order ?? offerBooking.code, { ...offer, sentAt: Date.now(), src: 'booking', about: [`حجز ${hash(offerBooking.code)} · ${pick(offerBooking.tag)}`, `Booking ${hash(offerBooking.code)} · ${offerBooking.tag[1]}`] }, backNote); setOfferBooking(null); notify(t('أرسلنا العرض، وسيصلهم إشعار «افتح هديتك»', 'Offer sent. They get an “Open your gift” notification')) }}
           about={<p className="o-offer-for"><Armchair /><span><b>{t(`حجز ${hash(offerBooking.code)} · ${people(offerBooking.ppl)}`, `Booking ${hash(offerBooking.code)} · ${people(offerBooking.ppl)}`)}</b><small>{`${tName(offerBooking.table)} · ${pick(offerBooking.tag)}`}</small></span></p>} />
       )}
 
