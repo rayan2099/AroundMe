@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Armchair, BellRing, Check, ChefHat, CircleAlert, Clock, HandPlatter, MessageCircle, Pause, Play, Send, ShoppingBag, Timer, Users } from 'lucide-react'
+import { Armchair, BellRing, Check, ChefHat, CircleAlert, Clock, HandPlatter, MessageCircle, Pause, PenLine, Play, Plus, Send, ShoppingBag, Timer, Users } from 'lucide-react'
 import { Sheet, useT } from './Owner'
 import type { Item } from './data'
 
@@ -24,7 +24,9 @@ export type Order = {
   refunded?: string[]
   late?: boolean
 }
-export type Booking = { code: string; at: number; seat: T2; ppl: number; tag: T2; state: 'upcoming' | 'arrived' | 'noshow' | 'left'; order?: string }
+export type Booking = { code: string; at: number; table: string; ppl: number; tag: T2; state: 'upcoming' | 'arrived' | 'noshow' | 'left'; order?: string }
+// A table as staff set it up: a name, where it is, how many seats, and how long a sitting lasts (0 = no limit).
+export type Table = { id: string; name: T2; area: T2; seats: number; limit: number; bookable: boolean; seatedAt?: number; ppl?: number; booking?: string }
 export type Msg = { from: 'them' | 'me'; text: string; at: number }
 export type Thread = { code: string; msgs: Msg[]; unread: boolean }
 
@@ -35,6 +37,7 @@ const PRICE: Record<string, number> = {
   'Chocolate croissant': 15, Cookie: 9, 'Matcha latte': 24, 'Orange juice': 15, Water: 3, 'Halloumi sandwich': 26, 'Turkey and cheese sandwich': 29,
 }
 const PREP_TARGET = 10 // minutes
+const AREAS: T2[] = [['عند النافذة', 'By the window'], ['داخل', 'Inside'], ['منطقة الهدوء', 'Quiet area'], ['الجلسات الخارجية', 'Outdoor seating']]
 const SEATS: T2[] = [['عند النافذة', 'By the window'], ['الطاولة الطويلة', 'Long table'], ['منطقة الهدوء', 'Quiet area'], ['الجلسات الخارجية', 'Outdoor seating']]
 
 const min = 60_000
@@ -55,13 +58,23 @@ export function useOps() {
     { code: 'A33', kind: 'pre', placed: ago(90), due: ago(-35), ppl: 2, lines: [['Spanish latte', 2], ['Lotus cheesecake', 1]], note: 'بنجلس برا', pay: 'apple', status: 'scheduled' },
     { code: 'A34', kind: 'pre', placed: ago(55), due: ago(-70), ppl: 1, lines: [['Cortado', 1], ['Chocolate croissant', 1]], pay: 'google', status: 'scheduled' },
   ])
+  const [tables, setTables] = useState<Table[]>(() => [
+    { id: 'w1', name: ['نافذة 1', 'Window 1'], area: AREAS[0], seats: 2, limit: 60, bookable: true, seatedAt: ago(48), ppl: 2 },
+    { id: 'w2', name: ['نافذة 2', 'Window 2'], area: AREAS[0], seats: 2, limit: 60, bookable: true },
+    { id: 'long', name: ['الطاولة الطويلة', 'Long table'], area: AREAS[1], seats: 8, limit: 90, bookable: true },
+    { id: 'in1', name: ['داخل 1', 'Inside 1'], area: AREAS[1], seats: 4, limit: 60, bookable: false, seatedAt: ago(12), ppl: 3 },
+    { id: 'q1', name: ['هادئة 1', 'Quiet 1'], area: AREAS[2], seats: 1, limit: 120, bookable: true, seatedAt: ago(20), ppl: 1, booking: 'B13' },
+    { id: 'q2', name: ['هادئة 2', 'Quiet 2'], area: AREAS[2], seats: 2, limit: 120, bookable: true },
+    { id: 'o1', name: ['برا 1', 'Outside 1'], area: AREAS[3], seats: 4, limit: 60, bookable: true, seatedAt: ago(65), ppl: 3 },
+    { id: 'o2', name: ['برا 2', 'Outside 2'], area: AREAS[3], seats: 2, limit: 60, bookable: true },
+  ])
   const [bookings, setBookings] = useState<Booking[]>(() => [
-    { code: 'B12', at: ago(50), seat: SEATS[1], ppl: 4, tag: ['أقابل أصحاب', 'Meeting friends'], state: 'left', order: 'A25' },
-    { code: 'B13', at: ago(20), seat: SEATS[2], ppl: 1, tag: ['مذاكرة', 'Studying'], state: 'arrived', order: 'A28' },
-    { code: 'B14', at: ago(10), seat: SEATS[3], ppl: 2, tag: ['شغل', 'Work'], state: 'upcoming' },
-    { code: 'B15', at: ago(-4), seat: SEATS[1], ppl: 3, tag: ['اجتماع', 'Meeting'], state: 'upcoming', order: 'A27' },
-    { code: 'B16', at: ago(-35), seat: SEATS[3], ppl: 2, tag: ['أروّق', 'Chilling'], state: 'upcoming', order: 'A33' },
-    { code: 'B17', at: ago(-95), seat: SEATS[0], ppl: 2, tag: ['شغل', 'Work'], state: 'upcoming' },
+    { code: 'B12', at: ago(50), table: 'long', ppl: 4, tag: ['أقابل أصحاب', 'Meeting friends'], state: 'left', order: 'A25' },
+    { code: 'B13', at: ago(20), table: 'q1', ppl: 1, tag: ['مذاكرة', 'Studying'], state: 'arrived', order: 'A28' },
+    { code: 'B14', at: ago(10), table: 'o2', ppl: 2, tag: ['شغل', 'Work'], state: 'upcoming' },
+    { code: 'B15', at: ago(-4), table: 'long', ppl: 3, tag: ['اجتماع', 'Meeting'], state: 'upcoming', order: 'A27' },
+    { code: 'B16', at: ago(-35), table: 'o1', ppl: 2, tag: ['أروّق', 'Chilling'], state: 'upcoming', order: 'A33' },
+    { code: 'B17', at: ago(-95), table: 'w2', ppl: 2, tag: ['شغل', 'Work'], state: 'upcoming' },
   ])
   const [threads, setThreads] = useState<Thread[]>(() => [
     { code: 'A30', unread: true, msgs: [{ from: 'them', text: 'السلام عليكم، ممكن الفلات وايت بحليب شوفان؟', at: ago(2) }] },
@@ -73,7 +86,7 @@ export function useOps() {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id) }, [])
   useEffect(() => { if (typeof paused === 'number' && now >= paused) setPaused(null) }, [now, paused])
-  return { orders, setOrders, bookings, setBookings, threads, setThreads, paused, setPaused, now }
+  return { orders, setOrders, tables, setTables, bookings, setBookings, threads, setThreads, paused, setPaused, now }
 }
 export type Ops = ReturnType<typeof useOps>
 
@@ -235,84 +248,234 @@ export function Orders({ ops, items, notify, openThread }: { ops: Ops; items: It
   )
 }
 
-/* ---------- Today's tables ---------- */
+/* ---------- Tables: the floor and today's bookings ---------- */
+const LIMITS = [30, 45, 60, 90, 120, 0]
 export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: string) => void; openThread: (code: string) => void }) {
   const { t, clock, mins, pick, people } = useFmt()
-  const { bookings, setBookings, now } = ops
-  const [closed, setClosed] = useState<string[]>([])
-  const set = (code: string, state: Booking['state']) => setBookings(l => l.map(b => (b.code === code ? { ...b, state } : b)))
+  const { tables, setTables, bookings, setBookings, now } = ops
+  const [tab, setTab] = useState<'floor' | 'bookings'>('floor')
+  const [open, setOpen] = useState<string | null>(null)
+  const [editing, setEditing] = useState<Table | 'new' | null>(null)
+  const [ppl, setPpl] = useState(2)
   const HOLD = 60
-  const groups: [string, Booking[]][] = [
-    [t('جالسين الحين', 'Seated now'), bookings.filter(b => b.state === 'arrived')],
-    [t('جايين', 'Coming up'), bookings.filter(b => b.state === 'upcoming').sort((a, b) => a.at - b.at)],
-    [t('خلصت', 'Finished'), bookings.filter(b => b.state === 'left' || b.state === 'noshow')],
-  ]
+  const nTables = (n: number) => t(n === 1 ? 'طاولة' : n === 2 ? 'طاولتين' : n <= 10 ? `${n} طاولات` : `${n} طاولة`, `${n} table${n === 1 ? '' : 's'}`)
+  const table = (id: string) => tables.find(x => x.id === id)
+  const tName = (id: string) => { const x = table(id); return x ? `${pick(x.name)} · ${pick(x.area)}` : '' }
+  const patch = (id: string, p: Partial<Table>) => setTables(l => l.map(x => (x.id === id ? { ...x, ...p } : x)))
+  const seat = (id: string, n: number, booking?: string) => patch(id, { seatedAt: Date.now(), ppl: n, booking })
+  const free = (id: string) => {
+    const x = table(id); patch(id, { seatedAt: undefined, ppl: undefined, booking: undefined })
+    if (x?.booking) setBookings(l => l.map(b => (b.code === x.booking ? { ...b, state: 'left' } : b)))
+  }
+  const setB = (code: string, state: Booking['state']) => setBookings(l => l.map(b => (b.code === code ? { ...b, state } : b)))
+  const nextBooking = (id: string) => bookings.filter(b => b.table === id && b.state === 'upcoming').sort((a, b) => a.at - b.at)[0]
+  const status = (x: Table) => {
+    if (x.seatedAt) {
+      const sat = mins(now - x.seatedAt)
+      if (x.limit && sat > x.limit) return { k: 'over', sat, left: 0 }
+      return { k: 'seated', sat, left: x.limit ? x.limit - sat : 0 }
+    }
+    const nb = nextBooking(x.id)
+    if (nb && nb.at - now < 30 * min) return { k: 'soon', sat: 0, left: 0, nb }
+    return { k: 'free', sat: 0, left: 0, nb }
+  }
+  const areas = tables.reduce<T2[]>((acc, x) => (acc.some(a => a[1] === x.area[1]) ? acc : [...acc, x.area]), [])
+  const sel = open ? table(open) : undefined
+  const counts = { free: tables.filter(x => !x.seatedAt).length, seated: tables.filter(x => x.seatedAt).length, over: tables.filter(x => status(x).k === 'over').length }
+
   return (
     <div className="o-ops">
-      <div className="o-ops-stats">
-        <div><b>{bookings.length}</b><small>{t('حجز اليوم', 'bookings today')}</small></div>
-        <div><b>{bookings.filter(b => b.state === 'arrived').length}</b><small>{t('جالسين الحين', 'seated now')}</small></div>
-        <div><b>{bookings.filter(b => b.state === 'upcoming').length}</b><small>{t('جايين', 'coming up')}</small></div>
+      <div className="o-segmented o-tm-tabs" role="tablist">
+        <button type="button" role="tab" aria-selected={tab === 'floor'} className={tab === 'floor' ? 'active' : ''} onClick={() => setTab('floor')}>{t('الطاولات', 'Tables')}<span className="o-count">{tables.length}</span></button>
+        <button type="button" role="tab" aria-selected={tab === 'bookings'} className={tab === 'bookings' ? 'active' : ''} onClick={() => setTab('bookings')}>{t('حجوزات اليوم', "Today's bookings")}<span className="o-count">{bookings.length}</span></button>
       </div>
-      {groups.map(([title, list]) => list.length > 0 && (
-        <section key={title} className="o-tm-group">
-          <h4>{title}<small>{list.length}</small></h4>
-          <ul className="o-bookings">
-            {list.map(b => {
-              const holdEnd = b.at + HOLD * min
-              const left = mins(holdEnd - now)
-              const lateBy = mins(now - b.at)
-              const late = b.state === 'upcoming' && now > b.at
-              return (
-                <li key={b.code} className={`b-${b.state} ${late ? 'late' : ''}`}>
-                  <div className="o-booking-main">
-                    <span className="o-visit-time">{clock(b.at)}</span>
-                    <div>
-                      <b>{pick(b.seat)}</b>
-                      <small>{people(b.ppl)} · {pick(b.tag)} · {hash(b.code)}{b.order && ` · ${t('معه طلب', 'has an order')} ${hash(b.order)}`}</small>
-                    </div>
-                    <button type="button" className="o-icon-btn" onClick={() => openThread(b.code)} aria-label={t('راسل العميل', 'Message the customer')}><MessageCircle /></button>
-                  </div>
-                  {b.state === 'upcoming' && (
-                    <>
-                      <p className={`o-hold ${late ? 'late' : ''}`}><Timer />{late ? t(`متأخر ${lateBy} د · الطاولة محجوزة له ${left} د باقي`, `${lateBy} min late · table held ${left} more min`) : t(`محجوزة لين ${clock(holdEnd)}`, `Held until ${clock(holdEnd)}`)}</p>
-                      <div className="o-order-actions">
-                        <button type="button" className={`o-advance ${late || b.at - now < 15 * min ? '' : 'soft'}`} onClick={() => { set(b.code, 'arrived'); notify(t(`وصلوا ${hash(b.code)}، أهلًا فيهم`, `${hash(b.code)} arrived`)) }}><Check />{t('وصلوا', 'Arrived')}</button>
-                        {late && <button type="button" className="o-issue" onClick={() => { set(b.code, 'noshow'); notify(t(`${hash(b.code)} ما حضروا. رسوم الحجز لك، والطاولة صارت فاضية`, `${hash(b.code)} didn't show. You keep the booking fee and the table is free`)) }}>{t('ما حضروا', 'No-show')}</button>}
-                      </div>
-                    </>
-                  )}
-                  {b.state === 'arrived' && (
-                    <div className="o-order-actions">
-                      <button type="button" className="o-issue" onClick={() => { set(b.code, 'left'); notify(t(`الطاولة (${pick(b.seat)}) صارت فاضية`, `${pick(b.seat)} is free again`)) }}>{t('قاموا، الطاولة فاضية', 'They left, table is free')}</button>
-                    </div>
-                  )}
-                  {b.state === 'noshow' && <p className="o-hold">{t('ما حضروا · رسوم الحجز 5 ر.س لك', 'No-show · you keep the SAR 5 fee')}</p>}
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-      ))}
 
-      <section className="o-tm-group">
-        <h4>{t('تقبل حجز في', 'Take bookings for')}</h4>
-        <ul className="o-tm-list">
-          {SEATS.map(s => {
-            const on = !closed.includes(s[1])
-            return (
-              <li key={s[1]}>
-                <div><b>{pick(s)}</b><small>{on ? t('العملاء يقدرون يحجزونها', 'Customers can book it') : t('مقفولة للحجز اليوم', 'Closed for booking today')}</small></div>
-                <button type="button" className="o-toggle" role="switch" aria-checked={on} aria-label={pick(s)} onClick={() => setClosed(c => on ? [...c, s[1]] : c.filter(x => x !== s[1]))}>
-                  <em className={on ? 'on' : ''} />
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
-      <p className="o-note"><Armchair />{t('كل طاولة محجوزة ساعة من وقت الحجز. إذا ما حضروا، رسوم الحجز لك.', "Each table is held for an hour from the booking time. If they don't show, you keep the booking fee.")}</p>
+      {tab === 'floor' && (
+        <>
+          <div className="o-ops-stats">
+            <div><b>{counts.free}</b><small>{t('فاضية', 'free')}</small></div>
+            <div><b>{counts.seated}</b><small>{t('مشغولة', 'seated')}</small></div>
+            <div className={counts.over ? 'warn' : ''}><b>{counts.over}</b><small>{t('خلص وقتها', 'over time')}</small></div>
+          </div>
+          {areas.map(area => (
+            <section key={area[1]} className="o-tm-group">
+              <h4>{pick(area)}<small>{nTables(tables.filter(x => x.area[1] === area[1]).length)}</small></h4>
+              <div className="o-floor">
+                {tables.filter(x => x.area[1] === area[1]).map(x => {
+                  const st = status(x)
+                  return (
+                    <button key={x.id} type="button" className={`o-tbl s-${st.k}`} onClick={() => { setOpen(x.id); setPpl(Math.min(2, x.seats)) }}>
+                      <span className="o-tbl-top"><b>{pick(x.name)}</b><small><Users />{x.seats}</small></span>
+                      <span className="o-tbl-state">
+                        {st.k === 'free' ? t('فاضية', 'Free') : st.k === 'soon' ? t(`محجوزة ${clock(st.nb!.at)}`, `Booked ${clock(st.nb!.at)}`) : st.k === 'over' ? t(`تعدّت الوقت ${st.sat - x.limit} د`, `${st.sat - x.limit} min over`) : x.limit ? t(`باقي ${st.left} د`, `${st.left} min left`) : t(`من ${st.sat} د`, `${st.sat} min`)}
+                      </span>
+                      {x.seatedAt && <span className="o-tbl-bar"><i style={{ width: `${x.limit ? Math.min(100, (st.sat / x.limit) * 100) : 100}%` }} /></span>}
+                      <span className="o-tbl-meta"><Timer />{x.limit ? t(`${x.limit} د`, `${x.limit} min`) : t('بدون وقت', 'No limit')}{x.seatedAt && <> · {people(x.ppl!)}</>}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+          ))}
+          <button type="button" className="o-dashed" onClick={() => setEditing('new')}><Plus />{t('أضف طاولة', 'Add a table')}</button>
+          <p className="o-note"><Timer />{t('كل طاولة لها وقت جلسة. أول ما تجلّس ناس يبدأ العداد، وننبهك إذا خلص وقتهم.', "Each table has a sitting time. The timer starts when you seat people, and we let you know when it runs out.")}</p>
+        </>
+      )}
+
+      {tab === 'bookings' && renderBookings()}
+
+      {sel && !editing && (() => {
+        const st = status(sel)
+        return (
+          <Sheet title={pick(sel.name)} onClose={() => setOpen(null)}>
+            <p className="o-sheet-sub">{pick(sel.area)} · {t(`${sel.seats} مقاعد`, `${sel.seats} seats`)} · {sel.limit ? t(`جلسة ${sel.limit} د`, `${sel.limit} min sitting`) : t('بدون وقت', 'No time limit')}{sel.bookable ? '' : t(' · ما تنحجز', ' · walk-in only')}</p>
+            {sel.seatedAt ? (
+              <>
+                <div className={`o-timer-card ${st.k === 'over' ? 'over' : ''}`}>
+                  <Timer />
+                  <div>
+                    <b>{st.k === 'over' ? t(`تعدّوا الوقت بـ ${st.sat - sel.limit} د`, `${st.sat - sel.limit} min over time`) : sel.limit ? t(`باقي ${st.left} دقيقة`, `${st.left} minutes left`) : t(`جالسين من ${st.sat} د`, `Seated for ${st.sat} min`)}</b>
+                    <small>{t(`جلسوا ${clock(sel.seatedAt)}`, `Seated at ${clock(sel.seatedAt)}`)} · {people(sel.ppl!)}{sel.booking && ` · ${t('حجز', 'booking')} ${hash(sel.booking)}`}</small>
+                  </div>
+                </div>
+                {sel.limit > 0 && <span className="o-tbl-bar big"><i style={{ width: `${Math.min(100, (st.sat / sel.limit) * 100)}%` }} /></span>}
+                <div className="o-order-actions">
+                  {sel.limit > 0 && <button type="button" className="o-issue" onClick={() => { patch(sel.id, { limit: sel.limit + 15 }); notify(t(`زدنا 15 دقيقة على ${pick(sel.name)}`, `Added 15 minutes to ${pick(sel.name)}`)) }}>{t('+15 د', '+15 min')}</button>}
+                  <button type="button" className="o-advance" onClick={() => { free(sel.id); setOpen(null); notify(t(`${pick(sel.name)} صارت فاضية`, `${pick(sel.name)} is free`)) }}><Check />{t('قاموا، فضّي الطاولة', 'They left, free it')}</button>
+                </div>
+              </>
+            ) : (
+              <>
+                {st.nb && <p className={`o-note ${st.k === 'soon' ? 'warn' : ''}`}><Clock />{t(`عليها حجز ${clock(st.nb.at)} · ${people(st.nb.ppl)} · ${hash(st.nb.code)}`, `Booked at ${clock(st.nb.at)} · ${people(st.nb.ppl)} · ${hash(st.nb.code)}`)}</p>}
+                <h4 className="o-sheet-h">{t('كم شخص بيجلس؟', 'How many people?')}</h4>
+                <div className="o-stepper">
+                  <button type="button" onClick={() => setPpl(n => Math.max(1, n - 1))} aria-label={t('أقل', 'Fewer')}>−</button>
+                  <b>{people(ppl)}</b>
+                  <button type="button" onClick={() => setPpl(n => Math.min(sel.seats + 2, n + 1))} aria-label={t('أكثر', 'More')}>+</button>
+                </div>
+                <div className="o-order-actions">
+                  <button type="button" className="o-advance" onClick={() => { seat(sel.id, ppl); setOpen(null); notify(t(`جلّسنا ${people(ppl)} على ${pick(sel.name)}، بدأ العداد`, `Seated ${people(ppl)} at ${pick(sel.name)}. Timer started`)) }}><Play />{t('جلّسهم وابدأ العداد', 'Seat and start timer')}</button>
+                </div>
+              </>
+            )}
+            <button type="button" className="o-text-btn o-edit-table" onClick={() => setEditing(sel)}><PenLine />{t('عدّل الطاولة', 'Edit table')}</button>
+          </Sheet>
+        )
+      })()}
+
+      {editing && <TableForm table={editing === 'new' ? null : editing} areas={areas} onClose={() => setEditing(null)}
+        onSave={x => {
+          setTables(l => (l.some(y => y.id === x.id) ? l.map(y => (y.id === x.id ? { ...y, ...x } : y)) : [...l, x]))
+          notify(editing === 'new' ? t(`أضفنا ${pick(x.name)}`, `Added ${pick(x.name)}`) : t(`حفظنا ${pick(x.name)}`, `Saved ${pick(x.name)}`))
+          setEditing(null)
+        }}
+        onDelete={x => { setTables(l => l.filter(y => y.id !== x.id)); setEditing(null); setOpen(null); notify(t(`حذفنا ${pick(x.name)}`, `Removed ${pick(x.name)}`)) }} />}
     </div>
+  )
+
+  function renderBookings() {
+    const groups: [string, Booking[]][] = [
+      [t('جالسين الحين', 'Seated now'), bookings.filter(b => b.state === 'arrived')],
+      [t('جايين', 'Coming up'), bookings.filter(b => b.state === 'upcoming').sort((a, b) => a.at - b.at)],
+      [t('خلصت', 'Finished'), bookings.filter(b => b.state === 'left' || b.state === 'noshow')],
+    ]
+    return (
+      <>
+        {groups.map(([title, list]) => list.length > 0 && (
+          <section key={title} className="o-tm-group">
+            <h4>{title}<small>{list.length}</small></h4>
+            <ul className="o-bookings">
+              {list.map(b => {
+                const holdEnd = b.at + HOLD * min
+                const late = b.state === 'upcoming' && now > b.at
+                const busy = table(b.table)?.seatedAt && !table(b.table)?.booking
+                return (
+                  <li key={b.code} className={`b-${b.state} ${late ? 'late' : ''}`}>
+                    <div className="o-booking-main">
+                      <span className="o-visit-time">{clock(b.at)}</span>
+                      <div>
+                        <b>{tName(b.table)}</b>
+                        <small>{people(b.ppl)} · {pick(b.tag)} · {hash(b.code)}{b.order && ` · ${t('معه طلب', 'has an order')} ${hash(b.order)}`}</small>
+                      </div>
+                      <button type="button" className="o-icon-btn" onClick={() => openThread(b.code)} aria-label={t('راسل العميل', 'Message the customer')}><MessageCircle /></button>
+                    </div>
+                    {b.state === 'upcoming' && (
+                      <>
+                        <p className={`o-hold ${late ? 'late' : ''}`}><Timer />{late ? t(`متأخر ${mins(now - b.at)} د · الطاولة محجوزة له ${mins(holdEnd - now)} د باقي`, `${mins(now - b.at)} min late · table held ${mins(holdEnd - now)} more min`) : t(`محجوزة لين ${clock(holdEnd)}`, `Held until ${clock(holdEnd)}`)}</p>
+                        {busy && <p className="o-hold late"><CircleAlert />{t('الطاولة مشغولة الحين، فضّها قبل وصولهم', 'The table is taken right now. Free it before they arrive')}</p>}
+                        <div className="o-order-actions">
+                          <button type="button" className={`o-advance ${late || b.at - now < 15 * min ? '' : 'soft'}`} onClick={() => { setB(b.code, 'arrived'); seat(b.table, b.ppl, b.code); notify(t(`وصلوا ${hash(b.code)}، بدأ عداد ${tName(b.table)}`, `${hash(b.code)} arrived. Timer started on ${tName(b.table)}`)) }}><Check />{t('وصلوا، جلّسهم', 'Arrived, seat them')}</button>
+                          {late && <button type="button" className="o-issue" onClick={() => { setB(b.code, 'noshow'); notify(t(`${hash(b.code)} ما حضروا. رسوم الحجز لك، والطاولة صارت فاضية`, `${hash(b.code)} didn't show. You keep the booking fee and the table is free`)) }}>{t('ما حضروا', 'No-show')}</button>}
+                        </div>
+                      </>
+                    )}
+                    {b.state === 'arrived' && (
+                      <div className="o-order-actions">
+                        <button type="button" className="o-issue" onClick={() => { free(b.table); setB(b.code, 'left'); notify(t(`${tName(b.table)} صارت فاضية`, `${tName(b.table)} is free again`)) }}>{t('قاموا، الطاولة فاضية', 'They left, table is free')}</button>
+                      </div>
+                    )}
+                    {b.state === 'noshow' && <p className="o-hold">{t('ما حضروا · رسوم الحجز 5 ر.س لك', 'No-show · you keep the SAR 5 fee')}</p>}
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        ))}
+        <p className="o-note"><Armchair />{t('كل حجز محجوز ساعة من وقته. إذا ما حضروا، رسوم الحجز لك.', "Each booking is held for an hour. If they don't show, you keep the booking fee.")}</p>
+      </>
+    )
+  }
+}
+
+function TableForm({ table, areas, onSave, onDelete, onClose }: { table: Table | null; areas: T2[]; onSave: (x: Table) => void; onDelete: (x: Table) => void; onClose: () => void }) {
+  const { t, pick } = useFmt()
+  const [name, setName] = useState(table ? pick(table.name) : '')
+  const [area, setArea] = useState<T2 | null>(table?.area ?? areas[0] ?? null)
+  const [newArea, setNewArea] = useState('')
+  const [adding, setAdding] = useState(areas.length === 0)
+  const [seats, setSeats] = useState(table?.seats ?? 2)
+  const [limit, setLimit] = useState(table?.limit ?? 60)
+  const [custom, setCustom] = useState(!LIMITS.includes(table?.limit ?? 60))
+  const [bookable, setBookable] = useState(table?.bookable ?? true)
+  const where = adding ? (newArea.trim() ? [newArea.trim(), newArea.trim()] as T2 : null) : area
+  const ok = name.trim() && where
+  const keepName = table && name === pick(table.name)
+  return (
+    <Sheet title={table ? t('عدّل الطاولة', 'Edit table') : t('طاولة جديدة', 'New table')} onClose={onClose} footer={
+      <>
+        <button type="button" className="o-primary" disabled={!ok} onClick={() => ok && onSave({ ...(table ?? { id: `t${Date.now()}` }), name: keepName ? table!.name : [name.trim(), name.trim()], area: where!, seats, limit, bookable } as Table)}>{table ? t('احفظ', 'Save') : t('أضف الطاولة', 'Add table')}</button>
+        {table && <button type="button" className="o-text-btn danger" onClick={() => onDelete(table)}>{t('احذف الطاولة', 'Delete table')}</button>}
+      </>
+    }>
+      <label className="o-label" htmlFor="o-tname">{t('اسم الطاولة', 'Table name')}</label>
+      <input id="o-tname" className="o-field" value={name} onChange={e => setName(e.target.value)} placeholder={t('مثلًا: نافذة 3', 'e.g. Window 3')} />
+
+      <span className="o-label">{t('الموقع', 'Location')}</span>
+      <div className="o-chips wrap">
+        {areas.map(a => <button key={a[1]} type="button" className={`o-chip ${!adding && area?.[1] === a[1] ? 'active' : ''}`} onClick={() => { setArea(a); setAdding(false) }}>{pick(a)}</button>)}
+        <button type="button" className={`o-chip ${adding ? 'active' : ''}`} onClick={() => setAdding(true)}><Plus />{t('موقع جديد', 'New location')}</button>
+      </div>
+      {adding && <input className="o-field o-mt" value={newArea} onChange={e => setNewArea(e.target.value)} placeholder={t('مثلًا: الدور الثاني', 'e.g. Upstairs')} autoFocus />}
+
+      <span className="o-label">{t('عدد المقاعد', 'Seats')}</span>
+      <div className="o-stepper">
+        <button type="button" onClick={() => setSeats(n => Math.max(1, n - 1))} aria-label={t('أقل', 'Fewer')}>−</button>
+        <b>{seats}</b>
+        <button type="button" onClick={() => setSeats(n => Math.min(20, n + 1))} aria-label={t('أكثر', 'More')}>+</button>
+      </div>
+
+      <span className="o-label">{t('وقت الجلسة', 'Sitting time')}</span>
+      <div className="o-chips wrap">
+        {LIMITS.map(m => <button key={m} type="button" className={`o-chip ${!custom && limit === m ? 'active' : ''}`} onClick={() => { setLimit(m); setCustom(false) }}>{m ? t(m === 60 ? 'ساعة' : m === 120 ? 'ساعتين' : m === 90 ? 'ساعة ونص' : `${m} د`, m >= 60 ? `${m / 60} h` : `${m} min`) : t('بدون وقت', 'No limit')}</button>)}
+        <button type="button" className={`o-chip ${custom ? 'active' : ''}`} onClick={() => setCustom(true)}>{t('وقت ثاني', 'Custom')}</button>
+      </div>
+      {custom && <div className="o-inline-field o-mt"><input className="o-field" type="number" inputMode="numeric" min={5} value={limit || ''} onChange={e => setLimit(Math.max(0, +e.target.value))} /><span>{t('دقيقة', 'minutes')}</span></div>}
+
+      <button type="button" className="o-switch-row" role="switch" aria-checked={bookable} onClick={() => setBookable(b => !b)}>
+        <span><b>{t('العملاء يقدرون يحجزونها', 'Customers can book it')}</b><small>{bookable ? t('تطلع في الحجز من تطبيق AroundMe', 'Shows up for booking in the AroundMe app') : t('للي يجون بدون حجز بس', 'Walk-ins only')}</small></span>
+        <em className={bookable ? 'on' : ''} />
+      </button>
+    </Sheet>
   )
 }
 

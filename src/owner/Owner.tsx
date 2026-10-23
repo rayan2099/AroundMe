@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import {
-  Armchair, ArrowDown, ArrowUp, BadgeCheck, ClipboardList, MessageCircle, ChartColumn, CakeSlice, Camera, Check, ChevronLeft, ChevronRight, CircleAlert, Coffee, Cookie, Croissant,
+  Armchair, ArrowDown, ArrowUp, BadgeCheck, ClipboardList, Menu as MenuIcon, MessageCircle, ChartColumn, CakeSlice, Camera, Check, ChevronLeft, ChevronRight, CircleAlert, Coffee, Cookie, Croissant,
   CupSoda, Eye, FileText, GlassWater, ImagePlus, Languages, Leaf, Link2, MapPin, PenLine, Plus, Salad, Sandwich, ScanLine,
   Search, Sparkles, Star, Store, Trash2, Upload, Utensils, X,
 } from 'lucide-react'
@@ -688,7 +688,10 @@ function Live(props: MenuProps & { place: Place }) {
   const soldOut = items.filter(i => i.soldOut).length
   const newOrders = ops.orders.filter(o => o.status === 'new').length
   const unread = ops.threads.filter(x => x.unread).length
-  const lateTables = ops.bookings.filter(b => b.state === 'upcoming' && ops.now > b.at).length
+  const lateTables = ops.bookings.filter(b => b.state === 'upcoming' && ops.now > b.at).length + ops.tables.filter(x => x.seatedAt && x.limit && ops.now - x.seatedAt > x.limit * 60_000).length
+  const badges: Record<View, number> = { orders: newOrders, tables: lateTables, messages: unread, insights: 0, menu: soldOut }
+  const totalBadge = newOrders + unread + lateTables
+  const [drawer, setDrawer] = useState(false)
   const toggle = (i: Item) => {
     setItems(l => l.map(x => (x.id === i.id ? { ...x, soldOut: !x.soldOut } : x)))
     notify(i.soldOut ? t(`«${tx(i.name)}» رجع متوفر`, `“${tx(i.name)}” is available again`) : t(`«${tx(i.name)}» صار نفد، وما ينطلب لين ترجعه`, `“${tx(i.name)}” is sold out and can't be ordered until you turn it back on`))
@@ -702,6 +705,10 @@ function Live(props: MenuProps & { place: Place }) {
   return (
     <>
       <div className="o-pad o-live">
+        <div className="o-section-bar">
+          <button type="button" className="o-icon-btn o-menu-btn" onClick={() => setDrawer(true)} aria-label={t('القائمة', 'Menu')}><MenuIcon />{totalBadge > 0 && <i>{totalBadge}</i>}</button>
+          <h2>{t(...NAV.find(n => n[0] === view)!.slice(2) as [string, string])}</h2>
+        </div>
         <div className="o-live-card">
           <PlaceLogo place={place} big />
           <div>
@@ -739,17 +746,24 @@ function Live(props: MenuProps & { place: Place }) {
         {cur && <button type="button" className="o-dashed" onClick={() => ed.add(cur)}><Plus />{t(`أضف صنف في ${tx(cats.find(c => c.id === cur)!.name)}`, `Add an item to ${tx(cats.find(c => c.id === cur)!.name)}`)}</button>}
         </>}
       </div>
-      <nav className="o-nav" aria-label={t('أقسام اللوحة', 'Dashboard sections')}>
-        {NAV.map(([id, Icon, ar, en]) => {
-          const badge = id === 'orders' ? newOrders : id === 'messages' ? unread : id === 'tables' ? lateTables : id === 'menu' ? soldOut : 0
-          return (
-            <button key={id} type="button" aria-current={view === id ? 'page' : undefined} className={view === id ? 'active' : ''} onClick={() => setView(id)}>
-              <span className="o-nav-icon"><Icon />{badge > 0 && <i className={id === 'menu' ? 'warn' : ''}>{badge}</i>}</span>
-              {t(ar, en)}
-            </button>
-          )
-        })}
-      </nav>
+      <aside className={`o-side ${drawer ? 'open' : ''}`} aria-label={t('أقسام اللوحة', 'Dashboard sections')}>
+        <div className="o-side-cafe">
+          <PlaceLogo place={place} />
+          <div><b>{tx(place.name)}</b><small>{t('لوحة الكافيه', 'Café dashboard')}</small></div>
+        </div>
+        <nav>
+          {NAV.map(([id, Icon, ar, en]) => {
+            const badge = badges[id]
+            return (
+              <button key={id} type="button" aria-current={view === id ? 'page' : undefined} className={view === id ? 'active' : ''} onClick={() => { setView(id); setDrawer(false) }}>
+                <Icon /><span>{t(ar, en)}</span>{badge > 0 && <i className={id === 'menu' || id === 'tables' ? 'warn' : ''}>{badge}</i>}
+              </button>
+            )
+          })}
+        </nav>
+        <button type="button" className="o-side-view" onClick={() => { setPreview(true); setDrawer(false) }}><Eye />{t('شوف المنيو كعميل', 'See the menu as a customer')}</button>
+      </aside>
+      {drawer && <div className="o-side-scrim" onClick={() => setDrawer(false)} />}
       {ed.sheets}
     </>
   )
