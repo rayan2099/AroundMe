@@ -1,20 +1,23 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import {
-  Ban, Bell, Camera, Check, ChevronDown, ChevronLeft, ChevronRight,
+  Ban, Bell, BookOpen, Camera, Check, ChevronDown, ChevronLeft, ChevronRight,
   CircleUserRound, Clock3, Code2, Coffee, Compass, Edit3, EyeOff, Flag,
   Handshake, HeartHandshake, Home, LocateFixed, LogOut, MapPin, MessageCircle,
   MoreHorizontal, Phone, Search, Send, Settings, Footprints, ShieldCheck, Sparkles, UserRound,
   UsersRound, X, Wifi, Volume2, PlugZap, Car, Bookmark, XCircle, Smartphone, Monitor, Trees, DoorOpen, Languages, CalendarPlus, CalendarClock,
-  Croissant, Sandwich, CakeSlice, CupSoda, GlassWater, Cookie, Minus, Plus, CreditCard, Receipt, Armchair, CircleCheck, LoaderCircle, Store, ScanFace
+  Croissant, Sandwich, CakeSlice, CupSoda, GlassWater, Cookie, Minus, Plus, CreditCard, Receipt, Armchair, CircleCheck, LoaderCircle, Store, ScanFace, Navigation
 } from 'lucide-react'
 import { BUSINESS } from './constants'
 import { toEnglish, type Language } from './i18n'
 
 export type Screen = 'onboarding' | 'phone' | 'otp' | 'location' | 'home' | 'intent' | 'map' | 'cafe' | 'people' | 'account' | 'settings' | 'inbox' | 'chat' | 'cafeChat' | 'matchProfile'
-export type Sheet = null | 'profileSetup' | 'editProfile' | 'skills' | 'request' | 'pending' | 'match' | 'chatMenu' | 'report' | 'location' | 'planVisit' | 'visit'
+export type Sheet = null | 'profileSetup' | 'editProfile' | 'skills' | 'request' | 'pending' | 'match' | 'chatMenu' | 'report' | 'location' | 'planVisit' | 'visit' | 'hereNow'
 export type Tab = 'home' | 'map' | 'people' | 'inbox' | 'account'
 // The app does one thing: connect people nearby to ask for help or offer it.
 export type ActionMode = 'seek' | 'help'
+// A visit's purpose: needing help, offering help, or just visiting (to order, work, study…), with tags saying why.
+export type VisitMode = ActionMode | 'visit'
+const VISIT_TAGS = ['شغل', 'مذاكرة', 'اجتماع', 'أقابل أصحاب', 'أروّق', 'قراءة', 'أطلب وأمشي']
 export type PresenceFilter = 'all' | 'now' | 'today'
 export type Presence = 'now' | 'today'
 export type Gender = 'm' | 'f'
@@ -100,6 +103,7 @@ function LanguageBridge({ language }: { language: Language }) {
 const COPY = {
   seek: 'أحتاج مساعدة',
   help: 'أقدر أساعد',
+  visit: 'بس زيارة',
   nearTab: 'حولك',
   nowGroup: 'متواجدون الآن',
   todayGroup: 'قادمون اليوم',
@@ -147,6 +151,11 @@ const images = {
   corner: '/assets/places/corner.jpg',
   garden: '/assets/places/garden.jpg',
   jjbeanLogo: '/assets/logos/jjbean.png',
+  unwanLogo: '/assets/logos/unwan.png',
+  starbucksLogo: '/assets/logos/starbucks.png',
+  dunkinLogo: '/assets/logos/dunkin.png',
+  javatimeLogo: '/assets/logos/javatime.png',
+  drcafeLogo: '/assets/logos/drcafe.png',
 }
 
 export type Person = {
@@ -155,14 +164,14 @@ export type Person = {
 }
 
 const allPeople: Person[] = [
-  { id: 'layla', name: 'ليلى حسن', g: 'f', image: images.layla, job: 'مصممة جرافيك مستقلة', bio: 'أصمم هويات بصرية للمشاريع الناشئة، وأحب أساعد في مراجعة الشعارات والعروض التقديمية.', tag: 'تصميم هوية بصرية', seat: 'عند النافذة', cafe: 'مقهى الحطب', presence: 'now', time: '', leaveAt: leaveIn(95), visitDetails: 'متاحة للمساعدة حتى 6:30 م', skills: ['تصميم هوية بصرية', 'UI/UX', 'Figma'], serviceOffer: 'مراجعة الهوية والشعارات وتنسيق الواجهات وتجربة المستخدم' },
-  { id: 'omar', name: 'عمر سعيد', g: 'm', image: images.omar, job: 'مطور تطبيقات موبايل', bio: 'أطور تطبيقات React Native وTypeScript، وأقدر أساعد في حل مشاكل الكود واكتشاف الأخطاء بسرعة.', tag: 'React Native', seat: 'الطاولة الطويلة', cafe: 'مقهى الحطب', presence: 'now', time: '', leaveAt: leaveIn(150), visitDetails: 'متاح للأسئلة البرمجية حتى 8:00 م', skills: ['React Native', 'TypeScript', 'تطوير تطبيقات', 'حل أخطاء'], serviceOffer: 'حل مشاكل كود React Native واستكشاف أخطاء الدفع والربط' },
-  { id: 'khaled', name: 'خالد منصور', g: 'm', image: images.khaled, job: 'مختص تسويق رقمي', bio: 'أشتغل في التسويق الرقمي والإعلانات الممولة وحملات النمو للمتاجر الإلكترونية.', tag: 'تسويق رقمي', seat: 'قريب من الكاونتر', cafe: 'مقهى الحطب', presence: 'today', time: clock(leaveIn(45)), arriveAt: leaveIn(45), visitDetails: 'متاح للاستشارات التسويقية من 4:30 إلى 7:00 م', skills: ['تسويق رقمي', 'SEO', 'إعلانات تيك توك وسناب', 'حملات نمو'], serviceOffer: 'استشارات تسويقية وخطط إطلاق الحملات الإعلانية' },
-  { id: 'rana', name: 'رنا فارس', g: 'f', image: images.rana, job: 'صاحبة مشروع ناشئ', bio: 'أبني مشروع ناشئ للمناسبات والهدايا، وأهتم جداً بتجربة العميل وجودة التفاصيل.', tag: 'تصوير منتجات', seat: 'الجلسات الخارجية', cafe: 'مقهى الحطب', presence: 'today', time: clock(leaveIn(70)), arriveAt: leaveIn(70), visitDetails: 'متاحة لجلسات تصوير سريعة من 5:15 م', skills: ['تصوير منتجات', 'صناعة محتوى', 'تجربة مستخدم'], serviceOffer: 'تصوير المنتجات وجلسات سريعة بالجوال' },
-  { id: 'sara', name: 'سارة الشمري', g: 'f', image: images.sara, job: 'محللة مالية ونمذجة', bio: 'أساعد رواد الأعمال في بناء جداول التدفقات النقدية ودراسات الجدوى المالية لطلبات الاستثمار.', tag: 'Excel ومالية', seat: 'منطقة الهدوء', cafe: 'مساحة العمل', presence: 'now', time: '', leaveAt: leaveIn(40), visitDetails: 'متاحة لمراجعة النماذج المالية حتى 5:00 م', skills: ['Excel ونمذجة', 'مالية', 'دراسات جدوى', 'عروض استثمار'], serviceOffer: 'مراجعة نماذج Excel وحسابات التدفقات النقدية للمشاريع' },
-  { id: 'tariq', name: 'طارق الجاسم', g: 'm', image: images.tariq, job: 'مهندس حلول سحابية', bio: 'أبني بنى تحتية سحابية وأنظمة Backend عالية الأداء للمنصات الرقمية.', tag: 'هندسة سحابية', seat: 'غرفة الاجتماعات 2', cafe: 'مساحة العمل', presence: 'today', time: clock(leaveIn(110)), arriveAt: leaveIn(110), visitDetails: 'متاح لأسئلة السحابة والخوادم من 6:00 م', skills: ['Cloud', 'DevOps', 'Node.js', 'PostgreSQL'], serviceOffer: 'استشارات معمارية الأنظمة السحابية وخوادم التطبيقات' },
-  { id: 'faisal', name: 'فيصل العتيبي', g: 'm', image: images.faisal, job: 'صانع محتوى ومصور', bio: 'أساعد أصحاب المشاريع في محتوى السوشال ميديا والتيك توك.', tag: 'صناعة محتوى', seat: 'الجلسات الخارجية', cafe: 'مقهى ركن', presence: 'now', time: '', leaveAt: leaveIn(70), visitDetails: 'متاح لمراجعة الحسابات وأفكار المحتوى حتى المغرب', skills: ['محتوى تيك توك', 'تصوير بالجوال', 'كتابة سيناريو'], serviceOffer: 'أفكار محتوى ومراجعة حسابات التواصل الاجتماعي' },
-  { id: 'noura', name: 'نورة الدوسري', g: 'f', image: images.noura, job: 'كاتبة إعلانية ومترجمة', bio: 'شغوفة باللغة وصياغة رسائل البراندات والمقالات التسويقية.', tag: 'كتابة محتوى', seat: 'الحديقة الجانبية', cafe: 'حديقة البن', presence: 'today', time: clock(leaveIn(90)), arriveAt: leaveIn(90), visitDetails: 'متاحة لتدقيق النصوص من 5:45 م', skills: ['كتابة إعلانية', 'ترجمة', 'صياغة نصوص'], serviceOffer: 'مراجعة وتدقيق النصوص التسويقية وشعارات البراند' },
+  { id: 'layla', name: 'ليلى حسن', g: 'f', image: images.layla, job: 'مصممة جرافيك مستقلة', bio: 'أصمم هويات بصرية للمشاريع الناشئة، وأحب أساعد في مراجعة الشعارات والعروض التقديمية.', tag: 'تصميم هوية بصرية', seat: 'عند النافذة', cafe: 'عنوان القهوة', presence: 'now', time: '', leaveAt: leaveIn(95), visitDetails: 'متاحة للمساعدة حتى 6:30 م', skills: ['تصميم هوية بصرية', 'UI/UX', 'Figma'], serviceOffer: 'مراجعة الهوية والشعارات وتنسيق الواجهات وتجربة المستخدم' },
+  { id: 'omar', name: 'عمر سعيد', g: 'm', image: images.omar, job: 'مطور تطبيقات موبايل', bio: 'أطور تطبيقات React Native وTypeScript، وأقدر أساعد في حل مشاكل الكود واكتشاف الأخطاء بسرعة.', tag: 'React Native', seat: 'الطاولة الطويلة', cafe: 'عنوان القهوة', presence: 'now', time: '', leaveAt: leaveIn(150), visitDetails: 'متاح للأسئلة البرمجية حتى 8:00 م', skills: ['React Native', 'TypeScript', 'تطوير تطبيقات', 'حل أخطاء'], serviceOffer: 'حل مشاكل كود React Native واستكشاف أخطاء الدفع والربط' },
+  { id: 'khaled', name: 'خالد منصور', g: 'm', image: images.khaled, job: 'مختص تسويق رقمي', bio: 'أشتغل في التسويق الرقمي والإعلانات الممولة وحملات النمو للمتاجر الإلكترونية.', tag: 'تسويق رقمي', seat: 'قريب من الكاونتر', cafe: 'عنوان القهوة', presence: 'today', time: clock(leaveIn(45)), arriveAt: leaveIn(45), visitDetails: 'متاح للاستشارات التسويقية من 4:30 إلى 7:00 م', skills: ['تسويق رقمي', 'SEO', 'إعلانات تيك توك وسناب', 'حملات نمو'], serviceOffer: 'استشارات تسويقية وخطط إطلاق الحملات الإعلانية' },
+  { id: 'rana', name: 'رنا فارس', g: 'f', image: images.rana, job: 'صاحبة مشروع ناشئ', bio: 'أبني مشروع ناشئ للمناسبات والهدايا، وأهتم جداً بتجربة العميل وجودة التفاصيل.', tag: 'تصوير منتجات', seat: 'الجلسات الخارجية', cafe: 'عنوان القهوة', presence: 'today', time: clock(leaveIn(70)), arriveAt: leaveIn(70), visitDetails: 'متاحة لجلسات تصوير سريعة من 5:15 م', skills: ['تصوير منتجات', 'صناعة محتوى', 'تجربة مستخدم'], serviceOffer: 'تصوير المنتجات وجلسات سريعة بالجوال' },
+  { id: 'sara', name: 'سارة الشمري', g: 'f', image: images.sara, job: 'محللة مالية ونمذجة', bio: 'أساعد رواد الأعمال في بناء جداول التدفقات النقدية ودراسات الجدوى المالية لطلبات الاستثمار.', tag: 'Excel ومالية', seat: 'منطقة الهدوء', cafe: 'ستاربكس', presence: 'now', time: '', leaveAt: leaveIn(40), visitDetails: 'متاحة لمراجعة النماذج المالية حتى 5:00 م', skills: ['Excel ونمذجة', 'مالية', 'دراسات جدوى', 'عروض استثمار'], serviceOffer: 'مراجعة نماذج Excel وحسابات التدفقات النقدية للمشاريع' },
+  { id: 'tariq', name: 'طارق الجاسم', g: 'm', image: images.tariq, job: 'مهندس حلول سحابية', bio: 'أبني بنى تحتية سحابية وأنظمة Backend عالية الأداء للمنصات الرقمية.', tag: 'هندسة سحابية', seat: 'غرفة الاجتماعات 2', cafe: 'ستاربكس', presence: 'today', time: clock(leaveIn(110)), arriveAt: leaveIn(110), visitDetails: 'متاح لأسئلة السحابة والخوادم من 6:00 م', skills: ['Cloud', 'DevOps', 'Node.js', 'PostgreSQL'], serviceOffer: 'استشارات معمارية الأنظمة السحابية وخوادم التطبيقات' },
+  { id: 'faisal', name: 'فيصل العتيبي', g: 'm', image: images.faisal, job: 'صانع محتوى ومصور', bio: 'أساعد أصحاب المشاريع في محتوى السوشال ميديا والتيك توك.', tag: 'صناعة محتوى', seat: 'الجلسات الخارجية', cafe: 'دانكن', presence: 'now', time: '', leaveAt: leaveIn(70), visitDetails: 'متاح لمراجعة الحسابات وأفكار المحتوى حتى المغرب', skills: ['محتوى تيك توك', 'تصوير بالجوال', 'كتابة سيناريو'], serviceOffer: 'أفكار محتوى ومراجعة حسابات التواصل الاجتماعي' },
+  { id: 'noura', name: 'نورة الدوسري', g: 'f', image: images.noura, job: 'كاتبة إعلانية ومترجمة', bio: 'شغوفة باللغة وصياغة رسائل البراندات والمقالات التسويقية.', tag: 'كتابة محتوى', seat: 'الحديقة الجانبية', cafe: 'جافا تايم', presence: 'today', time: clock(leaveIn(90)), arriveAt: leaveIn(90), visitDetails: 'متاحة لتدقيق النصوص من 5:45 م', skills: ['كتابة إعلانية', 'ترجمة', 'صياغة نصوص'], serviceOffer: 'مراجعة وتدقيق النصوص التسويقية وشعارات البراند' },
 ]
 
 // Needs stay anonymous (no name, no photo) everywhere until both sides agree.
@@ -172,24 +181,33 @@ export type Need = {
 }
 
 const allNeeds: Need[] = [
-  { id: 'n1', personId: 'rana', name: 'رنا فارس', g: 'f', image: images.rana, cafe: 'مقهى الحطب', text: 'أحتاج رأي وملاحظات سريعة في تصميم تجربة واجهات تطبيق مشروعي', topic: 'تصميم تطبيق', tags: ['تصميم', 'تطبيقات', 'UI/UX'], minutes: 15, presence: 'today', time: clock(leaveIn(70)), arriveAt: leaveIn(70), seat: 'الجلسات الخارجية' },
-  { id: 'n2', personId: 'reem', name: 'ريم السالم', g: 'f', image: '', cafe: 'مقهى الحطب', text: 'تطبيقي يعلّق ويظهر خطأ لما أفتح صفحة الدفع في Stripe', topic: 'React Native', tags: ['React Native', 'دفع إلكتروني', 'كود'], minutes: 10, presence: 'now', time: '', leaveAt: leaveIn(12), seat: 'عند النافذة' },
-  { id: 'n3', personId: 'yousef', name: 'يوسف العلي', g: 'm', image: '', cafe: 'مساحة العمل', text: 'واجهة تطبيقي ما تضبط على الجوالات ذات الشاشات الصغيرة وأحتاج مساعدة في CSS', topic: 'تطوير واجهات', tags: ['تطوير واجهات', 'CSS', 'Responsive'], minutes: 20, presence: 'now', time: '', leaveAt: leaveIn(120), seat: 'منطقة الهدوء' },
-  { id: 'n4', personId: 'majed', name: 'ماجد الحربي', g: 'm', image: '', cafe: 'مقهى ركن', text: 'أبحث عن استشارة سريعة في تسعير اشتراكات تطبيق جديد موجه للشركات', topic: 'تسعير واستراتيجية', tags: ['تسعير', 'تسويق', 'B2B'], minutes: 15, presence: 'today', time: clock(leaveIn(40)), arriveAt: leaveIn(40), seat: 'الجلسات الخارجية' },
-  { id: 'n5', personId: 'hind', name: 'هند القحطاني', g: 'f', image: '', cafe: 'حديقة البن', text: 'مراجعة سريعة لشرائح العرض الاستثماري Pitch Deck قبل عرضه غداً', topic: 'عروض تقديمية', tags: ['عروض تقديمية', 'استثمار', 'Pitch Deck'], minutes: 20, presence: 'now', time: '', leaveAt: leaveIn(55), seat: 'الحديقة الجانبية' },
-  { id: 'n6', personId: 'abdullah', name: 'عبدالله الزهراني', g: 'm', image: '', cafe: 'مقهى الحطب', text: 'أبغى أحد يراجع معي خطة إطلاق حملة إعلانية على سناب', topic: 'تسويق', tags: ['تسويق', 'إعلانات', 'سناب'], minutes: 15, presence: 'today', time: clock(leaveIn(120)), arriveAt: leaveIn(120), seat: 'قريب من الكاونتر' },
+  { id: 'n1', personId: 'rana', name: 'رنا فارس', g: 'f', image: images.rana, cafe: 'عنوان القهوة', text: 'أحتاج رأي وملاحظات سريعة في تصميم تجربة واجهات تطبيق مشروعي', topic: 'تصميم تطبيق', tags: ['تصميم', 'تطبيقات', 'UI/UX'], minutes: 15, presence: 'today', time: clock(leaveIn(70)), arriveAt: leaveIn(70), seat: 'الجلسات الخارجية' },
+  { id: 'n2', personId: 'reem', name: 'ريم السالم', g: 'f', image: '', cafe: 'عنوان القهوة', text: 'تطبيقي يعلّق ويظهر خطأ لما أفتح صفحة الدفع في Stripe', topic: 'React Native', tags: ['React Native', 'دفع إلكتروني', 'كود'], minutes: 10, presence: 'now', time: '', leaveAt: leaveIn(12), seat: 'عند النافذة' },
+  { id: 'n3', personId: 'yousef', name: 'يوسف العلي', g: 'm', image: '', cafe: 'ستاربكس', text: 'واجهة تطبيقي ما تضبط على الجوالات ذات الشاشات الصغيرة وأحتاج مساعدة في CSS', topic: 'تطوير واجهات', tags: ['تطوير واجهات', 'CSS', 'Responsive'], minutes: 20, presence: 'now', time: '', leaveAt: leaveIn(120), seat: 'منطقة الهدوء' },
+  { id: 'n4', personId: 'majed', name: 'ماجد الحربي', g: 'm', image: '', cafe: 'دانكن', text: 'أبحث عن استشارة سريعة في تسعير اشتراكات تطبيق جديد موجه للشركات', topic: 'تسعير واستراتيجية', tags: ['تسعير', 'تسويق', 'B2B'], minutes: 15, presence: 'today', time: clock(leaveIn(40)), arriveAt: leaveIn(40), seat: 'الجلسات الخارجية' },
+  { id: 'n5', personId: 'hind', name: 'هند القحطاني', g: 'f', image: '', cafe: 'جافا تايم', text: 'مراجعة سريعة لشرائح العرض الاستثماري Pitch Deck قبل عرضه غداً', topic: 'عروض تقديمية', tags: ['عروض تقديمية', 'استثمار', 'Pitch Deck'], minutes: 20, presence: 'now', time: '', leaveAt: leaveIn(55), seat: 'الحديقة الجانبية' },
+  { id: 'n6', personId: 'abdullah', name: 'عبدالله الزهراني', g: 'm', image: '', cafe: 'عنوان القهوة', text: 'أبغى أحد يراجع معي خطة إطلاق حملة إعلانية على سناب', topic: 'تسويق', tags: ['تسويق', 'إعلانات', 'سناب'], minutes: 15, presence: 'today', time: clock(leaveIn(120)), arriveAt: leaveIn(120), seat: 'قريب من الكاونتر' },
 ]
 
 // hours: opening and closing hour (24 = midnight), used to keep visits inside opening times.
-type CafeBase = { id: string; name: string; area: string; pos: [number, number]; image: string; logo?: string; open: string; isOpen: boolean; amenities: string[]; hours: [number, number] }
+type CafeBase = { id: string; name: string; area: string; pos: [number, number]; image: string; logo?: string; logoEn?: string; open: string; isOpen: boolean; amenities: string[]; hours: [number, number] }
 export type Cafe = CafeBase & { km: number; distance: string; eta: string }
 
 const allCafes: CafeBase[] = [
-  { id: 'featured', name: 'مقهى الحطب', area: 'العليا', pos: [0.08, 0.09], image: images.cafe, logo: images.jjbeanLogo, open: 'مفتوح الآن', isOpen: true, amenities: ['هادئ للعمل', 'واي فاي', 'مقابس'], hours: [5, 24] },
-  { id: 'a', name: 'مساحة العمل', area: 'الورود', pos: [0.6, 0.4], image: images.workspace, open: 'مفتوح الآن', isOpen: true, amenities: ['غرف اجتماعات', 'واي فاي', 'مقابس', 'مواقف'], hours: [7, 23] },
-  { id: 'b', name: 'مقهى ركن', area: 'السليمانية', pos: [1.05, -0.7], image: images.corner, open: 'مفتوح الآن', isOpen: true, amenities: ['جلسات خارجية', 'هادئ للعمل', 'واي فاي'], hours: [6, 24] },
-  { id: 'c', name: 'حديقة البن', area: 'الملز', pos: [2.0, -1.1], image: images.garden, open: 'يغلق 11 م', isOpen: false, amenities: ['جلسات خارجية', 'مواقف', 'واي فاي'], hours: [8, 23] },
+  { id: 'featured', name: 'عنوان القهوة', area: 'العليا', pos: [0.08, 0.09], image: images.cafe, logo: images.unwanLogo, logoEn: images.jjbeanLogo, open: 'مفتوح الآن', isOpen: true, amenities: ['هادئ للعمل', 'واي فاي', 'مقابس'], hours: [5, 24] },
+  { id: 'a', name: 'ستاربكس', area: 'الورود', pos: [0.6, 0.4], image: images.workspace, logo: images.starbucksLogo, open: 'مفتوح الآن', isOpen: true, amenities: ['غرف اجتماعات', 'واي فاي', 'مقابس', 'مواقف'], hours: [7, 23] },
+  { id: 'b', name: 'دانكن', area: 'السليمانية', pos: [1.05, -0.7], image: images.corner, logo: images.dunkinLogo, open: 'مفتوح الآن', isOpen: true, amenities: ['جلسات خارجية', 'هادئ للعمل', 'واي فاي'], hours: [6, 24] },
+  { id: 'c', name: 'جافا تايم', area: 'الملز', pos: [2.0, -1.1], image: images.garden, logo: images.javatimeLogo, open: 'يغلق 11 م', isOpen: false, amenities: ['جلسات خارجية', 'مواقف', 'واي فاي'], hours: [8, 23] },
+  { id: 'd', name: 'د. كيف', area: 'الياسمين', pos: [-1.3, 1.6], image: images.corner, logo: images.drcafeLogo, open: 'مفتوح الآن', isOpen: true, amenities: ['واي فاي', 'مقابس', 'مواقف'], hours: [6, 24] },
 ]
+// The Arabic version shows Saudi brands; the English version keeps the Vancouver names, so each has its own logo.
+const cafeLogo = (c: CafeBase, language: Language) => (language === 'en' ? c.logoEn : c.logo)
+// A café's picture next to its name: its logo when it has one in this language, otherwise its photo.
+function CafeThumb({ cafe }: { cafe?: CafeBase }) {
+  const { language } = useLanguage()
+  const logo = cafe && cafeLogo(cafe, language)
+  return <img className={logo ? 'cafe-thumb-logo' : undefined} src={logo || cafe?.image} alt="" onError={hidePhoto} />
+}
 const amenityIcon: Record<string, React.ReactNode> = {
   'هادئ للعمل': <Volume2 />, 'واي فاي': <Wifi />, 'مقابس': <PlugZap />, 'مواقف': <Car />,
   'جلسات خارجية': <Trees />, 'غرف اجتماعات': <DoorOpen />,
@@ -677,6 +695,7 @@ function LocationScreen({ next, manual, back }: { next: () => void; manual: () =
 function LocationSheet({ current, close, save }: { current: Loc; close: () => void; save: (l: Loc) => void }) {
   const [city, setCity] = useState(current.city)
   const [area, setArea] = useState(current.area)
+  const { language } = useLanguage()
   return (
     <BottomSheet onClose={close}>
       <div className="sheet-title">
@@ -688,7 +707,8 @@ function LocationSheet({ current, close, save }: { current: Loc; close: () => vo
         <span><small>الأدق</small>استخدم موقعي الحالي</span>
         {current.mode === 'gps' && <Check className="row-check" />}
       </button>
-      <label className="field-label">المدينة</label>
+      {/* «المدينة» is also the city of Madinah, so the label is picked here rather than by the translator. */}
+      <label className="field-label" data-no-translate>{language === 'en' ? 'City' : 'المدينة'}</label>
       <div className="chip-row">{CITIES.map(c => <Chip key={c} active={city === c} onClick={() => setCity(c)}>{c}</Chip>)}</div>
       {city === LIVE_CITY ? (
         <>
@@ -715,14 +735,13 @@ function MetPrompt({ name, onAnswer }: { name: string; onAnswer: (met: boolean) 
   )
 }
 
-function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, onLocation, visit, now, onPlanVisit, onOpenVisit }: {
-  visit?: Visit; now: number; onPlanVisit: () => void; onOpenVisit: (id: string) => void;
-  onTab: (t: Tab) => void; unread: number; openIntent: (mode: ActionMode) => void; active?: Connection;
+function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, onLocation, visit, now, onPlanVisit, onOpenVisit }: {
+  visit?: Visit; now: number; onPlanVisit: () => void; onOpenVisit: (id: string) => void; onHereNow: () => void; onGoing: () => void;
+  onTab: (t: Tab) => void; unread: number; active?: Connection;
   onChat: () => void; onMet: (met: boolean) => void; onLocation: () => void;
 }) {
   const d = useData()
   const last = active && [...active.messages].reverse().find(m => m.from !== 'system')
-  const helpersNow = d.people.filter(p => p.presence === 'now').length
   return (
     <div className={`screen app-screen home-screen ${active ? 'has-connection' : ''}`}>
       <StatusBar />
@@ -745,79 +764,74 @@ function HomeScreen({ onTab, unread, openIntent, active, onChat, onMet, onLocati
         </div>
       )}
 
-      <section className="journey-gateway">
+      {/* Three moments: already at a café, on the way, or planning a later visit. */}
+      <section className={`journey-gateway moments ${visit ? '' : 'is-last'}`}>
         <div className="gateway-intro">
-          <h1>وش حاب تسوي اليوم؟</h1>
+          <h1>تحديد حالة الزيارة</h1>
         </div>
         <div className="journey-cards">
-          <button className="journey-card seek" onClick={() => openIntent('seek')}>
-            <span className="journey-icon"><Search /></span>
+          <button className="journey-card seek moment" onClick={onHereNow}>
+            <span className="journey-icon"><MapPin /></span>
             <span className="journey-copy">
-              <small>عندي شيء أبي أنجزه</small>
-              <b>{COPY.seek}</b>
-              <em>{d.live ? `${helpersNow} حولك يقدرون يساعدون الآن` : `ما وصلنا ${d.loc.city} للحين`}</em>
+              <b>أنا في الكوفي الحين</b>
+              <em>{d.live ? 'شوف مهارات واحتياجات اللي حولك' : `ما وصلنا ${d.loc.city} للحين`}</em>
             </span>
             <i><ChevronLeft /></i>
           </button>
-          <button className="journey-card help" onClick={() => openIntent('help')}>
-            <span className="journey-icon"><HeartHandshake /></span>
+          <button className="journey-card help moment" onClick={onGoing}>
+            <span className="journey-icon"><Navigation /></span>
             <span className="journey-copy">
-              <small>عندي خبرة أقدر أشاركها</small>
-              <b>{COPY.help}</b>
-              <em>{d.live ? `${d.needs.length} احتياجات حولك اليوم` : `ما وصلنا ${d.loc.city} للحين`}</em>
+              <b>رايح للكوفي الآن</b>
+              <em>علّمهم إنك بالطريق واطلب مسبقاً</em>
             </span>
             <i><ChevronLeft /></i>
           </button>
-        </div>
-        <div className="gateway-trust"><ShieldCheck /><span><small>{COPY.consent}</small></span></div>
-      </section>
-
-      <section className="home-visit">
-        {visit ? (
-          <>
-            <button className="home-visit-card" onClick={() => onOpenVisit(visit.id)}>
-              <img src={allCafes.find(c => c.name === visit.cafe)?.image} alt="" onError={hidePhoto} />
-              <span className="home-visit-copy">
-                <small><CalendarClock /> زيارتك القادمة</small>
-                <b>{visit.cafe}</b>
-                <em>{visitWhen(visit.at, now)}</em>
-                <i>{visit.at <= now ? (visit.order ? `بدأت زيارتك · رقم طلبك #${visit.order.code}` : 'بدأت زيارتك') : `تبدأ بعد ${timeLeft(visit.at, now)}`}</i>
-              </span>
-              <ChevronLeft />
-            </button>
-            {(visit.table || visit.order) && (
-              <div className="home-visit-notes booking">
-                {visit.table && <span><Armchair />{tableLabel(visit.table)}</span>}
-                {visit.order && <span><Receipt />{`طلبك مدفوع · ${itemsLabel(linesCount(visit.order.lines))}`}</span>}
-              </div>
-            )}
-            {(visitPurpose(visit) || visit.workOn) && (
-              <div className="home-visit-notes">
-                {visitPurpose(visit) && <span className={`visit-purpose ${visit.mode ?? ''}`}>{visit.mode === 'seek' ? <Search /> : <HeartHandshake />}{visitPurpose(visit)}</span>}
-                {visit.workOn && <span>بشتغل على: {visit.workOn}</span>}
-              </div>
-            )}
-            <button className="home-visit-add" onClick={onPlanVisit}><CalendarPlus /> زيارة جديدة</button>
-          </>
-        ) : (
-          <button className="home-visit-cta" onClick={onPlanVisit}>
-            <span className="home-visit-icon"><CalendarPlus /></span>
-            <span className="home-visit-copy">
+          <button className="journey-card help moment" onClick={onPlanVisit}>
+            <span className="journey-icon"><CalendarPlus /></span>
+            <span className="journey-copy">
               <b>جَدوِل زيارتك القادمة</b>
               <em>احجز طاولتك واطلب قبل توصل</em>
             </span>
+            <i><ChevronLeft /></i>
+          </button>
+        </div>
+        <div className="gateway-trust"><Sparkles /><span><small>يمكن تكون جالس جنب شخص يملك حل مشكلتك أو يحتاج خبرتك! AroundMe يبيّن لك اهتمامات ومهارات الناس المتواجدين معك بالكوفي، ويحوّل الجلسة لفرصة تعاون.</small></span></div>
+      </section>
+
+      {visit && (
+        <section className="home-visit">
+          <button className="home-visit-card" onClick={() => onOpenVisit(visit.id)}>
+            <CafeThumb cafe={allCafes.find(c => c.name === visit.cafe)} />
+            <span className="home-visit-copy">
+              <small>{visit.going ? <Navigation /> : <CalendarClock />} {visit.going ? 'في طريقك' : 'زيارتك القادمة'}</small>
+              <b>{visit.cafe}</b>
+              <em>{visitWhen(visit.at, now)}</em>
+              <i>{visit.at <= now ? (visit.order ? `بدأت زيارتك · رقم طلبك #${visit.order.code}` : 'بدأت زيارتك') : `${visit.going ? 'توصل' : 'تبدأ'} بعد ${timeLeft(visit.at, now)}`}</i>
+            </span>
             <ChevronLeft />
           </button>
-        )}
-      </section>
+          {(visit.table || visit.order) && (
+            <div className="home-visit-notes booking">
+              {visit.table && <span><Armchair />{tableLabel(visit.table)}</span>}
+              {visit.order && <span><Receipt />{`طلبك مدفوع · ${itemsLabel(linesCount(visit.order.lines))}`}</span>}
+            </div>
+          )}
+          {(visitPurpose(visit) || visit.workOn) && (
+            <div className="home-visit-notes">
+              {visitPurpose(visit) && <span className={`visit-purpose ${visit.mode ?? ''}`}><PurposeIcon mode={visit.mode} />{visitPurpose(visit)}</span>}
+              {visit.workOn && <span>{visit.mode === 'visit' ? visit.workOn : `بشتغل على: ${visit.workOn}`}</span>}
+            </div>
+          )}
+        </section>
+      )}
 
       <TabBar tab="home" onTab={onTab} unread={unread} />
     </div>
   )
 }
 
-function IntentScreen({ mode, back, mySkills, privateMode, onContinue }: {
-  mode: ActionMode; back: () => void; mySkills: string[]; privateMode: boolean; onContinue: (text: string, skills: string[]) => void;
+function IntentScreen({ mode, cafe, back, mySkills, privateMode, onContinue }: {
+  mode: ActionMode; cafe?: string; back: () => void; mySkills: string[]; privateMode: boolean; onContinue: (text: string, skills: string[]) => void;
 }) {
   const [text, setText] = useState('')
   const seek = mode === 'seek'
@@ -832,6 +846,7 @@ function IntentScreen({ mode, back, mySkills, privateMode, onContinue }: {
       <TopBar title={seek ? COPY.seek : COPY.help} back={back} />
       <main>
         <span className="intent-hero-icon">{seek ? <Search /> : <HeartHandshake />}</span>
+        {cafe && <span className="intent-here"><MapPin />أنت في {cafe}</span>}
         <h1>{seek ? 'وش تحتاج تنجز اليوم؟' : 'وش تقدر تساعد فيه؟'}</h1>
         <p>{seek ? 'اكتب احتياجك بشكل بسيط أو اختر من الاقتراحات.' : 'اختر مهارة أو أكثر، وأضف تفاصيل لو تبي.'}</p>
         {seek && (
@@ -856,7 +871,7 @@ function IntentScreen({ mode, back, mySkills, privateMode, onContinue }: {
       </main>
       <div className="sticky-action">
         <PrimaryButton onClick={() => onContinue(text.trim(), selected)} disabled={!ready}>
-          {seek ? 'اعرض اللي يقدرون يساعدوني' : 'اعرض اللي يحتاجون مساعدتي'}
+          {cafe ? (seek ? `اعرض اللي يقدرون يساعدوني هنا` : `اعرض اللي يحتاجون مساعدتي هنا`) : seek ? 'اعرض اللي يقدرون يساعدوني' : 'اعرض اللي يحتاجون مساعدتي'}
         </PrimaryButton>
       </div>
     </div>
@@ -945,6 +960,7 @@ function MapScreen({ onTab, unread, onCafe, actionMode, onActionModeChange, cont
   onTab: (t: Tab) => void; unread: number; onCafe: (name: string) => void; actionMode: ActionMode; onActionModeChange: (m: ActionMode) => void;
   context: string; onLocation: () => void;
 }) {
+  const { language } = useLanguage()
   const d = useData()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'open' | 'quiet' | 'outdoor'>('all')
@@ -981,7 +997,7 @@ function MapScreen({ onTab, unread, onCafe, actionMode, onActionModeChange, cont
             {visible.length === 0 && <EmptyState title="ما لقينا كافيه بهالخيارات" hint={query ? 'جرّب اسم الحي بدل اسم الكافيه.' : 'جرّب فلتر ثاني.'} action="اعرض الكل" onAction={() => { setQuery(''); setFilter('all') }} />}
             {visible.map(cafe => (
               <button className="cafe-browse-card" key={cafe.id} onClick={() => onCafe(cafe.name)}>
-                <div className="cafe-image"><img src={cafe.image} alt="" onError={hidePhoto} />{badgeFor(cafe)}{cafe.logo && <img className="cafe-logo" src={cafe.logo} alt="" />}</div>
+                <div className="cafe-image"><CafeThumb cafe={cafe} />{badgeFor(cafe)}</div>
                 <div className="cafe-browse-copy">
                   <div><h3>{cafe.name}</h3><ChevronLeft /></div>
                   <p>{cafe.area} · {cafe.distance} · {cafe.eta}</p>
@@ -1002,11 +1018,14 @@ function MapScreen({ onTab, unread, onCafe, actionMode, onActionModeChange, cont
   )
 }
 
-function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onActionModeChange, h, visit, onPlan, onOpenVisit, now }: {
-  visit?: Visit; onPlan: () => void; onOpenVisit: (id: string) => void; now: number;
+function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onActionModeChange, h, visit, onPlan, onOrderHere, onOpenVisit, now, here = false }: {
+  visit?: Visit; onPlan: () => void; onOrderHere: () => void; onOpenVisit: (id: string) => void; now: number;
+  // The person said they're in this café right now («أنا في الكوفي الحين»): they order from their seat instead of booking ahead.
+  here?: boolean;
   cafeName: string; back: () => void; saved: boolean; onToggleSave: () => void; actionMode: ActionMode; onActionModeChange: (m: ActionMode) => void;
   h: CardHandlers;
 }) {
+  const { language } = useLanguage()
   const d = useData()
   const cafe = cafeOf(d, cafeName) ?? { ...allCafes[0], km: 0, distance: '', eta: '' }
   const cafePeople = peopleAt(d, cafeName)
@@ -1014,6 +1033,7 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
   const seek = actionMode === 'seek'
   const sortNow = <T extends { presence: Presence }>(xs: T[]) => [...xs].sort((a, b) => (a.presence === b.presence ? 0 : a.presence === 'now' ? -1 : 1))
 
+  const menuRef = useRef<HTMLElement>(null)
   return (
     <div className="screen cafe-detail-screen">
       <div className="cafe-cover">
@@ -1025,19 +1045,28 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
       </div>
       <main className="cafe-detail-content">
         <div className="cafe-title-row">
-          {cafe.logo && <img className="cafe-title-logo" src={cafe.logo} alt="" />}
+          {cafeLogo(cafe, language) && <img className="cafe-title-logo" src={cafeLogo(cafe, language)} alt="" />}
           <div>
             {!cafe.isOpen && <span className="open-now closing">{cafe.open}</span>}
             <h1>{cafeName}</h1>
             <p>{cafe.area} · {cafe.distance} منك · {cafe.eta}</p>
             <p className="cafe-hours"><Clock3 /> {hoursLine(cafe)}</p>
           </div>
+          {/* A busy café pushes the menu far down, so this jumps straight to it. */}
+          <button type="button" className="cafe-menu-jump" onClick={() => menuRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}><BookOpen />المنيو</button>
         </div>
-        <button className="plan-visit" onClick={() => (visit ? onOpenVisit(visit.id) : onPlan())}>
+        {here && !visit && (
+          <button className="plan-visit" onClick={onOrderHere}>
+            <Receipt />
+            <span><b>اطلب من مكانك</b><small>تطلب وتدفع من جوالك، ونجهز طلبك الحين</small></span>
+            <ChevronLeft />
+          </button>
+        )}
+        {(visit || !here) && <button className="plan-visit" onClick={() => (visit ? onOpenVisit(visit.id) : onPlan())}>
           <CalendarPlus />
           <span><b>{visit ? 'زيارتك القادمة هنا' : 'جَدوِل زيارتك هنا'}</b><small>{visit ? `${visitWhen(visit.at, now)}${visit.table ? ` · ${tableLabel(visit.table)}` : ''}${visit.order ? ' · طلبك مدفوع' : ''}` : 'احجز طاولتك واطلب قبل توصل'}</small></span>
           <ChevronLeft />
-        </button>
+        </button>}
         <section className="cafe-section">
           <IntentSwitch mode={actionMode} onChange={onActionModeChange} />
           <div className="section-head">
@@ -1051,12 +1080,12 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
             ? <div className="card-stack">{sortNow(cafeNeeds).map(n => <NeedCard key={n.id} n={n} h={h} showCafe={false} />)}</div>
             : <EmptyState title="ما فيه احتياجات هنا حاليًا" hint="جرّب كافيهًا آخر قريبًا." />)}
         </section>
-        <section className="cafe-section">
-          <div className="section-head"><h2>المنيو</h2><button type="button" className="text-button" onClick={() => (visit && !visit.order ? onOpenVisit(visit.id) : onPlan())}>اطلب قبل توصل</button></div>
+        <section className="cafe-section cafe-menu" ref={menuRef}>
+          <div className="section-head"><h2>المنيو</h2>{here ? <button type="button" className="text-button" onClick={onOrderHere}>اطلب الحين</button> : <button type="button" className="text-button" onClick={() => (visit && !visit.order ? onOpenVisit(visit.id) : onPlan())}>اطلب قبل توصل</button>}</div>
           <ul className="menu-preview">
             {MENU.filter(m => ['latte', 'v60', 'matcha', 'croissant'].includes(m.id)).map(m => <li key={m.id}><span className="menu-icon">{m.icon}</span><b>{m.name}</b><em>{sar(m.price)}</em></li>)}
           </ul>
-          <p className="plan-note"><ShieldCheck />تطلب وتدفع من التطبيق قبل توصل، وما تدفع شي في الكافيه.</p>
+          <p className="plan-note"><ShieldCheck />{here ? 'تطلب وتدفع من جوالك، وما تدفع شي عند الكاونتر.' : 'تطلب وتدفع من التطبيق قبل توصل، وما تدفع شي في الكافيه.'}</p>
         </section>
         <section className="cafe-section">
           <div className="section-head"><h2>عن المكان</h2></div>
@@ -1217,8 +1246,8 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
 }) {
   const d = useData()
   const history = [
-    { name: 'مقهى الحطب', when: 'أمس', note: 'ساعدت شخصين · استفدت من شخص' },
-    { name: 'مساحة العمل', when: 'قبل 3 أيام', note: 'استفدت من مراجعة نموذج مالي' },
+    { name: 'عنوان القهوة', when: 'أمس', note: 'ساعدت شخصين · استفدت من شخص' },
+    { name: 'ستاربكس', when: 'قبل 3 أيام', note: 'استفدت من مراجعة نموذج مالي' },
   ]
   return (
     <div className="screen app-screen account-screen account-refresh">
@@ -1264,7 +1293,7 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
           const c = allCafes.find(x => x.name === v.cafe)
           return (
             <button key={v.id} className="history-card visit-card" onClick={() => onOpenVisit(v.id)}>
-              <img src={c?.image} alt="" onError={hidePhoto} />
+              <CafeThumb cafe={c} />
               <div>
                 <h3>{v.cafe}</h3>
                 <p><CalendarClock /> {visitWhen(v.at, now)}</p>
@@ -1283,7 +1312,7 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
               const c = cafeOf(d, n) ?? { ...allCafes.find(x => x.name === n)!, distance: '' }
               return (
                 <button key={n} className="history-card" onClick={() => onCafe(n)}>
-                  <img src={c.image} alt="" onError={hidePhoto} />
+                  <CafeThumb cafe={c} />
                   <div><h3>{n}</h3><small>{c.area}{c.distance ? ` · ${c.distance}` : ''}</small><p><Bookmark /> محفوظ</p></div>
                   <ChevronLeft />
                 </button>
@@ -1300,7 +1329,7 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
           const c = allCafes.find(x => x.name === v.name)!
           return (
             <button key={v.name} className="history-card" onClick={() => onCafe(v.name)}>
-              <img src={c.image} alt="" onError={hidePhoto} />
+              <CafeThumb cafe={c} />
               <div><h3>{v.name}</h3><small>{v.when} · {c.area}</small><p><UsersRound /> {v.note}</p></div>
               <ChevronLeft />
             </button>
@@ -1482,7 +1511,7 @@ const useDemoText = () => {
 
 // ---------- Planned visits ----------
 // mode: what the visit is for, the same two choices as the home screen. why is kept for visits saved before mode existed.
-export type Visit = { id: string; cafe: string; at: number; mode?: ActionMode; detail?: string; workOn?: string; why?: string; canHelp?: string; table?: TableHold; order?: Order; chat?: CafeMessage[]; chatSeen?: number }
+export type Visit = { id: string; cafe: string; at: number; mode?: VisitMode; tags?: string[]; detail?: string; workOn?: string; why?: string; canHelp?: string; table?: TableHold; order?: Order; chat?: CafeMessage[]; chatSeen?: number; going?: boolean; here?: boolean }
 const VISIT_GRACE = 60 * 60000 // a visit stays listed for an hour after its start time
 const VISIT_DAYS = 7
 const MINUTE_STEP = 5
@@ -1497,7 +1526,38 @@ const visitWhen = (at: number, now: number) => `${visitDay(at, now)} · ${clock(
 const visitPurpose = (v: Visit) => {
   if (v.mode === 'seek') return v.detail ? `أحتاج مساعدة في: ${v.detail}` : COPY.seek
   if (v.mode === 'help') return v.detail ? `أقدر أساعد في: ${v.detail}` : COPY.help
+  if (v.mode === 'visit') return v.tags?.length ? `${COPY.visit} · ${v.tags.join('، ')}` : COPY.visit
   return v.canHelp ? `أقدر أساعد في: ${v.canHelp}` : v.why ?? ''
+}
+
+const PurposeIcon = ({ mode }: { mode?: VisitMode }) => (mode === 'seek' ? <Search /> : mode === 'visit' ? <Coffee /> : <HeartHandshake />)
+
+// The three visit purposes, the same on every sheet that asks. "Just visiting" asks why with tags instead of a help topic.
+function VisitModes({ label, mode, setMode, tags, setTags, note, setNote }: { label: string; mode: VisitMode | null; setMode: (m: VisitMode) => void; tags: string[]; setTags: (t: string[]) => void; note: string; setNote: (n: string) => void }) {
+  const opt = (m: VisitMode, icon: React.ReactNode, title: string, sub: string) => (
+    <button type="button" role="radio" aria-checked={mode === m} className={`visit-mode ${m} ${mode === m ? 'active' : ''}`} onClick={() => setMode(m)}>
+      <span className="journey-icon">{icon}</span><b>{title}</b><small>{sub}</small>
+    </button>
+  )
+  return (
+    <>
+      <div className="visit-modes three" role="radiogroup" aria-label={label}>
+        {opt('seek', <Search />, COPY.seek, 'عندي شيء أبي أنجزه')}
+        {opt('help', <HeartHandshake />, COPY.help, 'عندي خبرة أقدر أشاركها')}
+        {opt('visit', <Coffee />, COPY.visit, 'أطلب وأجلس على راحتي')}
+      </div>
+      {mode === 'visit' && (
+        <>
+          <label className="field-label">اختر سبب زيارتك <span className="field-optional">واحد أو أكثر</span></label>
+          <div className="chip-row visit-tags">
+            {VISIT_TAGS.map(tag => <Chip key={tag} active={tags.includes(tag)} onClick={() => setTags(tags.includes(tag) ? tags.filter(x => x !== tag) : [...tags, tag])}>{tags.includes(tag) && <Check />}{tag}</Chip>)}
+          </div>
+          <label className="field-label" htmlFor="visit-note">ملاحظة <span className="field-optional">اختياري</span></label>
+          <input id="visit-note" className="field" value={note} onChange={e => setNote(e.target.value)} maxLength={80} placeholder="مثلاً: عندي اجتماع أونلاين ساعة" />
+        </>
+      )}
+    </>
+  )
 }
 
 // ---------- Booking a table, ordering ahead, paying ahead ----------
@@ -1713,18 +1773,73 @@ const MERIDIEM = ['ص', 'م']
 const suggestedStart = (now: number) => { const q = 15 * 60000; return Math.ceil((now + 60 * 60000) / q) * q }
 
 const PLAN_STEPS = ['الزيارة', 'الطاولة', 'الطلب', 'الدفع']
+const ARRIVE_IN = [5, 10, 15, 20, 30, 45]
 
-function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferred, existing, close, save, onOpenVisit }: {
+// "أنا في الكوفي الحين": confirm the café, then what you want to get done today.
+function HereNowSheet({ cafes, initialCafe, close, next }: { cafes: Cafe[]; initialCafe?: string; close: () => void; next: (cafe: string, mode: VisitMode, tags: string[], note: string) => void }) {
+  const open = cafes.filter(c => c.isOpen)
+  const [cafe, setCafe] = useState(() => (open.some(c => c.name === initialCafe) ? initialCafe! : open[0]?.name ?? ''))
+  const [query, setQuery] = useState('')
+  const [mode, setMode] = useState<VisitMode | null>(null)
+  const [tags, setTags] = useState<string[]>([])
+  const [note, setNote] = useState('')
+  const match = useSearch(query)
+  const shown = open.filter(c => match(c.name) || match(c.area))
+  return (
+    <BottomSheet onClose={close} tall>
+      <div className="sheet-title plan-head">
+        <span className="sheet-icon"><MapPin /></span>
+        <div><h2>أنا في الكوفي الحين</h2><p>أكّد الكافيه، ونعرض لك مين فيه الحين</p></div>
+      </div>
+      {open.length ? (
+        <>
+          <label className="field-label" htmlFor="here-cafe-search">أنت في أي كافيه؟</label>
+          <div className="search-field visit-search">
+            <Search />
+            <input id="here-cafe-search" value={query} onChange={e => setQuery(e.target.value)} placeholder="ابحث عن كافيه أو حي" />
+          </div>
+          <div className="visit-cafe-list" role="radiogroup" aria-label="أنت في أي كافيه؟">
+            {shown.map((c, i) => (
+              <button key={c.id} type="button" role="radio" aria-checked={cafe === c.name} className={`visit-cafe ${cafe === c.name ? 'active' : ''}`} onClick={() => { setCafe(c.name); setQuery('') }}>
+                <CafeThumb cafe={c} />
+                <span><b>{c.name}</b><small>{i === 0 && !query ? 'الأقرب لك' : c.area} · {c.distance}</small></span>
+                {cafe === c.name && <Check />}
+              </button>
+            ))}
+            {shown.length === 0 && <p className="visit-empty">ما لقينا كافيه بهالاسم</p>}
+          </div>
+          <label className="field-label">وش حاب تسوي اليوم؟</label>
+          <VisitModes label="وش حاب تسوي اليوم؟" mode={mode} setMode={setMode} tags={tags} setTags={setTags} note={note} setNote={setNote} />
+        </>
+      ) : <p className="visit-empty">ما فيه كافيهات مفتوحة حولك حاليًا</p>}
+      <div className="sheet-footer">
+        <PrimaryButton onClick={() => cafe && mode && next(cafe, mode, tags, note.trim())} disabled={!cafe || !mode || (mode === 'visit' && !tags.length)}>{mode === 'visit' ? 'افتح المنيو' : 'التالي'}</PrimaryButton>
+      </div>
+    </BottomSheet>
+  )
+}
+
+function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferred, existing, going: goingNow = false, here = false, purpose, close, save, onOpenVisit, onSeeCafe }: {
   cafes: Cafe[]; initialCafe: string; now: number; skills: string[]; need: string; wallet: WalletKind;
+  // "رايح للكوفي الآن": you pick when you'll arrive instead of a day and time, and there's no table step.
+  going?: boolean; onSeeCafe?: (cafe: string, mode?: VisitMode) => void;
+  // Already in the café: the sheet is just the menu and payment, and the order is made right away.
+  here?: boolean;
+  // Why they're in the café, picked before ordering from their seat.
+  purpose?: { mode: VisitMode; tags: string[]; note?: string };
   // An already planned visit: the sheet opens on the menu to add an order to it.
   existing?: Visit;
   close: () => void; save: (v: Omit<Visit, 'id'>) => Visit; onOpenVisit: (id: string) => void;
 }) {
+  const going = existing?.going ?? (goingNow || here)
   const { language } = useLanguage()
   const inLanguage = (v: string) => (language === 'en' ? toEnglish(v) : v)
   // Adding to a planned visit starts at the table when none is booked yet, otherwise at the menu.
-  const firstStep = existing ? (existing.table ? 2 : 1) : 0
+  const firstStep = existing ? (existing.table || going ? 2 : 1) : here ? 2 : 0
   const [step, setStepRaw] = useState(firstStep)
+  // On the way there's no table step: the visit step leads straight to the menu.
+  const nextStep = (n: number) => (going && n === 1 ? 2 : n)
+  const prevStep = (n: number) => (going && n === 1 ? 0 : n)
   // A quick second tap on the same footer spot shouldn't skip the next step.
   const stepAt = useRef(0)
   const setStep = (n: number) => { if (n > step && Date.now() - stepAt.current < 450) return; stepAt.current = Date.now(); setStepRaw(n) }
@@ -1738,11 +1853,13 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
   const [hour, setHour] = useState(() => (start.getHours() % 12 || 12) - 1)
   const [minute, setMinute] = useState(() => start.getMinutes() / MINUTE_STEP)
   const [pm, setPm] = useState(() => (start.getHours() >= 12 ? 1 : 0))
-  const [mode, setMode] = useState<ActionMode | null>(existing?.mode ?? null)
+  const [mode, setMode] = useState<VisitMode | null>(existing?.mode ?? purpose?.mode ?? null)
+  const [tags, setTags] = useState<string[]>(existing?.tags ?? purpose?.tags ?? [])
   const [helpWith, setHelpWith] = useState(() => inLanguage(skills.slice(0, 3).join('، ')))
   const [needWith, setNeedWith] = useState(() => inLanguage(need))
-  const [workOn, setWorkOn] = useState(existing?.workOn ?? '')
-  const [bookTable, setBookTable] = useState(true)
+  const [workOn, setWorkOn] = useState(existing?.workOn ?? purpose?.note ?? '')
+  const [bookTable, setBookTable] = useState(!going)
+  const [arriveIn, setArriveIn] = useState(15)
   const [party, setParty] = useState(existing?.table?.party ?? 1)
   const [seat, setSeat] = useState(existing?.table?.seat ?? SEAT_ANY)
   const [cat, setCat] = useState<MenuCat>('coffee')
@@ -1753,13 +1870,14 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
   const sheetTop = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   useEffect(() => { listRef.current?.querySelector('.active')?.scrollIntoView({ block: 'nearest' }) }, [])
-  useEffect(() => { sheetTop.current?.scrollIntoView({ block: 'start' }) }, [step])
+  // Scroll the sheet itself back to its top, so the grabber and close button stay in view on every step.
+  useEffect(() => { sheetTop.current?.closest('.bottom-sheet')?.scrollTo({ top: 0 }) }, [step])
 
-  const at = new Date(dayStart(day, now)).setHours(((hour + 1) % 12) + pm * 12, minute * MINUTE_STEP, 0, 0)
+  const at = existing?.at ?? (here ? now : going ? now + arriveIn * 60000 : new Date(dayStart(day, now)).setHours(((hour + 1) % 12) + pm * 12, minute * MINUTE_STEP, 0, 0))
   const past = at <= now
   const closed = !!place && !past && !openAt(place, at)
-  const detail = existing ? existing.detail ?? '' : (mode === 'seek' ? needWith : helpWith).trim()
-  const visitReady = !!place && !past && !closed && mode !== null && detail.length >= 3
+  const detail = existing ? existing.detail ?? '' : mode === 'visit' ? '' : (mode === 'seek' ? needWith : helpWith).trim()
+  const visitReady = !!place && !past && !closed && mode !== null && (mode === 'visit' ? tags.length > 0 : detail.length >= 3)
   const qty = (id: string) => lines.find(l => l.id === id)?.qty ?? 0
   const setQty = (id: string, n: number) => setLines(ls => (n <= 0 ? ls.filter(l => l.id !== id) : ls.some(l => l.id === id) ? ls.map(l => (l.id === id ? { ...l, qty: n } : l)) : [...ls, { id, qty: n }]))
   const items = linesCount(lines)
@@ -1774,7 +1892,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
   const finish = (paidWith?: WalletKind) => {
     const v = save({
       ...existing,
-      cafe, at, mode: mode ?? undefined, detail, workOn: workOn.trim(),
+      cafe, at, mode: mode ?? undefined, tags: mode === 'visit' ? tags : undefined, detail, workOn: workOn.trim(), going: going || undefined, here: here || undefined,
       table: bookTable ? (existing?.table ?? { party, seat, fee: TABLE_FEE, wallet: paidWith, bookedAt: Date.now() }) : undefined,
       order: paidWith && items ? { lines, note: note.trim() || undefined, total, wallet: paidWith, code: orderCode(), paidAt: Date.now() } : undefined,
     })
@@ -1787,21 +1905,24 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
       <BottomSheet onClose={close} tall>
         <div className="plan-done">
           <span className="plan-done-icon"><CircleCheck /></span>
-          <h2>{visitPaid(saved) > 0 ? 'تم الدفع وثبّتنا زيارتك' : 'ثبّتنا زيارتك'}</h2>
+          <h2>{here ? 'تم الدفع، وطلبك يجهز الحين' : going ? (saved.order ? 'تم الدفع، وطلبك يجهز لوصولك' : 'تمام، أنت في الطريق') : visitPaid(saved) > 0 ? 'تم الدفع وثبّتنا زيارتك' : 'ثبّتنا زيارتك'}</h2>
           <p>{saved.cafe} · {visitWhen(saved.at, now)}</p>
-          {saved.order && <div className="order-code"><small>رقم طلبك</small><b dir="ltr">#{saved.order.code}</b><span>يجهز وقت وصولك. ما تدفع شي هناك.</span></div>}
+          {saved.order && <div className="order-code"><small>رقم طلبك</small><b dir="ltr">#{saved.order.code}</b><span>{here ? 'يجهز الحين. ما تدفع شي عند الكاونتر.' : 'يجهز وقت وصولك. ما تدفع شي هناك.'}</span></div>}
           <ul className="plan-done-list">
             {saved.table && <li><Armchair />{tableLabel(saved.table)}<small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small></li>}
             {saved.order && <li><Receipt />{`${itemsLabel(linesCount(saved.order.lines))} · ${sar(saved.order.total)}`}<small>{`مدفوع بـ ${WALLET_NAME[saved.order.wallet]}`}</small></li>}
             {!saved.order && saved.table?.wallet && <li><Receipt />{`رسوم الحجز · ${sar(saved.table.fee ?? TABLE_FEE)}`}<small>{`مدفوعة بـ ${WALLET_NAME[saved.table.wallet]}`}</small></li>}
-            {!saved.table && !saved.order && <li><CalendarClock />بدون حجز طاولة أو طلب<small>تقدر تضيفهم من تفاصيل الزيارة</small></li>}
+            {going && !here && <li><Navigation />{`توصل بعد ${timeLeft(saved.at, now)}`}<small>اللي في الكافيه يشوفون إنك جاي</small></li>}
+            {!going && !saved.table && !saved.order && <li><CalendarClock />بدون حجز طاولة أو طلب<small>تقدر تضيفهم من تفاصيل الزيارة</small></li>}
           </ul>
-          <a className="secondary-button" href={calendarHref(saved)} download="aroundme-visit.ics"><CalendarPlus />أضف للتقويم</a>
+          {!here && (going && onSeeCafe
+            ? <button type="button" className="secondary-button" onClick={() => onSeeCafe(saved.cafe, saved.mode)}><UsersRound />شوف مين هناك</button>
+            : <a className="secondary-button" href={calendarHref(saved)} download="aroundme-visit.ics"><CalendarPlus />أضف للتقويم</a>)}
           {(saved.table || saved.order) && <p className="plan-note"><MessageCircle />{`${saved.cafe} بيراسلك عن طلبك في الرسائل، وتقدر ترد عليهم.`}</p>}
         </div>
         <div className="sheet-footer">
           <PrimaryButton onClick={close} icon={<Check />}>تم</PrimaryButton>
-          <button type="button" className="text-button" onClick={() => onOpenVisit(saved.id)}>تفاصيل الزيارة</button>
+          <button type="button" className="text-button" onClick={() => onOpenVisit(saved.id)}>{here ? 'تفاصيل الطلب' : 'تفاصيل الزيارة'}</button>
         </div>
       </BottomSheet>
     )
@@ -1811,15 +1932,15 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
     <BottomSheet onClose={close} tall>
       <div ref={sheetTop} className="sheet-title plan-head">
         {step > firstStep
-          ? <button type="button" className="plan-back" onClick={() => setStep(step - 1)} aria-label="رجوع"><ChevronRight /></button>
-          : <span className="sheet-icon"><CalendarPlus /></span>}
+          ? <button type="button" className="plan-back" onClick={() => setStep(prevStep(step - 1))} aria-label="رجوع"><ChevronRight /></button>
+          : <span className="sheet-icon">{here ? <Receipt /> : going ? <Navigation /> : <CalendarPlus />}</span>}
         <div>
-          <h2>{step === 0 ? 'زيارة جديدة' : step === 1 ? 'احجز طاولتك' : step === 2 ? 'اطلب قبل توصل' : 'راجع وادفع'}</h2>
-          <p>{step === 0 ? 'اختر الكافيه والوقت وهدف زيارتك' : step === 1 ? `رسوم الحجز ${sar(TABLE_FEE)}، ونمسك طاولتك ${HOLD_LABEL}` : step === 2 ? `اختياري، ويجهز طلبك ${visitWhen(at, now)}` : 'تدفع الحين، وما تدفع شي عند وصولك'}</p>
+          <h2>{step === 0 ? (going ? 'رايح للكوفي الآن' : 'زيارة جديدة') : step === 1 ? 'احجز طاولتك' : step === 2 ? (here ? 'اطلب الحين' : 'اطلب قبل توصل') : 'راجع وادفع'}</h2>
+          <p>{step === 0 ? (going ? 'اختر الكافيه ومتى توصل وهدف زيارتك' : 'اختر الكافيه والوقت وهدف زيارتك') : step === 1 ? `رسوم الحجز ${sar(TABLE_FEE)}، ونمسك طاولتك ${HOLD_LABEL}` : step === 2 ? (here ? 'تطلب وتدفع من جوالك، ونجهز طلبك الحين' : going ? 'اختياري، ويجهز طلبك وقت وصولك' : `اختياري، ويجهز طلبك ${visitWhen(at, now)}`) : here ? 'تدفع من جوالك، وما تدفع شي عند الكاونتر' : 'تدفع الحين، وما تدفع شي عند وصولك'}</p>
         </div>
       </div>
       <ol className="plan-steps" aria-label="الخطوات">
-        {PLAN_STEPS.map((s, i) => <li key={s} className={i === step ? 'current' : i < step ? 'done' : ''} aria-current={i === step ? 'step' : undefined}><span>{i < step ? <Check /> : i + 1}</span>{s}</li>)}
+        {PLAN_STEPS.map((s, i) => ({ s, i })).filter(({ i }) => !(going && i === 1) && !(here && i === 0)).map(({ s, i }, n) => <li key={s} className={i === step ? 'current' : i < step ? 'done' : ''} aria-current={i === step ? 'step' : undefined}><span>{i < step ? <Check /> : n + 1}</span>{s}</li>)}
       </ol>
 
       {step === 0 && (
@@ -1834,7 +1955,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
               <div className="visit-cafe-list" ref={listRef} role="radiogroup" aria-label="أي كافيه؟">
                 {shown.map(c => (
                   <button key={c.id} type="button" role="radio" aria-checked={cafe === c.name} className={`visit-cafe ${cafe === c.name ? 'active' : ''}`} onClick={() => { setCafe(c.name); setQuery(''); setSeat(SEAT_ANY) }}>
-                    <img src={c.image} alt="" onError={hidePhoto} />
+                    <CafeThumb cafe={c} />
                     <span><b>{c.name}</b><small>{c.area} · {c.distance} · {hoursLine(c)}</small></span>
                     {cafe === c.name && <Check />}
                   </button>
@@ -1844,6 +1965,13 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
             </>
           ) : <p className="visit-empty">ما فيه كافيهات متاحة في مدينتك حاليًا</p>}
 
+          {going ? (
+            <>
+              <label className="field-label">متى توصل؟</label>
+              <div className="chip-row">{ARRIVE_IN.map(m => <Chip key={m} active={arriveIn === m} onClick={() => setArriveIn(m)}>{mins(m)}</Chip>)}</div>
+              <p className={`visit-when ${closed ? 'is-past' : ''}`}>{closed && place ? `${place.name} مقفل هالوقت. يفتح ${hoursLine(place)}` : `توصل تقريبًا ${clock(at)}`}</p>
+            </>
+          ) : (<>
           <label className="field-label">أي يوم؟</label>
           <div className="chip-row visit-days">
             {Array.from({ length: VISIT_DAYS }, (_, i) => <Chip key={i} active={day === i} onClick={() => setDay(i)}>{visitDay(dayStart(i, now), now)}</Chip>)}
@@ -1860,16 +1988,10 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
           <p className={`visit-when ${past || closed ? 'is-past' : ''}`}>
             {past ? 'هالوقت راح، اختر وقت بعده' : closed && place ? `${place.name} مقفل هالوقت. يفتح ${hoursLine(place)}` : visitWhen(at, now)}
           </p>
+          </>)}
 
           <label className="field-label">وش هدف زيارتك؟</label>
-          <div className="visit-modes" role="radiogroup" aria-label="وش هدف زيارتك؟">
-            <button type="button" role="radio" aria-checked={mode === 'seek'} className={`visit-mode seek ${mode === 'seek' ? 'active' : ''}`} onClick={() => setMode('seek')}>
-              <span className="journey-icon"><Search /></span><b>{COPY.seek}</b><small>عندي شيء أبي أنجزه</small>
-            </button>
-            <button type="button" role="radio" aria-checked={mode === 'help'} className={`visit-mode help ${mode === 'help' ? 'active' : ''}`} onClick={() => setMode('help')}>
-              <span className="journey-icon"><HeartHandshake /></span><b>{COPY.help}</b><small>عندي خبرة أقدر أشاركها</small>
-            </button>
-          </div>
+          <VisitModes label="وش هدف زيارتك؟" mode={mode} setMode={setMode} tags={tags} setTags={setTags} note={workOn} setNote={setWorkOn} />
           {mode === 'seek' && (
             <>
               <label className="field-label" htmlFor="visit-detail">وش تحتاج مساعدة فيه؟</label>
@@ -1882,8 +2004,12 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
               <input id="visit-detail" className="field" value={helpWith} onChange={e => setHelpWith(e.target.value)} maxLength={120} placeholder="مثلاً: مراجعة كود React" />
             </>
           )}
-          <label className="field-label" htmlFor="visit-work">وش بتشتغل عليه هناك؟ <span className="field-optional">اختياري</span></label>
-          <input id="visit-work" className="field" value={workOn} onChange={e => setWorkOn(e.target.value)} maxLength={80} placeholder="مثلاً: أبني واجهة تطبيقي الجديد" />
+          {mode !== 'visit' && (
+            <>
+              <label className="field-label" htmlFor="visit-work">وش بتشتغل عليه هناك؟ <span className="field-optional">اختياري</span></label>
+              <input id="visit-work" className="field" value={workOn} onChange={e => setWorkOn(e.target.value)} maxLength={80} placeholder="مثلاً: أبني واجهة تطبيقي الجديد" />
+            </>
+          )}
         </>
       )}
 
@@ -1932,11 +2058,11 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
         <>
           <div className="checkout-card">
             <div className="checkout-place">
-              <img src={place?.image} alt="" onError={hidePhoto} />
+              <CafeThumb cafe={place} />
               <span><b>{cafe}</b><small>{visitWhen(at, now)}</small></span>
-              {!existing && <button type="button" className="text-button" onClick={() => setStep(0)}>تعديل</button>}
+              {!existing && !here && <button type="button" className="text-button" onClick={() => setStep(0)}>تعديل</button>}
             </div>
-            <div className="checkout-row"><Armchair /><span>{bookTable ? tableLabel({ party, seat }) : 'بدون حجز طاولة'}{fee > 0 && <small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small>}</span>{fee > 0 && <b className="checkout-fee">{sar(fee)}</b>}{!existing && <button type="button" className="text-button" onClick={() => setStep(1)}>تعديل</button>}</div>
+            {!going && <div className="checkout-row"><Armchair /><span>{bookTable ? tableLabel({ party, seat }) : 'بدون حجز طاولة'}{fee > 0 && <small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small>}</span>{fee > 0 && <b className="checkout-fee">{sar(fee)}</b>}{!existing && <button type="button" className="text-button" onClick={() => setStep(1)}>تعديل</button>}</div>}
             {items > 0 ? (
               <>
                 <ul className="checkout-lines">
@@ -1953,12 +2079,12 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
       )}
 
       <div className="sheet-footer">
-        {step === 0 && <PrimaryButton onClick={() => visitReady && setStep(1)} disabled={!visitReady}>التالي</PrimaryButton>}
+        {step === 0 && <PrimaryButton onClick={() => visitReady && setStep(nextStep(1))} disabled={!visitReady}>التالي</PrimaryButton>}
         {step === 1 && <PrimaryButton onClick={() => setStep(2)}>التالي</PrimaryButton>}
-        {step === 2 && <PrimaryButton onClick={() => setStep(3)} icon={items ? <Receipt /> : undefined}>{items ? `راجع الطلب · ${itemsLabel(items)} · ${sar(total)}` : 'تابع بدون طلب'}</PrimaryButton>}
+        {step === 2 && <PrimaryButton onClick={() => setStep(3)} disabled={here && !items} icon={items ? <Receipt /> : undefined}>{items ? `راجع الطلب · ${itemsLabel(items)} · ${sar(total)}` : here ? 'اختر من المنيو' : 'تابع بدون طلب'}</PrimaryButton>}
         {step === 3 && (due > 0
           ? <div className="wallet-buttons">{wallets.map(w => <button key={w} type="button" className={`wallet-button ${w}`} onClick={() => setPaying(w)}><WalletMark kind={w} /></button>)}</div>
-          : <PrimaryButton onClick={() => finish()} icon={<CalendarClock />}>{'ثبّت الزيارة'}</PrimaryButton>)}
+          : <PrimaryButton onClick={() => finish()} icon={going ? <Navigation /> : <CalendarClock />}>{going ? 'تمام، أنا في الطريق' : 'ثبّت الزيارة'}</PrimaryButton>)}
       </div>
       {paying && <WalletPay wallet={paying} total={due} merchant={cafe} onCancel={() => setPaying(null)} onPaid={() => finish(paying)} />}
     </BottomSheet>
@@ -1973,8 +2099,8 @@ function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder, onChat }:
   return (
     <BottomSheet onClose={close} tall>
       <div className="visit-hero">
-        <img src={c?.image} alt="" onError={hidePhoto} />
-        <div><small><CalendarClock /> {started ? 'زيارتك الحين' : 'زيارتك القادمة'}</small><h2>{v.cafe}</h2><p>{visitWhen(v.at, now)}{started ? '' : ` · تبدأ بعد ${timeLeft(v.at, now)}`}</p></div>
+        <CafeThumb cafe={c} />
+        <div><small>{v.here ? <Receipt /> : v.going ? <Navigation /> : <CalendarClock />} {started ? 'زيارتك الحين' : v.going ? 'في طريقك' : 'زيارتك القادمة'}</small><h2>{v.cafe}</h2><p>{visitWhen(v.at, now)}{started ? '' : ` · ${v.going ? 'توصل' : 'تبدأ'} بعد ${timeLeft(v.at, now)}`}</p></div>
       </div>
       {v.order && (
         <div className="order-code">
@@ -1983,8 +2109,8 @@ function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder, onChat }:
         </div>
       )}
       <ul className="visit-facts">
-        {v.table ? <li><Armchair /><span><b>{tableLabel(v.table)}</b><small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small></span></li> : <li><Armchair /><span><b>بدون حجز طاولة</b></span></li>}
-        {visitPurpose(v) && <li>{v.mode === 'seek' ? <Search /> : <HeartHandshake />}<span><b>{visitPurpose(v)}</b>{v.workOn && <small>بشتغل على: {v.workOn}</small>}</span></li>}
+        {v.going && !v.table ? null : v.table ? <li><Armchair /><span><b>{tableLabel(v.table)}</b><small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small></span></li> : <li><Armchair /><span><b>بدون حجز طاولة</b></span></li>}
+        {visitPurpose(v) && <li><PurposeIcon mode={v.mode} /><span><b>{visitPurpose(v)}</b>{v.workOn && <small>{v.mode === 'visit' ? v.workOn : `بشتغل على: ${v.workOn}`}</small>}</span></li>}
       </ul>
       {v.order ? (
         <div className="checkout-card">
@@ -1997,7 +2123,7 @@ function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder, onChat }:
         </div>
       ) : null}
       {!v.order && !!v.table?.fee && v.table.wallet && <div className="checkout-card"><div className="checkout-total"><span>رسوم الحجز مدفوعة<small>{WALLET_NAME[v.table.wallet]} · شامل الضريبة</small></span><b>{sar(v.table.fee)}</b></div></div>}
-      {!v.order && !started && <button type="button" className="secondary-button" onClick={onOrder}><Receipt />{v.table ? 'اطلب قبل توصل' : 'احجز طاولة أو اطلب قبل توصل'}</button>}
+      {!v.order && !started && <button type="button" className="secondary-button" onClick={onOrder}><Receipt />{v.table || v.going ? 'اطلب قبل توصل' : 'احجز طاولة أو اطلب قبل توصل'}</button>}
       {(v.table || v.order) && (() => { const t = cafeThread(v, now), last = t[t.length - 1], n = cafeUnread(v, now); return (
         <button type="button" className="cafe-thread-link" onClick={onChat}>
           <MessageCircle /><span><b>رسائل الكافيه</b><small>{last.text}</small></span>{n > 0 && <i aria-label="رسائل جديدة">{n}</i>}<ChevronLeft />
@@ -2105,6 +2231,7 @@ function SkillsSheet({ close, initial, save }: { close: () => void; initial: str
 
 // One consent step for both ways of reaching someone: ask for help, or offer it.
 function RequestSheet({ target, privateMode, close, send }: { target: Target; privateMode: boolean; close: () => void; send: (minutes: number, text: string) => void }) {
+  const { language } = useLanguage()
   const [commit, setCommit] = useState(target.kind === 'offer' ? target.need.minutes : 15)
   const [text, setText] = useState(target.kind === 'ask' ? target.need : '')
   const person = target.kind === 'ask' ? target.person : null
@@ -2113,7 +2240,7 @@ function RequestSheet({ target, privateMode, close, send }: { target: Target; pr
     <BottomSheet onClose={close}>
       <div className="request-person">
         {person ? <Avatar src={person.image} size={78} name={person.name} online={person.presence === 'now'} /> : <span className="anonymous-avatar big"><UserRound /></span>}
-        <h2>{person ? `تطلب مساعدة ${first(person.name)}؟` : 'تعرض مساعدتك؟'}</h2>
+        <h2>{person ? `تطلب مساعدة ${first(language === 'en' ? toEnglish(person.name) : person.name)}؟` : 'تعرض مساعدتك؟'}</h2>
         <p>{privateMode ? `${who} طلبك بدون اسمك وصورتك، ويظهرون بعد الموافقة` : `${who} اسمك وصورتك مع الطلب`}</p>
       </div>
       {target.kind === 'offer' ? (
@@ -2426,8 +2553,15 @@ export default function App() {
     say(next.includes(name) ? 'حفظنا الكافيه في حسابك' : 'شلنا الكافيه من المحفوظة')
   }
 
-  const upcomingVisits = visits.filter(v => v.at + VISIT_GRACE > clockNow).sort((a, b) => a.at - b.at)
-  const planVisit = (cafe: string) => { setVisitCafe(cafe); setOrderFor(null); setSheet('planVisit') }
+  // An order placed while already in the café isn't a visit to come, so it only shows in Messages.
+  const upcomingVisits = visits.filter(v => !v.here && v.at + VISIT_GRACE > clockNow).sort((a, b) => a.at - b.at)
+  const [goingNow, setGoingNow] = useState(false)
+  const [orderingHere, setOrderingHere] = useState(false)
+  const planVisit = (cafe: string, going = false) => { setVisitCafe(cafe); setOrderFor(null); setGoingNow(going); setOrderingHere(false); setHereCafe(null); setSheet('planVisit') }
+  const orderHere = (cafe: string) => { setVisitCafe(cafe); setOrderFor(null); setGoingNow(false); setOrderingHere(true); setSheet('planVisit') }
+  // The café picked in "أنا في الكوفي الحين"; the intent screen then shows who's there.
+  const [hereCafe, setHereCafe] = useState<string | null>(null)
+  const [herePurpose, setHerePurpose] = useState<{ mode: VisitMode; tags: string[]; note?: string } | null>(null)
   const openVisit = (id: string) => { setOpenVisitId(id); setSheet('visit') }
   // The sheet stays open on its confirmation step, so saving doesn't close it.
   const saveVisit = ({ cafe, at, ...details }: Omit<Visit, 'id'>): Visit => {
@@ -2511,7 +2645,8 @@ export default function App() {
           <HomeScreen
             onTab={onTab}
             unread={unread}
-            openIntent={mode => { setActionMode(mode); go('intent') }}
+            onHereNow={() => setSheet('hereNow')}
+            onGoing={() => planVisit(data.cafes[0]?.name ?? selectedCafe, true)}
             active={active}
             onChat={() => active && openChat(active.id)}
             onMet={met => active && answerMet(active.id, met)}
@@ -2525,13 +2660,14 @@ export default function App() {
         {screen === 'intent' && (
           <IntentScreen
             mode={actionMode}
+            cafe={hereCafe ?? undefined}
             back={back}
             mySkills={mySkills}
             privateMode={privateMode}
             onContinue={(text, skills) => {
               if (actionMode === 'seek') setNeedText(text || skills.join('، '))
               else setMySkills(skills)
-              onTab('people')
+              if (hereCafe) { setSelectedCafe(hereCafe); setStack(['home', 'cafe']) } else onTab('people')
             }}
           />
         )}
@@ -2559,6 +2695,8 @@ export default function App() {
             onPlan={() => planVisit(selectedCafe)}
             onOpenVisit={openVisit}
             now={clockNow}
+            here={hereCafe === selectedCafe}
+            onOrderHere={() => orderHere(selectedCafe)}
           />
         )}
         {screen === 'people' && (
@@ -2648,9 +2786,22 @@ export default function App() {
       )}
       {sheet === 'planVisit' && (
         <PlanVisitSheet
-          key={orderFor ?? 'new'}
+          key={orderFor ?? (orderingHere ? 'here' : goingNow ? 'going' : 'new')}
           cafes={data.cafes} initialCafe={visitCafe} now={clockNow} skills={mySkills} need={myNeedDesc} wallet={wallet}
-          existing={orderVisit} close={() => setSheet(null)} save={saveVisit} onOpenVisit={openVisit}
+          existing={orderVisit} going={goingNow} here={orderingHere && !orderVisit} close={() => setSheet(null)} save={saveVisit} onOpenVisit={openVisit}
+          purpose={orderingHere ? herePurpose ?? undefined : undefined}
+          onSeeCafe={(cafe, mode) => { setSheet(null); if (mode && mode !== 'visit') setActionMode(mode); openCafe(cafe) }}
+        />
+      )}
+      {sheet === 'hereNow' && (
+        <HereNowSheet
+          cafes={data.cafes} initialCafe={selectedCafe} close={() => setSheet(null)}
+          next={(cafe, mode, tags, note) => {
+            setHereCafe(cafe)
+            // Just visiting: no one to match with, so go straight to the café page and its menu.
+            if (mode === 'visit') { setHerePurpose({ mode, tags, note: note || undefined }); setSelectedCafe(cafe); setStack(['home', 'cafe']); orderHere(cafe); return }
+            setSheet(null); setHerePurpose(null); setActionMode(mode); go('intent')
+          }}
         />
       )}
       {sheet === 'visit' && visitOpen && (
