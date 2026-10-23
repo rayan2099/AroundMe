@@ -15,6 +15,9 @@ export type Sheet = null | 'profileSetup' | 'editProfile' | 'skills' | 'request'
 export type Tab = 'home' | 'map' | 'people' | 'inbox' | 'account'
 // The app does one thing: connect people nearby to ask for help or offer it.
 export type ActionMode = 'seek' | 'help'
+// A visit's purpose: needing help, offering help, or just visiting (to order, work, study…), with tags saying why.
+export type VisitMode = ActionMode | 'visit'
+const VISIT_TAGS = ['شغل', 'مذاكرة', 'اجتماع', 'أقابل أصحاب', 'أرتاح', 'قراءة', 'أطلب وأمشي']
 export type PresenceFilter = 'all' | 'now' | 'today'
 export type Presence = 'now' | 'today'
 export type Gender = 'm' | 'f'
@@ -100,6 +103,7 @@ function LanguageBridge({ language }: { language: Language }) {
 const COPY = {
   seek: 'أحتاج مساعدة',
   help: 'أقدر أساعد',
+  visit: 'بس زيارة',
   nearTab: 'حولك',
   nowGroup: 'متواجدون الآن',
   todayGroup: 'قادمون اليوم',
@@ -814,7 +818,7 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
           )}
           {(visitPurpose(visit) || visit.workOn) && (
             <div className="home-visit-notes">
-              {visitPurpose(visit) && <span className={`visit-purpose ${visit.mode ?? ''}`}>{visit.mode === 'seek' ? <Search /> : <HeartHandshake />}{visitPurpose(visit)}</span>}
+              {visitPurpose(visit) && <span className={`visit-purpose ${visit.mode ?? ''}`}><PurposeIcon mode={visit.mode} />{visitPurpose(visit)}</span>}
               {visit.workOn && <span>بشتغل على: {visit.workOn}</span>}
             </div>
           )}
@@ -1507,7 +1511,7 @@ const useDemoText = () => {
 
 // ---------- Planned visits ----------
 // mode: what the visit is for, the same two choices as the home screen. why is kept for visits saved before mode existed.
-export type Visit = { id: string; cafe: string; at: number; mode?: ActionMode; detail?: string; workOn?: string; why?: string; canHelp?: string; table?: TableHold; order?: Order; chat?: CafeMessage[]; chatSeen?: number; going?: boolean; here?: boolean }
+export type Visit = { id: string; cafe: string; at: number; mode?: VisitMode; tags?: string[]; detail?: string; workOn?: string; why?: string; canHelp?: string; table?: TableHold; order?: Order; chat?: CafeMessage[]; chatSeen?: number; going?: boolean; here?: boolean }
 const VISIT_GRACE = 60 * 60000 // a visit stays listed for an hour after its start time
 const VISIT_DAYS = 7
 const MINUTE_STEP = 5
@@ -1522,7 +1526,36 @@ const visitWhen = (at: number, now: number) => `${visitDay(at, now)} · ${clock(
 const visitPurpose = (v: Visit) => {
   if (v.mode === 'seek') return v.detail ? `أحتاج مساعدة في: ${v.detail}` : COPY.seek
   if (v.mode === 'help') return v.detail ? `أقدر أساعد في: ${v.detail}` : COPY.help
+  if (v.mode === 'visit') return v.tags?.length ? `${COPY.visit} · ${v.tags.join('، ')}` : COPY.visit
   return v.canHelp ? `أقدر أساعد في: ${v.canHelp}` : v.why ?? ''
+}
+
+const PurposeIcon = ({ mode }: { mode?: VisitMode }) => (mode === 'seek' ? <Search /> : mode === 'visit' ? <Coffee /> : <HeartHandshake />)
+
+// The three visit purposes, the same on every sheet that asks. "Just visiting" asks why with tags instead of a help topic.
+function VisitModes({ label, mode, setMode, tags, setTags }: { label: string; mode: VisitMode | null; setMode: (m: VisitMode) => void; tags: string[]; setTags: (t: string[]) => void }) {
+  const opt = (m: VisitMode, icon: React.ReactNode, title: string, sub: string) => (
+    <button type="button" role="radio" aria-checked={mode === m} className={`visit-mode ${m} ${mode === m ? 'active' : ''}`} onClick={() => setMode(m)}>
+      <span className="journey-icon">{icon}</span><b>{title}</b><small>{sub}</small>
+    </button>
+  )
+  return (
+    <>
+      <div className="visit-modes three" role="radiogroup" aria-label={label}>
+        {opt('seek', <Search />, COPY.seek, 'عندي شيء أبي أنجزه')}
+        {opt('help', <HeartHandshake />, COPY.help, 'عندي خبرة أقدر أشاركها')}
+        {opt('visit', <Coffee />, COPY.visit, 'أطلب وأجلس على راحتي')}
+      </div>
+      {mode === 'visit' && (
+        <>
+          <label className="field-label">اختر سبب زيارتك <span className="field-optional">واحد أو أكثر</span></label>
+          <div className="chip-row visit-tags">
+            {VISIT_TAGS.map(tag => <Chip key={tag} active={tags.includes(tag)} onClick={() => setTags(tags.includes(tag) ? tags.filter(x => x !== tag) : [...tags, tag])}>{tags.includes(tag) && <Check />}{tag}</Chip>)}
+          </div>
+        </>
+      )}
+    </>
+  )
 }
 
 // ---------- Booking a table, ordering ahead, paying ahead ----------
@@ -1741,11 +1774,12 @@ const PLAN_STEPS = ['الزيارة', 'الطاولة', 'الطلب', 'الدف�
 const ARRIVE_IN = [5, 10, 15, 20, 30, 45]
 
 // "أنا في الكوفي الحين": confirm the café, then what you want to get done today.
-function HereNowSheet({ cafes, initialCafe, close, next }: { cafes: Cafe[]; initialCafe?: string; close: () => void; next: (cafe: string, mode: ActionMode) => void }) {
+function HereNowSheet({ cafes, initialCafe, close, next }: { cafes: Cafe[]; initialCafe?: string; close: () => void; next: (cafe: string, mode: VisitMode, tags: string[]) => void }) {
   const open = cafes.filter(c => c.isOpen)
   const [cafe, setCafe] = useState(() => (open.some(c => c.name === initialCafe) ? initialCafe! : open[0]?.name ?? ''))
   const [query, setQuery] = useState('')
-  const [mode, setMode] = useState<ActionMode | null>(null)
+  const [mode, setMode] = useState<VisitMode | null>(null)
+  const [tags, setTags] = useState<string[]>([])
   const match = useSearch(query)
   const shown = open.filter(c => match(c.name) || match(c.area))
   return (
@@ -1772,29 +1806,24 @@ function HereNowSheet({ cafes, initialCafe, close, next }: { cafes: Cafe[]; init
             {shown.length === 0 && <p className="visit-empty">ما لقينا كافيه بهالاسم</p>}
           </div>
           <label className="field-label">وش حاب تسوي اليوم؟</label>
-          <div className="visit-modes" role="radiogroup" aria-label="وش حاب تسوي اليوم؟">
-            <button type="button" role="radio" aria-checked={mode === 'seek'} className={`visit-mode seek ${mode === 'seek' ? 'active' : ''}`} onClick={() => setMode('seek')}>
-              <span className="journey-icon"><Search /></span><b>{COPY.seek}</b><small>عندي شيء أبي أنجزه</small>
-            </button>
-            <button type="button" role="radio" aria-checked={mode === 'help'} className={`visit-mode help ${mode === 'help' ? 'active' : ''}`} onClick={() => setMode('help')}>
-              <span className="journey-icon"><HeartHandshake /></span><b>{COPY.help}</b><small>عندي خبرة أقدر أشاركها</small>
-            </button>
-          </div>
+          <VisitModes label="وش حاب تسوي اليوم؟" mode={mode} setMode={setMode} tags={tags} setTags={setTags} />
         </>
       ) : <p className="visit-empty">ما فيه كافيهات مفتوحة حولك حاليًا</p>}
       <div className="sheet-footer">
-        <PrimaryButton onClick={() => cafe && mode && next(cafe, mode)} disabled={!cafe || !mode}>التالي</PrimaryButton>
+        <PrimaryButton onClick={() => cafe && mode && next(cafe, mode, tags)} disabled={!cafe || !mode || (mode === 'visit' && !tags.length)}>{mode === 'visit' ? 'افتح المنيو' : 'التالي'}</PrimaryButton>
       </div>
     </BottomSheet>
   )
 }
 
-function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferred, existing, going: goingNow = false, here = false, close, save, onOpenVisit, onSeeCafe }: {
+function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferred, existing, going: goingNow = false, here = false, purpose, close, save, onOpenVisit, onSeeCafe }: {
   cafes: Cafe[]; initialCafe: string; now: number; skills: string[]; need: string; wallet: WalletKind;
   // "رايح للكوفي الآن": you pick when you'll arrive instead of a day and time, and there's no table step.
-  going?: boolean; onSeeCafe?: (cafe: string, mode?: ActionMode) => void;
+  going?: boolean; onSeeCafe?: (cafe: string, mode?: VisitMode) => void;
   // Already in the café: the sheet is just the menu and payment, and the order is made right away.
   here?: boolean;
+  // Why they're in the café, picked before ordering from their seat.
+  purpose?: { mode: VisitMode; tags: string[] };
   // An already planned visit: the sheet opens on the menu to add an order to it.
   existing?: Visit;
   close: () => void; save: (v: Omit<Visit, 'id'>) => Visit; onOpenVisit: (id: string) => void;
@@ -1821,7 +1850,8 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
   const [hour, setHour] = useState(() => (start.getHours() % 12 || 12) - 1)
   const [minute, setMinute] = useState(() => start.getMinutes() / MINUTE_STEP)
   const [pm, setPm] = useState(() => (start.getHours() >= 12 ? 1 : 0))
-  const [mode, setMode] = useState<ActionMode | null>(existing?.mode ?? null)
+  const [mode, setMode] = useState<VisitMode | null>(existing?.mode ?? purpose?.mode ?? null)
+  const [tags, setTags] = useState<string[]>(existing?.tags ?? purpose?.tags ?? [])
   const [helpWith, setHelpWith] = useState(() => inLanguage(skills.slice(0, 3).join('، ')))
   const [needWith, setNeedWith] = useState(() => inLanguage(need))
   const [workOn, setWorkOn] = useState(existing?.workOn ?? '')
@@ -1843,8 +1873,8 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
   const at = existing?.at ?? (here ? now : going ? now + arriveIn * 60000 : new Date(dayStart(day, now)).setHours(((hour + 1) % 12) + pm * 12, minute * MINUTE_STEP, 0, 0))
   const past = at <= now
   const closed = !!place && !past && !openAt(place, at)
-  const detail = existing ? existing.detail ?? '' : (mode === 'seek' ? needWith : helpWith).trim()
-  const visitReady = !!place && !past && !closed && mode !== null && detail.length >= 3
+  const detail = existing ? existing.detail ?? '' : mode === 'visit' ? '' : (mode === 'seek' ? needWith : helpWith).trim()
+  const visitReady = !!place && !past && !closed && mode !== null && (mode === 'visit' ? tags.length > 0 : detail.length >= 3)
   const qty = (id: string) => lines.find(l => l.id === id)?.qty ?? 0
   const setQty = (id: string, n: number) => setLines(ls => (n <= 0 ? ls.filter(l => l.id !== id) : ls.some(l => l.id === id) ? ls.map(l => (l.id === id ? { ...l, qty: n } : l)) : [...ls, { id, qty: n }]))
   const items = linesCount(lines)
@@ -1859,7 +1889,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
   const finish = (paidWith?: WalletKind) => {
     const v = save({
       ...existing,
-      cafe, at, mode: mode ?? undefined, detail, workOn: workOn.trim(), going: going || undefined, here: here || undefined,
+      cafe, at, mode: mode ?? undefined, tags: mode === 'visit' ? tags : undefined, detail, workOn: workOn.trim(), going: going || undefined, here: here || undefined,
       table: bookTable ? (existing?.table ?? { party, seat, fee: TABLE_FEE, wallet: paidWith, bookedAt: Date.now() }) : undefined,
       order: paidWith && items ? { lines, note: note.trim() || undefined, total, wallet: paidWith, code: orderCode(), paidAt: Date.now() } : undefined,
     })
@@ -1958,14 +1988,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
           </>)}
 
           <label className="field-label">وش هدف زيارتك؟</label>
-          <div className="visit-modes" role="radiogroup" aria-label="وش هدف زيارتك؟">
-            <button type="button" role="radio" aria-checked={mode === 'seek'} className={`visit-mode seek ${mode === 'seek' ? 'active' : ''}`} onClick={() => setMode('seek')}>
-              <span className="journey-icon"><Search /></span><b>{COPY.seek}</b><small>عندي شيء أبي أنجزه</small>
-            </button>
-            <button type="button" role="radio" aria-checked={mode === 'help'} className={`visit-mode help ${mode === 'help' ? 'active' : ''}`} onClick={() => setMode('help')}>
-              <span className="journey-icon"><HeartHandshake /></span><b>{COPY.help}</b><small>عندي خبرة أقدر أشاركها</small>
-            </button>
-          </div>
+          <VisitModes label="وش هدف زيارتك؟" mode={mode} setMode={setMode} tags={tags} setTags={setTags} />
           {mode === 'seek' && (
             <>
               <label className="field-label" htmlFor="visit-detail">وش تحتاج مساعدة فيه؟</label>
@@ -2080,7 +2103,7 @@ function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder, onChat }:
       )}
       <ul className="visit-facts">
         {v.going && !v.table ? null : v.table ? <li><Armchair /><span><b>{tableLabel(v.table)}</b><small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small></span></li> : <li><Armchair /><span><b>بدون حجز طاولة</b></span></li>}
-        {visitPurpose(v) && <li>{v.mode === 'seek' ? <Search /> : <HeartHandshake />}<span><b>{visitPurpose(v)}</b>{v.workOn && <small>بشتغل على: {v.workOn}</small>}</span></li>}
+        {visitPurpose(v) && <li><PurposeIcon mode={v.mode} /><span><b>{visitPurpose(v)}</b>{v.workOn && <small>بشتغل على: {v.workOn}</small>}</span></li>}
       </ul>
       {v.order ? (
         <div className="checkout-card">
@@ -2531,6 +2554,7 @@ export default function App() {
   const orderHere = (cafe: string) => { setVisitCafe(cafe); setOrderFor(null); setGoingNow(false); setOrderingHere(true); setSheet('planVisit') }
   // The café picked in "أنا في الكوفي الحين"; the intent screen then shows who's there.
   const [hereCafe, setHereCafe] = useState<string | null>(null)
+  const [herePurpose, setHerePurpose] = useState<{ mode: VisitMode; tags: string[] } | null>(null)
   const openVisit = (id: string) => { setOpenVisitId(id); setSheet('visit') }
   // The sheet stays open on its confirmation step, so saving doesn't close it.
   const saveVisit = ({ cafe, at, ...details }: Omit<Visit, 'id'>): Visit => {
@@ -2758,13 +2782,19 @@ export default function App() {
           key={orderFor ?? (orderingHere ? 'here' : goingNow ? 'going' : 'new')}
           cafes={data.cafes} initialCafe={visitCafe} now={clockNow} skills={mySkills} need={myNeedDesc} wallet={wallet}
           existing={orderVisit} going={goingNow} here={orderingHere && !orderVisit} close={() => setSheet(null)} save={saveVisit} onOpenVisit={openVisit}
-          onSeeCafe={(cafe, mode) => { setSheet(null); if (mode) setActionMode(mode); openCafe(cafe) }}
+          purpose={orderingHere ? herePurpose ?? undefined : undefined}
+          onSeeCafe={(cafe, mode) => { setSheet(null); if (mode && mode !== 'visit') setActionMode(mode); openCafe(cafe) }}
         />
       )}
       {sheet === 'hereNow' && (
         <HereNowSheet
           cafes={data.cafes} initialCafe={selectedCafe} close={() => setSheet(null)}
-          next={(cafe, mode) => { setSheet(null); setHereCafe(cafe); setActionMode(mode); go('intent') }}
+          next={(cafe, mode, tags) => {
+            setHereCafe(cafe)
+            // Just visiting: no one to match with, so go straight to the café page and its menu.
+            if (mode === 'visit') { setHerePurpose({ mode, tags }); setSelectedCafe(cafe); setStack(['home', 'cafe']); orderHere(cafe); return }
+            setSheet(null); setHerePurpose(null); setActionMode(mode); go('intent')
+          }}
         />
       )}
       {sheet === 'visit' && visitOpen && (

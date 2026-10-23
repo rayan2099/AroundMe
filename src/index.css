@@ -6236,3 +6236,14 @@ img.cafe-thumb-logo { object-fit: contain !important; background: #fff !importan
 .cafe-menu-jump { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 68px; height: 68px; border-radius: 18px; background: var(--green-soft); color: var(--green-dark); font-size: 12px; font-weight: 700; }
 .cafe-menu-jump svg { width: 22px; height: 22px; }
 .cafe-section.cafe-menu { scroll-margin-top: 64px; }
+
+/* Visit purpose: a third option, "just visiting", with tags for why */
+.visit-modes.three { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.visit-modes.three .visit-mode { padding: 12px 10px; }
+.visit-modes.three .visit-mode b { font-size: 14px; }
+.visit-modes.three .visit-mode small { font-size: 11.5px; }
+.visit-mode.visit.active .journey-icon { background: var(--green); color: #fff; }
+.chip-row.visit-tags { flex-wrap: wrap; overflow: visible; }
+.chip-row.visit-tags .chip { min-height: 40px; }
+.chip-row.visit-tags .chip svg { width: 14px; }
+.visit-purpose.visit svg { color: var(--orange); }
