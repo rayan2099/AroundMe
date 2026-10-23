@@ -251,7 +251,7 @@ export function Orders({ ops, items, notify, openThread }: { ops: Ops; items: It
       )}
 
       {offerFor && (
-        <OfferSheet onClose={() => setOfferFor(null)} onSend={offer => { ops.setOffers(x => ({ ...x, [offerFor.code]: offer })); setOfferFor(null); notify(t('أرسلنا العرض، وسيصله إشعار «شاهد العرض»', 'Offer sent. They get a “See the offer” notification')) }}
+        <OfferSheet onClose={() => setOfferFor(null)} onSend={offer => { ops.setOffers(x => ({ ...x, [offerFor.code]: offer })); setOfferFor(null); notify(t('أرسلنا العرض، وسيصله إشعار «افتح هديتك»', 'Offer sent. They get a “Open your gift” notification')) }}
           about={<p className="o-offer-for"><ShoppingBag /><span><b>{t(`طلب ${hash(offerFor.code)} · ${people(offerFor.ppl)}`, `Order ${hash(offerFor.code)} · ${people(offerFor.ppl)}`)}</b><small>{offerFor.lines.map(([en, q]) => `${q}× ${name(en)}`).join(t('، ', ', '))}</small></span></p>} />
       )}
 
@@ -347,7 +347,7 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
 
       {tab === 'bookings' && renderBookings()}
       {offerBooking && (
-        <OfferSheet onClose={() => setOfferBooking(null)} onSend={offer => { ops.setOffers(x => ({ ...x, [offerBooking.order ?? offerBooking.code]: offer })); setOfferBooking(null); notify(t('أرسلنا العرض، وسيصلهم إشعار «شاهد العرض»', 'Offer sent. They get a “See the offer” notification')) }}
+        <OfferSheet onClose={() => setOfferBooking(null)} onSend={offer => { ops.setOffers(x => ({ ...x, [offerBooking.order ?? offerBooking.code]: offer })); setOfferBooking(null); notify(t('أرسلنا العرض، وسيصلهم إشعار «افتح هديتك»', 'Offer sent. They get a “Open your gift” notification')) }}
           about={<p className="o-offer-for"><Armchair /><span><b>{t(`حجز ${hash(offerBooking.code)} · ${people(offerBooking.ppl)}`, `Booking ${hash(offerBooking.code)} · ${people(offerBooking.ppl)}`)}</b><small>{`${tName(offerBooking.table)} · ${pick(offerBooking.tag)}`}</small></span></p>} />
       )}
 
