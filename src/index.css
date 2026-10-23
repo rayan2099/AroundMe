@@ -6247,3 +6247,45 @@ img.cafe-thumb-logo { object-fit: contain !important; background: #fff !importan
 .chip-row.visit-tags .chip { min-height: 40px; }
 .chip-row.visit-tags .chip svg { width: 14px; }
 .visit-purpose.visit svg { color: var(--orange); }
+/* Come-back offers from a café: the phone notification, the Home card, the offer sheet and the discount at checkout. */
+.offer-push { position: fixed; z-index: 210; top: 14px; left: 50%; transform: translateX(-50%); width: min(380px, calc(100% - 24px)); display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: 22px; background: rgba(255, 255, 255, 0.97); border: 1px solid var(--border); box-shadow: 0 14px 34px rgba(28, 27, 25, 0.18); animation: offer-drop 0.35s ease; backdrop-filter: blur(10px); }
+@keyframes offer-drop { from { transform: translate(-50%, -24px); opacity: 0; } }
+.offer-push-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 11px; padding: 6px; text-align: start; background: none; }
+.offer-push-app { width: 42px; height: 42px; border-radius: 12px; background: var(--green); color: #fff; display: grid; place-items: center; flex: none; }
+.offer-push-app svg { width: 21px; }
+.offer-push-main > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.offer-push-main small { font-size: 11px; color: var(--muted); }
+.offer-push-main b { font-size: 14px; color: var(--text); }
+.offer-push-main em { font-style: normal; font-size: 12.5px; font-weight: 600; color: var(--orange); }
+.offer-push-x { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); background: none; flex: none; }
+.offer-push-x svg { width: 16px; }
+.home-offer { width: calc(100% - 32px); margin: 16px 16px 0; display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 20px; text-align: start; background: linear-gradient(135deg, #fff1dc, #fde6ea); border: 1px solid #f5d9bd; transition: transform 0.18s ease; }
+.home-offer.is-last { margin-bottom: 112px; }
+.home-offer:active { transform: scale(0.985); }
+.home-offer-icon { width: 46px; height: 46px; border-radius: 14px; background: #fff; color: #c2410c; display: grid; place-items: center; flex: none; }
+.home-offer-icon svg { width: 22px; }
+.home-offer .home-visit-copy small { color: #a35f0c; }
+.home-offer .home-visit-copy em { color: #6b5b52; }
+.home-offer > svg:last-child { width: 18px; color: #a35f0c; flex: none; }
+.offer-sheet { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 8px 4px 4px; }
+.offer-hero { width: 76px; height: 76px; border-radius: 24px; background: linear-gradient(135deg, #ffd9a8, #f8b4c0); color: #9a3412; display: grid; place-items: center; margin-bottom: 14px; }
+.offer-hero svg { width: 36px; height: 36px; }
+.offer-from { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.offer-from img { width: 26px; height: 26px; border-radius: 8px; object-fit: cover; }
+.offer-sheet h2 { margin: 8px 0 4px; font-size: 24px; }
+.offer-sheet p { margin: 0; color: #4d4943; font-size: 14px; line-height: 1.6; }
+.offer-terms { list-style: none; width: 100%; margin: 18px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; text-align: start; }
+.offer-terms li { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 14px; background: #fff; border: 1px solid var(--border); font-size: 13.5px; font-weight: 600; }
+.offer-terms svg { width: 18px; color: var(--green); flex: none; }
+.offer-applied { display: flex; align-items: center; gap: 10px; margin: 4px 0 12px; padding: 11px 13px; border-radius: 14px; background: linear-gradient(135deg, #fff1dc, #fde6ea); color: #a35f0c; }
+.offer-applied > svg { width: 20px; flex: none; }
+.offer-applied span { display: flex; flex-direction: column; }
+.offer-applied b { font-size: 13.5px; color: var(--text); }
+.offer-applied small { font-size: 12px; font-weight: 600; color: #a35f0c; }
+.checkout-offer { display: flex; align-items: center; gap: 10px; padding: 10px 0; color: #a35f0c; }
+.checkout-offer > svg { width: 18px; flex: none; }
+.checkout-offer span { flex: 1; display: flex; flex-direction: column; font-size: 13.5px; font-weight: 700; }
+.checkout-offer small { font-size: 11.5px; font-weight: 400; color: var(--muted); }
+.checkout-offer b { white-space: nowrap; font-size: 14px; }
+.plan-done-list li.offer-used svg { color: #c2410c; }
+.checkout-lines .offer-line { color: #a35f0c; }

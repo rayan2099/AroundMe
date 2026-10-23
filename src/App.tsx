@@ -5,13 +5,13 @@ import {
   Handshake, HeartHandshake, Home, LocateFixed, LogOut, MapPin, MessageCircle,
   MoreHorizontal, Phone, Search, Send, Settings, Footprints, ShieldCheck, Sparkles, UserRound,
   UsersRound, X, Wifi, Volume2, PlugZap, Car, Bookmark, XCircle, Smartphone, Monitor, Trees, DoorOpen, Languages, CalendarPlus, CalendarClock,
-  Croissant, Sandwich, CakeSlice, CupSoda, GlassWater, Cookie, Minus, Plus, CreditCard, Receipt, Armchair, CircleCheck, LoaderCircle, Store, ScanFace, Navigation
+  Croissant, Sandwich, CakeSlice, CupSoda, GlassWater, Cookie, Minus, Plus, CreditCard, Receipt, Armchair, CircleCheck, LoaderCircle, Store, ScanFace, Navigation, Gift
 } from 'lucide-react'
 import { BUSINESS } from './constants'
 import { toEnglish, type Language } from './i18n'
 
 export type Screen = 'onboarding' | 'phone' | 'otp' | 'location' | 'home' | 'intent' | 'map' | 'cafe' | 'people' | 'account' | 'settings' | 'inbox' | 'chat' | 'cafeChat' | 'matchProfile'
-export type Sheet = null | 'profileSetup' | 'editProfile' | 'skills' | 'request' | 'pending' | 'match' | 'chatMenu' | 'report' | 'location' | 'planVisit' | 'visit' | 'hereNow'
+export type Sheet = null | 'profileSetup' | 'editProfile' | 'skills' | 'request' | 'pending' | 'match' | 'chatMenu' | 'report' | 'location' | 'planVisit' | 'visit' | 'hereNow' | 'offer'
 export type Tab = 'home' | 'map' | 'people' | 'inbox' | 'account'
 // The app does one thing: connect people nearby to ask for help or offer it.
 export type ActionMode = 'seek' | 'help'
@@ -735,7 +735,8 @@ function MetPrompt({ name, onAnswer }: { name: string; onAnswer: (met: boolean) 
   )
 }
 
-function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, onLocation, visit, now, onPlanVisit, onOpenVisit }: {
+function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, onLocation, visit, now, onPlanVisit, onOpenVisit, offer, onOffer }: {
+  offer?: CafeOffer | null; onOffer: () => void;
   visit?: Visit; now: number; onPlanVisit: () => void; onOpenVisit: (id: string) => void; onHereNow: () => void; onGoing: () => void;
   onTab: (t: Tab) => void; unread: number; active?: Connection;
   onChat: () => void; onMet: (met: boolean) => void; onLocation: () => void;
@@ -765,7 +766,7 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
       )}
 
       {/* Three moments: already at a café, on the way, or planning a later visit. */}
-      <section className={`journey-gateway moments ${visit ? '' : 'is-last'}`}>
+      <section className={`journey-gateway moments ${visit || offer ? '' : 'is-last'}`}>
         <div className="gateway-intro">
           <h1>تحديد حالة الزيارة</h1>
         </div>
@@ -797,6 +798,18 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
         </div>
         <div className="gateway-trust"><Sparkles /><span><small>ربما تجلس بجانب شخص يملك حل مشكلتك أو يحتاج خبرتك! يعرض لك AroundMe اهتمامات ومهارات الموجودين معك في الكافيه، ويحوّل الجلسة إلى فرصة تعاون.</small></span></div>
       </section>
+
+      {offer && (
+        <button type="button" className={`home-offer ${visit ? '' : 'is-last'}`} onClick={onOffer}>
+          <span className="home-offer-icon"><Gift /></span>
+          <span className="home-visit-copy">
+            <small>{`عرض من ${offer.cafe}`}</small>
+            <b>{offerTitle(offer)}</b>
+            <em>{`${offerValid(offer)} · اعرض عرضك وجَدوِل زيارتك`}</em>
+          </span>
+          <ChevronLeft />
+        </button>
+      )}
 
       {visit && (
         <section className="home-visit">
@@ -1568,7 +1581,7 @@ const deviceWallet = (): WalletKind => (typeof navigator !== 'undefined' && /iPh
 // The table fee is paid ahead with the order, and holds the table for an hour after the visit time.
 export type TableHold = { party: number; seat: string; fee?: number; wallet?: WalletKind; bookedAt?: number }
 export type OrderLine = { id: string; qty: number }
-export type Order = { lines: OrderLine[]; note?: string; total: number; wallet: WalletKind; code: string; paidAt?: number }
+export type Order = { lines: OrderLine[]; note?: string; total: number; wallet: WalletKind; code: string; paidAt?: number; saved?: number }
 type MenuCat = 'coffee' | 'drinks' | 'food'
 type MenuItem = { id: string; cat: MenuCat; name: string; desc: string; price: number; icon: React.ReactNode }
 const MENU_CATS: { id: MenuCat; label: string }[] = [{ id: 'coffee', label: 'قهوة' }, { id: 'drinks', label: 'مشروبات' }, { id: 'food', label: 'أكل' }]
@@ -1592,6 +1605,19 @@ const menuItem = (id: string) => MENU.find(m => m.id === id)
 const sar = (n: number) => `${n} ر.س`
 const linesTotal = (lines: OrderLine[]) => lines.reduce((t, l) => t + (menuItem(l.id)?.price ?? 0) * l.qty, 0)
 const linesCount = (lines: OrderLine[]) => lines.reduce((t, l) => t + l.qty, 0)
+// A come-back offer from a café the customer visited. It arrives as a notification («اعرض عرضك»), and is applied
+// when they schedule their next visit there and order ahead.
+export type CafeOffer = { cafe: string; kind: 'drink' | 'sweet' | 'off'; pct: number; note: string; days: number; from: number }
+const SWEETS = ['cheesecake', 'cookie']
+const offerTitle = (o: CafeOffer) => (o.kind === 'drink' ? 'مشروب مجاني' : o.kind === 'sweet' ? 'حلى مجاني' : `خصم ${o.pct}% على طلبك`)
+const offerValid = (o: CafeOffer) => `صالح لمدة ${o.days === 7 ? 'أسبوع' : o.days === 14 ? 'أسبوعين' : 'شهر'}`
+// What the offer takes off this order: the priciest drink or dessert in it, or a share of the total.
+const offerSaving = (o: CafeOffer, lines: OrderLine[]) => {
+  if (o.kind === 'off') return Math.round((linesTotal(lines) * o.pct) / 100)
+  const fits = lines.map(l => menuItem(l.id)).filter((m): m is MenuItem => !!m && (o.kind === 'drink' ? m.cat !== 'food' : SWEETS.includes(m.id)))
+  return Math.max(0, ...fits.map(m => m.price))
+}
+const offerHint = (o: CafeOffer) => (o.kind === 'drink' ? 'أضف مشروبًا إلى طلبك وسيكون مجانيًا' : o.kind === 'sweet' ? 'أضف تشيز كيك أو كوكيز وسيكون مجانيًا' : 'يُطبَّق الخصم على طلبك المسبق')
 const itemsLabel = (n: number) => count(n, 'صنف', 'صنفين', 'أصناف')
 const partyLabel = (n: number) => (n === 1 ? 'وحدي' : n === 2 ? 'شخصين' : `${n} أشخاص`)
 const tableLabel = (t: TableHold) => `طاولة ${t.party === 1 ? 'لشخص' : t.party === 2 ? 'لشخصين' : `لـ${t.party} أشخاص`}${t.seat !== SEAT_ANY ? ` · ${t.seat}` : ''}`
@@ -1819,7 +1845,43 @@ function HereNowSheet({ cafes, initialCafe, close, next }: { cafes: Cafe[]; init
   )
 }
 
-function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferred, existing, going: goingNow = false, here = false, purpose, close, save, onOpenVisit, onSeeCafe }: {
+// The phone notification a café's offer arrives as. Tapping it opens the offer.
+function OfferPush({ offer, onOpen, onClose }: { offer: CafeOffer; onOpen: () => void; onClose: () => void }) {
+  return (
+    <div className="offer-push" role="alert">
+      <button type="button" className="offer-push-main" onClick={onOpen}>
+        <span className="offer-push-app"><Gift /></span>
+        <span><small>AroundMe · الآن</small><b>لديك عرض لزيارتك القادمة 🎁</b><em>{`من ${offer.cafe} · اعرض عرضك`}</em></span>
+      </button>
+      <button type="button" className="offer-push-x" onClick={onClose} aria-label="إغلاق"><X /></button>
+    </div>
+  )
+}
+
+function OfferSheet({ offer, close, onSchedule }: { offer: CafeOffer; close: () => void; onSchedule: () => void }) {
+  return (
+    <BottomSheet onClose={close}>
+      <div className="offer-sheet">
+        <span className="offer-hero"><Gift /></span>
+        <span className="offer-from"><CafeThumb cafe={allCafes.find(c => c.name === offer.cafe)} />{`عرض من ${offer.cafe}`}</span>
+        <h2>{offerTitle(offer)}</h2>
+        <p>{offer.note || 'شكرًا لزيارتك، ننتظرك في الزيارة القادمة.'}</p>
+        <ul className="offer-terms">
+          <li><CalendarClock />{offerValid(offer)}</li>
+          <li><Receipt />{offer.kind === 'off' ? 'يُطبَّق الخصم تلقائيًا عند الطلب المسبق' : 'يُضاف تلقائيًا عند الطلب المسبق'}</li>
+        </ul>
+      </div>
+      <div className="sheet-footer">
+        <PrimaryButton onClick={onSchedule} icon={<CalendarPlus />}>جَدوِل زيارتك واستخدم العرض</PrimaryButton>
+        <button type="button" className="text-button" onClick={close}>لاحقًا</button>
+      </div>
+    </BottomSheet>
+  )
+}
+
+function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferred, existing, going: goingNow = false, here = false, purpose, offer: cafeOffer, onOfferUsed, close, save, onOpenVisit, onSeeCafe }: {
+  // A café's come-back offer: applied to the order when the visit is at that café.
+  offer?: CafeOffer; onOfferUsed?: () => void;
   cafes: Cafe[]; initialCafe: string; now: number; skills: string[]; need: string; wallet: WalletKind;
   // "في طريقي إلى الكافيه": you pick when you'll arrive instead of a day and time, and there's no table step.
   going?: boolean; onSeeCafe?: (cafe: string, mode?: VisitMode) => void;
@@ -1883,7 +1945,9 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
   const items = linesCount(lines)
   // The table fee is charged once, when the table is first booked.
   const fee = bookTable && !existing?.table ? TABLE_FEE : 0
-  const total = linesTotal(lines)
+  const offer = cafeOffer && cafeOffer.cafe === cafe ? cafeOffer : undefined
+  const saving = offer ? offerSaving(offer, lines) : 0
+  const total = linesTotal(lines) - saving
   const due = total + fee
   const soonest = () => {
     const t = new Date(Math.ceil((now + 15 * 60000) / (MINUTE_STEP * 60000)) * MINUTE_STEP * 60000)
@@ -1894,8 +1958,9 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
       ...existing,
       cafe, at, mode: mode ?? undefined, tags: mode === 'visit' ? tags : undefined, detail, workOn: workOn.trim(), going: going || undefined, here: here || undefined,
       table: bookTable ? (existing?.table ?? { party, seat, fee: TABLE_FEE, wallet: paidWith, bookedAt: Date.now() }) : undefined,
-      order: paidWith && items ? { lines, note: note.trim() || undefined, total, wallet: paidWith, code: orderCode(), paidAt: Date.now() } : undefined,
+      order: paidWith && items ? { lines, note: note.trim() || undefined, total, wallet: paidWith, code: orderCode(), paidAt: Date.now(), saved: saving || undefined } : undefined,
     })
+    if (paidWith && saving) onOfferUsed?.()
     setPaying(null); setSaved(v); setStep(4)
   }
   const wallets: WalletKind[] = preferred === 'apple' ? ['apple', 'google'] : ['google', 'apple']
@@ -1911,6 +1976,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
           <ul className="plan-done-list">
             {saved.table && <li><Armchair />{tableLabel(saved.table)}<small>{`نحجزها لك ${HOLD_LABEL} من موعدك`}</small></li>}
             {saved.order && <li><Receipt />{`${itemsLabel(linesCount(saved.order.lines))} · ${sar(saved.order.total)}`}<small>{`مدفوع بـ ${WALLET_NAME[saved.order.wallet]}`}</small></li>}
+            {!!saved.order?.saved && <li className="offer-used"><Gift />{`استخدمت عرض ${saved.cafe}`}<small>{`وفّرت ${sar(saved.order.saved)}`}</small></li>}
             {!saved.order && saved.table?.wallet && <li><Receipt />{`رسوم الحجز · ${sar(saved.table.fee ?? TABLE_FEE)}`}<small>{`مدفوعة بـ ${WALLET_NAME[saved.table.wallet]}`}</small></li>}
             {going && !here && <li><Navigation />{`تصل بعد ${timeLeft(saved.at, now)}`}<small>يرى الموجودون في الكافيه أنك قادم</small></li>}
             {!going && !saved.table && !saved.order && <li><CalendarClock />بدون حجز طاولة أو طلب<small>يمكنك إضافتهما من تفاصيل الزيارة</small></li>}
@@ -1943,6 +2009,12 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
         {PLAN_STEPS.map((s, i) => ({ s, i })).filter(({ i }) => !(going && i === 1) && !(here && i === 0)).map(({ s, i }, n) => <li key={s} className={i === step ? 'current' : i < step ? 'done' : ''} aria-current={i === step ? 'step' : undefined}><span>{i < step ? <Check /> : n + 1}</span>{s}</li>)}
       </ol>
 
+      {offer && step < 3 && (
+        <div className="offer-applied">
+          <Gift />
+          <span><b>{`عرضك من ${offer.cafe}: ${offerTitle(offer)}`}</b><small>{saving ? `يُخصم ${sar(saving)} من طلبك` : offerHint(offer)}</small></span>
+        </div>
+      )}
       {step === 0 && (
         <>
           <label className="field-label" htmlFor="visit-cafe-search">أي كافيه؟</label>
@@ -2068,6 +2140,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
                 <ul className="checkout-lines">
                   {lines.map(l => { const m = menuItem(l.id)!; return <li key={l.id}><span>{l.qty}× {m.name}</span><b>{sar(m.price * l.qty)}</b></li> })}
                 </ul>
+                {saving > 0 && offer && <div className="checkout-offer"><Gift /><span>{offerTitle(offer)}<small>{`عرض من ${offer.cafe}`}</small></span><b>{`− ${sar(saving)}`}</b></div>}
                 {note.trim() && <p className="checkout-note">ملاحظتك: {note.trim()}</p>}
                 </>
             ) : (
@@ -2117,6 +2190,7 @@ function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder, onChat }:
           <ul className="checkout-lines">
             {v.order.lines.map(l => { const m = menuItem(l.id); return m ? <li key={l.id}><span>{l.qty}× {m.name}</span><b>{sar(m.price * l.qty)}</b></li> : null })}
             {v.table?.fee ? <li><span>رسوم حجز الطاولة</span><b>{sar(v.table.fee)}</b></li> : null}
+            {v.order.saved ? <li className="offer-line"><span>عرض الكافيه</span><b>{`− ${sar(v.order.saved)}`}</b></li> : null}
           </ul>
           {v.order.note && <p className="checkout-note">ملاحظتك: {v.order.note}</p>}
           <div className="checkout-total"><span>مدفوع<small>{WALLET_NAME[v.order.wallet]} · شامل الضريبة</small></span><b>{sar(visitPaid(v))}</b></div>
@@ -2399,6 +2473,10 @@ export default function App() {
   const [chatId, setChatId] = useState<string | null>(null)
   const [matchId, setMatchId] = useState<string | null>(null)
   const [toast, setToast] = useState('')
+  // Sample: the café the customer visited yesterday sends a come-back offer a few seconds after they open Home.
+  const [offer, setOffer] = useState<CafeOffer | null>(null)
+  const [offerPush, setOfferPush] = useState(false)
+  const offerSent = useRef(false)
   const [isWideMode, setIsWideMode] = useState(false)
   const [locationFromOnboarding, setLocationFromOnboarding] = useState(false)
   const cancelled = useRef(new Set<string>())
@@ -2557,6 +2635,16 @@ export default function App() {
   const upcomingVisits = visits.filter(v => !v.here && v.at + VISIT_GRACE > clockNow).sort((a, b) => a.at - b.at)
   const [goingNow, setGoingNow] = useState(false)
   const [orderingHere, setOrderingHere] = useState(false)
+  useEffect(() => {
+    if (screen !== 'home' || offerSent.current) return
+    const id = window.setTimeout(() => {
+      offerSent.current = true
+      setOffer({ cafe: allCafes[0].name, kind: 'drink', pct: 0, days: 14, note: 'سعدنا بزيارتك أمس. مشروبك القادم علينا.', from: Date.now() })
+      setOfferPush(true)
+    }, 2500)
+    return () => window.clearTimeout(id)
+  }, [screen])
+  useEffect(() => { if (!offerPush) return; const id = window.setTimeout(() => setOfferPush(false), 9000); return () => window.clearTimeout(id) }, [offerPush])
   const planVisit = (cafe: string, going = false) => { setVisitCafe(cafe); setOrderFor(null); setGoingNow(going); setOrderingHere(false); setHereCafe(null); setSheet('planVisit') }
   const orderHere = (cafe: string) => { setVisitCafe(cafe); setOrderFor(null); setGoingNow(false); setOrderingHere(true); setSheet('planVisit') }
   // The café picked in "أنا في الكافيه الآن"; the intent screen then shows who's there.
@@ -2655,6 +2743,8 @@ export default function App() {
             now={clockNow}
             onPlanVisit={() => planVisit(selectedCafe)}
             onOpenVisit={openVisit}
+            offer={offer}
+            onOffer={() => setSheet('offer')}
           />
         )}
         {screen === 'intent' && (
@@ -2784,12 +2874,16 @@ export default function App() {
           save={skills => { setMySkills(skills); setSheet(target ? 'request' : null) }}
         />
       )}
+      {sheet === 'offer' && offer && (
+        <OfferSheet offer={offer} close={() => setSheet(null)} onSchedule={() => planVisit(offer.cafe)} />
+      )}
       {sheet === 'planVisit' && (
         <PlanVisitSheet
           key={orderFor ?? (orderingHere ? 'here' : goingNow ? 'going' : 'new')}
           cafes={data.cafes} initialCafe={visitCafe} now={clockNow} skills={mySkills} need={myNeedDesc} wallet={wallet}
           existing={orderVisit} going={goingNow} here={orderingHere && !orderVisit} close={() => setSheet(null)} save={saveVisit} onOpenVisit={openVisit}
           purpose={orderingHere ? herePurpose ?? undefined : undefined}
+          offer={offer ?? undefined} onOfferUsed={() => setOffer(null)}
           onSeeCafe={(cafe, mode) => { setSheet(null); if (mode && mode !== 'visit') setActionMode(mode); openCafe(cafe) }}
         />
       )}
@@ -2860,6 +2954,7 @@ export default function App() {
       )}
 
       {toast && <div className="toast" role="status">{toast}</div>}
+      {offerPush && offer && <OfferPush offer={offer} onOpen={() => { setOfferPush(false); setSheet('offer') }} onClose={() => setOfferPush(false)} />}
 
       {screen !== 'onboarding' && DEMO && (
         <button className="demo-reset" title="إعادة التجربة من شاشة البداية" aria-label="إعادة تعيين التجربة" onClick={logout}>

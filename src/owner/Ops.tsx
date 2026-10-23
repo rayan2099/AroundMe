@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Armchair, BellRing, Check, ChefHat, CircleAlert, Clock, HandPlatter, MessageCircle, House, Navigation, Pause, PenLine, Play, Plus, Send, ShoppingBag, Timer, Users } from 'lucide-react'
 import { Sheet, useT } from './Owner'
+import { OfferButton, OfferSent, OfferSheet } from './Offer'
+import type { Offer } from './Offer'
 import type { Item } from './data'
 
 // Day-to-day running of the café: incoming AroundMe orders, today's booked tables and messages from customers.
@@ -85,11 +87,13 @@ export function useOps() {
     { code: 'A27', unread: false, msgs: [{ from: 'them', text: 'سنصل بعد قليل، جهّزوه من فضلكم', at: ago(15) }, { from: 'me', text: 'أهلًا بكم، طلبكم قيد التحضير', at: ago(12) }] },
     { code: 'A25', unread: false, msgs: [{ from: 'them', text: 'شكرًا، كان التشيز كيك رائعًا', at: ago(10) }, { from: 'me', text: 'بالعافية، سعدنا بزيارتكم 🤍', at: ago(9) }] },
   ])
+  // Come-back offers sent to past visitors, keyed by their order code (or booking code when they didn't order).
+  const [offers, setOffers] = useState<Record<string, Offer>>(() => ({ A23: { kind: 'off', pct: 15, days: 14, note: '' } }))
   const [paused, setPaused] = useState<number | 'manual' | null>(null)
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id) }, [])
   useEffect(() => { if (typeof paused === 'number' && now >= paused) setPaused(null) }, [now, paused])
-  return { orders, setOrders, tables, setTables, bookings, setBookings, threads, setThreads, paused, setPaused, now }
+  return { orders, setOrders, tables, setTables, bookings, setBookings, threads, setThreads, offers, setOffers, paused, setPaused, now }
 }
 export type Ops = ReturnType<typeof useOps>
 
@@ -114,6 +118,7 @@ export function Orders({ ops, items, notify, openThread }: { ops: Ops; items: It
   const { orders, setOrders, now, paused, setPaused } = ops
   const [tab, setTab] = useState<Status>('new')
   const [issue, setIssue] = useState<Order | null>(null)
+  const [offerFor, setOfferFor] = useState<Order | null>(null)
   const [pauseOpen, setPauseOpen] = useState(false)
   const name = (en: string) => { const it = items.find(i => i.name.en === en); return it ? tx(it.name) : en }
   const count = (s: Status) => orders.filter(o => o.status === s).length
@@ -211,6 +216,7 @@ export function Orders({ ops, items, notify, openThread }: { ops: Ops; items: It
               {o.late && o.status !== 'done' && <p className="o-order-flag"><Clock />{t('أبلغنا العميل بأن الطلب سيتأخر 10 دقائق', 'We told the customer it will be 10 minutes late')}</p>}
               {slow && <p className="o-order-flag"><CircleAlert />{t(`تجاوز ${PREP_TARGET} دقائق`, `Over ${PREP_TARGET} minutes`)}</p>}
               <p className="o-paid"><Check />{t('مدفوع', 'Paid')} {sar(total(o))} · {o.pay === 'apple' ? 'Apple Pay' : 'Google Pay'}</p>
+              {o.status === 'done' && (ops.offers[o.code] ? <OfferSent offer={ops.offers[o.code]} /> : <OfferButton onClick={() => setOfferFor(o)} />)}
               <div className="o-order-actions">
                 {o.status !== 'done' && <button type="button" className="o-advance" onClick={() => advance(o)}>{icon}{label}</button>}
                 {o.status !== 'ready' && o.status !== 'done' && <button type="button" className="o-issue" onClick={() => setIssue(o)}>{t('مشكلة؟', 'Problem?')}</button>}
@@ -244,6 +250,11 @@ export function Orders({ ops, items, notify, openThread }: { ops: Ops; items: It
         </Sheet>
       )}
 
+      {offerFor && (
+        <OfferSheet onClose={() => setOfferFor(null)} onSend={offer => { ops.setOffers(x => ({ ...x, [offerFor.code]: offer })); setOfferFor(null); notify(t('أرسلنا العرض، وسيصله إشعار «اعرض عرضك»', 'Offer sent. They get a “View your offer” notification')) }}
+          about={<p className="o-offer-for"><ShoppingBag /><span><b>{t(`طلب ${hash(offerFor.code)} · ${people(offerFor.ppl)}`, `Order ${hash(offerFor.code)} · ${people(offerFor.ppl)}`)}</b><small>{offerFor.lines.map(([en, q]) => `${q}× ${name(en)}`).join(t('، ', ', '))}</small></span></p>} />
+      )}
+
       {pauseOpen && (
         <Sheet title={t('أوقف الطلبات مؤقتًا', 'Pause orders')} onClose={() => setPauseOpen(false)}>
           <p className="o-sheet-sub">{t('ازدحام؟ أوقف الطلبات الجديدة قليلًا. تكتمل الطلبات السابقة كالمعتاد، ولا تتأثر الحجوزات.', 'Busy? Stop new orders for a bit. Orders already in keep going, and bookings are not affected.')}</p>
@@ -268,6 +279,7 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
   const [open, setOpen] = useState<string | null>(null)
   const [editing, setEditing] = useState<Table | 'new' | null>(null)
   const [ppl, setPpl] = useState(2)
+  const [offerBooking, setOfferBooking] = useState<Booking | null>(null)
   const HOLD = 60
   const nTables = (n: number) => t(n === 1 ? 'طاولة' : n === 2 ? 'طاولتين' : n <= 10 ? `${n} طاولات` : `${n} طاولة`, `${n} table${n === 1 ? '' : 's'}`)
   const table = (id: string) => tables.find(x => x.id === id)
@@ -334,6 +346,10 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
       )}
 
       {tab === 'bookings' && renderBookings()}
+      {offerBooking && (
+        <OfferSheet onClose={() => setOfferBooking(null)} onSend={offer => { ops.setOffers(x => ({ ...x, [offerBooking.order ?? offerBooking.code]: offer })); setOfferBooking(null); notify(t('أرسلنا العرض، وسيصلهم إشعار «اعرض عرضك»', 'Offer sent. They get a “View your offer” notification')) }}
+          about={<p className="o-offer-for"><Armchair /><span><b>{t(`حجز ${hash(offerBooking.code)} · ${people(offerBooking.ppl)}`, `Booking ${hash(offerBooking.code)} · ${people(offerBooking.ppl)}`)}</b><small>{`${tName(offerBooking.table)} · ${pick(offerBooking.tag)}`}</small></span></p>} />
+      )}
 
       {sel && !editing && (() => {
         const st = status(sel)
@@ -425,6 +441,7 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
                         <button type="button" className="o-issue" onClick={() => { free(b.table); setB(b.code, 'left'); notify(t(`${tName(b.table)} أصبحت شاغرة`, `${tName(b.table)} is free again`)) }}>{t('غادروا، الطاولة شاغرة', 'They left, table is free')}</button>
                       </div>
                     )}
+                    {b.state === 'left' && (ops.offers[b.order ?? b.code] ? <OfferSent offer={ops.offers[b.order ?? b.code]} /> : <OfferButton onClick={() => setOfferBooking(b)} />)}
                     {b.state === 'noshow' && <p className="o-hold">{t('لم يحضروا · رسوم الحجز 5 ر.س لك', 'No-show · you keep the SAR 5 fee')}</p>}
                   </li>
                 )
