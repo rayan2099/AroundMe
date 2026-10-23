@@ -29,6 +29,29 @@ const SKILLS: [T2, number][] = [[['برمجة وتطبيقات', 'Coding and app
 const NEEDS: [T2, number][] = [[['مراجعة فكرة مشروع', 'Startup idea feedback'], 28], [['حل مشكلة كود', 'Fixing code'], 24], [['تصميم عرض أو شعار', 'Deck or logo design'], 19], [['تسويق وإعلانات', 'Marketing and ads'], 15], [['مذاكرة وواجبات', 'Studying'], 14]]
 const PEOPLE: [T2, number][] = [[['موظفين', 'Employees'], 38], [['مستقلين', 'Freelancers'], 27], [['رواد أعمال', 'Founders'], 21], [['طلاب', 'Students'], 14]]
 
+// Tomorrow's AroundMe visits as the owner sees them: time, party size, why they're coming, table and pre-order. No names.
+type Visit = { at: [number, number]; ppl: number; kind: 'visit' | 'need' | 'help'; tag: T2; seat?: T2; order?: [string, number][] }
+const TOMORROW: Visit[] = [
+  { at: [8, 30], ppl: 1, kind: 'visit', tag: ['شغل', 'Work'], order: [['Flat white', 1], ['Butter croissant', 1]] },
+  { at: [9, 15], ppl: 1, kind: 'visit', tag: ['أطلب وأمشي', 'Grab and go'], order: [['Iced latte', 1]] },
+  { at: [10, 0], ppl: 3, kind: 'visit', tag: ['اجتماع', 'Meeting'], seat: ['الطاولة الطويلة', 'Long table'], order: [['Latte', 2], ['Cortado', 1]] },
+  { at: [11, 30], ppl: 1, kind: 'need', tag: ['حل مشكلة كود', 'Fixing code'] },
+  { at: [12, 0], ppl: 2, kind: 'visit', tag: ['أقابل أصحاب', 'Meeting friends'], order: [['Spanish latte', 2]] },
+  { at: [13, 0], ppl: 1, kind: 'visit', tag: ['مذاكرة', 'Studying'], seat: ['منطقة الهدوء', 'Quiet area'] },
+  { at: [13, 45], ppl: 1, kind: 'help', tag: ['تصميم', 'Design'] },
+  { at: [14, 30], ppl: 1, kind: 'visit', tag: ['قراءة', 'Reading'], order: [['V60', 1]] },
+  { at: [15, 0], ppl: 2, kind: 'visit', tag: ['شغل', 'Work'], seat: ['عند النافذة', 'By the window'], order: [['Iced Spanish latte', 2], ['San Sebastián cheesecake', 1]] },
+  { at: [15, 30], ppl: 1, kind: 'need', tag: ['مراجعة فكرة مشروع', 'Startup idea feedback'] },
+  { at: [16, 0], ppl: 4, kind: 'visit', tag: ['أقابل أصحاب', 'Meeting friends'], seat: ['الجلسات الخارجية', 'Outdoor seating'], order: [['Spanish latte', 3], ['San Sebastián cheesecake', 2]] },
+  { at: [16, 0], ppl: 1, kind: 'help', tag: ['برمجة', 'Coding'] },
+  { at: [16, 15], ppl: 1, kind: 'visit', tag: ['أروّق', 'Chilling'], order: [['Spanish latte', 1]] },
+  { at: [16, 30], ppl: 2, kind: 'visit', tag: ['مذاكرة', 'Studying'], seat: ['منطقة الهدوء', 'Quiet area'] },
+  { at: [17, 30], ppl: 1, kind: 'visit', tag: ['أطلب وأمشي', 'Grab and go'], order: [['Cold brew', 1]] },
+  { at: [18, 0], ppl: 1, kind: 'need', tag: ['تسويق وإعلانات', 'Marketing and ads'] },
+  { at: [19, 30], ppl: 2, kind: 'visit', tag: ['أروّق', 'Chilling'], seat: ['عند النافذة', 'By the window'], order: [['Lotus cheesecake', 2], ['Iced latte', 2]] },
+  { at: [21, 0], ppl: 1, kind: 'visit', tag: ['شغل', 'Work'], order: [['Matcha latte', 1]] },
+]
+
 const TOP = [['Spanish latte', 64], ['San Sebastián cheesecake', 41], ['Butter croissant', 33], ['Iced latte', 25]] as const
 
 export default function Insights({ items }: { items: Item[] }) {
@@ -36,6 +59,7 @@ export default function Insights({ items }: { items: Item[] }) {
   const [period, setPeriod] = useState<Period>('week')
   const [hover, setHover] = useState<number | null>(null)
   const [meetupsOpen, setMeetupsOpen] = useState(false)
+  const [tomorrowOpen, setTomorrowOpen] = useState(false)
   const pick = (x: T2) => (lang === 'ar' ? x[0] : x[1])
   const Fwd = lang === 'ar' ? ChevronLeft : ChevronRight
   // Gregorian dates with Western digits in both languages (plain 'ar' could fall back to the Hijri calendar on some devices).
@@ -45,12 +69,21 @@ export default function Insights({ items }: { items: Item[] }) {
   const today = daysAgo(0)
   const rangeFrom = period === 'day' ? today : period === 'week' ? daysAgo(6) : new Date(today.getFullYear(), today.getMonth(), 1)
   const range = period === 'day' ? `${today.toLocaleDateString(loc, { weekday: 'long' })} ${dayMonth(today)}` : `${dayMonth(rangeFrom)} – ${dayMonth(today)}`
+  const clock = (h: number, m: number) => lang === 'ar' ? `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'ص' : 'م'}` : `${h % 12 || 12}:${String(m).padStart(2, '0')}${h < 12 ? 'am' : 'pm'}`
   const meetWhen = ([ago, h, m]: [number, number, number]) => {
     const d = daysAgo(ago); d.setHours(h, m)
     const day = ago === 0 ? t('اليوم', 'Today') : ago === 1 ? t('أمس', 'Yesterday') : d.toLocaleDateString(loc, { weekday: 'long' })
-    const time = lang === 'ar' ? `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'ص' : 'م'}` : `${h % 12 || 12}:${String(m).padStart(2, '0')}${h < 12 ? 'am' : 'pm'}`
-    return `${day} ${dayMonth(d)} · ${time}`
+    return `${day} ${dayMonth(d)} · ${clock(h, m)}`
   }
+  const tomorrow = daysAgo(-1)
+  // Pre-ordered items for tomorrow, summed, with the time the first one is needed.
+  const itemName = (en: string) => { const it = items.find(i => i.name.en === en); return it ? tx(it.name) : en }
+  const prep = Object.values(TOMORROW.reduce<Record<string, { en: string; qty: number; at: [number, number] }>>((acc, v) => {
+    v.order?.forEach(([en, q]) => { acc[en] ??= { en, qty: 0, at: v.at }; acc[en].qty += q })
+    return acc
+  }, {})).sort((a, b) => b.qty - a.qty)
+  const people = (p: number) => t(p === 1 ? 'شخص' : p === 2 ? 'شخصين' : `${p} أشخاص`, `${p} ${p === 1 ? 'person' : 'people'}`)
+  const kindLabel = (k: Visit['kind']) => k === 'visit' ? t('بس زيارة', 'Just visiting') : k === 'need' ? t('يبي مساعدة', 'Needs help') : t('يقدر يساعد', 'Can help')
   const an = (x: string) => `${/^[aeiou]/i.test(x) ? 'An' : 'A'} ${x.toLowerCase()}`
   const k = SCALE[period]
   const n = (x: number) => Math.max(1, Math.round(x * k))
@@ -167,6 +200,7 @@ export default function Insights({ items }: { items: Item[] }) {
           <div><b>6</b><small>{t('طاولات', 'tables')}</small></div>
         </div>
         <p className="o-note"><Sparkles />{t(`أكثر وقت زحمة 4م، وأكثر صنف مطلوب مسبقًا ${top[0] ? tx(top[0].item.name) : ''}. جهّز له بدري.`, `Busiest at 4pm, and the most pre-ordered item is ${top[0] ? tx(top[0].item.name) : ''}. Get it ready early.`)}</p>
+        <button type="button" className="o-more" onClick={() => setTomorrowOpen(true)}>{t('شوف التفاصيل', 'See details')}<Fwd /></button>
       </section>
 
       {lost && (
@@ -211,6 +245,43 @@ export default function Insights({ items }: { items: Item[] }) {
                   {m.tags.map(tag => <span key={tag[1]}>{pick(tag)}</span>)}
                   <span className="o-meet-order">{t(`${m.ordered === 1 ? 'طلب واحد' : m.ordered === 2 ? 'طلبين' : `${m.ordered} طلبات`}`, `${m.ordered} order${m.ordered === 1 ? '' : 's'}`)}</span>
                   {m.again && <span className="o-meet-again"><MessageCircleHeart />{t('اتفقوا يلتقون مرة ثانية هنا', 'Plan to meet here again')}</span>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Sheet>
+      )}
+
+      {tomorrowOpen && (
+        <Sheet title={t('زيارات بكرة', "Tomorrow's visits")} onClose={() => setTomorrowOpen(false)}>
+          <p className="o-range"><CalendarDays />{`${tomorrow.toLocaleDateString(loc, { weekday: 'long' })} ${dayMonth(tomorrow)}`}</p>
+          <div className="o-meet-stats">
+            <div><b>{TOMORROW.length}</b><small>{t('زيارة مجدولة', 'planned visits')}</small></div>
+            <div><b>{TOMORROW.filter(v => v.order).length}</b><small>{t('طلب مسبق', 'pre-orders')}</small></div>
+            <div><b>{TOMORROW.filter(v => v.seat).length}</b><small>{t('طاولات', 'tables')}</small></div>
+          </div>
+
+          <h4 className="o-sheet-h">{t('جهّز هذي', 'Get these ready')}</h4>
+          <ul className="o-prep">
+            {prep.map(p => (
+              <li key={p.en}><b>{p.qty}×</b><span>{itemName(p.en)}</span><small>{t(`أول واحد ${clock(...p.at)}`, `first at ${clock(...p.at)}`)}</small></li>
+            ))}
+          </ul>
+
+          <h4 className="o-sheet-h">{t('الجدول', 'Schedule')}</h4>
+          <p className="o-note"><Lock />{t('ما نعرض أسماء ولا صور. تشوف الوقت والعدد وسبب الزيارة بس.', 'No names or photos. You only see the time, party size and reason for the visit.')}</p>
+          <ul className="o-visit-list">
+            {TOMORROW.map((v, i) => (
+              <li key={i}>
+                <span className="o-visit-time">{clock(...v.at)}</span>
+                <div>
+                  <b>{kindLabel(v.kind)} · {pick(v.tag)}</b>
+                  <p>{people(v.ppl)}{v.seat && <> · <Armchair />{pick(v.seat)}</>}</p>
+                  {v.order && (
+                    <div className="o-meet-tags">
+                      {v.order.map(([en, q]) => <span key={en} className="o-meet-order">{q > 1 ? `${q}× ` : ''}{itemName(en)}</span>)}
+                    </div>
+                  )}
                 </div>
               </li>
             ))}
