@@ -526,7 +526,7 @@ function Review(props: MenuProps & { source: Source; platform: string; onNext: (
 }
 
 /* ---------- Bottom sheets ---------- */
-function Sheet({ title, onClose, children, footer }: { title: string; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
+export function Sheet({ title, onClose, children, footer }: { title: string; onClose: () => void; children: ReactNode; footer?: ReactNode }) {
   const { t } = useT()
   useEffect(() => { const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose(); addEventListener('keydown', k); return () => removeEventListener('keydown', k) }, [onClose])
   return (

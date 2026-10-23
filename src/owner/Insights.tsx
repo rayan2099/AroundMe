@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { Armchair, CalendarClock, Clock, HeartHandshake, Repeat, Sparkles, TrendingUp, UserPlus, Wallet, Zap } from 'lucide-react'
-import { useT } from './Owner'
+import { Armchair, CalendarClock, ChevronLeft, ChevronRight, Clock, HeartHandshake, Lightbulb, Lock, MessageCircleHeart, Repeat, Sparkles, TrendingUp, UserPlus, Wallet, Zap } from 'lucide-react'
+import { Sheet, useT } from './Owner'
 import type { Item } from './data'
 
 type Period = 'day' | 'week' | 'month'
@@ -13,12 +13,32 @@ const WEEK = { revenue: 12840, visits: 214, newShare: 0.38, returnRate: 42, orde
 const HOURS = [6, 14, 16, 11, 8, 7, 12, 15, 16, 13, 10, 14, 20, 22, 18, 8, 4]
 const FIRST_HOUR = 7
 const QUIET = [13, 14, 15, 16]
+type T2 = [string, string]
+// Meetups at the café. Owners see what kind of help happened, never who: no names or photos.
+// Help is one-way: one person needed help and another helped.
+const MEETUPS: { helper: T2; f?: boolean; helped: T2; topic: T2; tags: T2[]; when: T2; mins: number; seat: T2; ordered: number; again?: boolean }[] = [
+  { helper: ['مطور تطبيقات', 'App developer'], helped: ['صاحبة مشروع ناشئ', 'Startup founder'], topic: ['تطبيقها يعلّق في صفحة الدفع', 'Her app froze on the payment page'], tags: [['برمجة', 'Coding'], ['تطبيقات', 'Apps']], when: ['اليوم 4:10 م', 'Today 4:10pm'], mins: 25, seat: ['عند النافذة', 'By the window'], ordered: 2, again: true },
+  { helper: ['مصممة جرافيك', 'Graphic designer'], f: true, helped: ['صاحب متجر إلكتروني', 'Online store owner'], topic: ['رأي في شعار المتجر الجديد', 'Feedback on a new store logo'], tags: [['تصميم', 'Design'], ['هوية بصرية', 'Branding']], when: ['اليوم 2:35 م', 'Today 2:35pm'], mins: 15, seat: ['الطاولة الطويلة', 'Long table'], ordered: 2 },
+  { helper: ['محللة مالية', 'Financial analyst'], f: true, helped: ['رائد أعمال', 'Entrepreneur'], topic: ['مراجعة جدول التدفقات النقدية', 'Reviewing a cash-flow sheet'], tags: [['مالية', 'Finance'], ['Excel', 'Excel']], when: ['أمس 6:20 م', 'Yesterday 6:20pm'], mins: 30, seat: ['منطقة الهدوء', 'Quiet area'], ordered: 3, again: true },
+  { helper: ['مختص تسويق رقمي', 'Digital marketer'], helped: ['صاحبة مشروع هدايا', 'Gift shop owner'], topic: ['خطة إعلان على سناب', 'A Snapchat ad plan'], tags: [['تسويق', 'Marketing']], when: ['أمس 5:05 م', 'Yesterday 5:05pm'], mins: 20, seat: ['الجلسات الخارجية', 'Outdoor seating'], ordered: 2 },
+  { helper: ['كاتبة إعلانية', 'Copywriter'], f: true, helped: ['طالب جامعي', 'University student'], topic: ['تدقيق رسالة تقديم وظيفة', 'Proofreading a job cover letter'], tags: [['كتابة', 'Writing']], when: ['الثلاثاء 3:40 م', 'Tuesday 3:40pm'], mins: 10, seat: ['قريب من الكاونتر', 'Near the counter'], ordered: 1 },
+  { helper: ['مصور منتجات', 'Product photographer'], helped: ['صاحبة متجر عطور', 'Perfume shop owner'], topic: ['تصوير منتجات بالجوال', 'Shooting products on a phone'], tags: [['تصوير', 'Photography']], when: ['الإثنين 1:15 م', 'Monday 1:15pm'], mins: 25, seat: ['عند النافذة', 'By the window'], ordered: 2 },
+]
+// What the café's AroundMe customers say they can help with, and what they come needing help with (share of people).
+const SKILLS: [T2, number][] = [[['برمجة وتطبيقات', 'Coding and apps'], 31], [['تصميم', 'Design'], 22], [['تسويق', 'Marketing'], 17], [['مالية وExcel', 'Finance and Excel'], 12], [['كتابة وترجمة', 'Writing and translation'], 10], [['تصوير', 'Photography'], 8]]
+const NEEDS: [T2, number][] = [[['مراجعة فكرة مشروع', 'Startup idea feedback'], 28], [['حل مشكلة كود', 'Fixing code'], 24], [['تصميم عرض أو شعار', 'Deck or logo design'], 19], [['تسويق وإعلانات', 'Marketing and ads'], 15], [['مذاكرة وواجبات', 'Studying'], 14]]
+const PEOPLE: [T2, number][] = [[['موظفين', 'Employees'], 38], [['مستقلين', 'Freelancers'], 27], [['رواد أعمال', 'Founders'], 21], [['طلاب', 'Students'], 14]]
+
 const TOP = [['Spanish latte', 64], ['San Sebastián cheesecake', 41], ['Butter croissant', 33], ['Iced latte', 25]] as const
 
 export default function Insights({ items }: { items: Item[] }) {
   const { t, tx, sar, lang } = useT()
   const [period, setPeriod] = useState<Period>('week')
   const [hover, setHover] = useState<number | null>(null)
+  const [meetupsOpen, setMeetupsOpen] = useState(false)
+  const pick = (x: T2) => (lang === 'ar' ? x[0] : x[1])
+  const Fwd = lang === 'ar' ? ChevronLeft : ChevronRight
+  const an = (x: string) => `${/^[aeiou]/i.test(x) ? 'An' : 'A'} ${x.toLowerCase()}`
   const k = SCALE[period]
   const n = (x: number) => Math.max(1, Math.round(x * k))
   const fmt = (x: number) => x.toLocaleString('en-US')
@@ -65,13 +85,14 @@ export default function Insights({ items }: { items: Item[] }) {
         <span><em><TrendingUp />{GROWTH[period]}%</em>{t(`من ${fmt(visits)} زيارة · ${fmt(orders)} طلب`, `from ${fmt(visits)} visits · ${fmt(orders)} orders`)}</span>
       </div>
 
-      <div className="o-meetups">
+      <button type="button" className="o-meetups" onClick={() => setMeetupsOpen(true)}>
         <span className="o-meetups-icon"><HeartHandshake /></span>
         <div>
           <b>{t(`${fmt(n(WEEK.meetups))} لقاء صار في كافيهك`, `${fmt(n(WEEK.meetups))} meetups happened at your café`)}</b>
           <small>{t('ناس ساعدوا بعض على طاولاتك. هذا اللي يخلّيهم يختارونك على غيرك.', 'People helped each other at your tables. This is why they pick you over the café next door.')}</small>
+          <em>{t('شوف التفاصيل', 'See details')}<Fwd /></em>
         </div>
-      </div>
+      </button>
 
       <div className="o-tiles">
         {tiles.map(([icon, v, label, sub]) => (
@@ -83,6 +104,23 @@ export default function Insights({ items }: { items: Item[] }) {
           </div>
         ))}
       </div>
+
+      <section className="o-card">
+        <h3>{t('مين عملاؤك', 'Who your customers are')}</h3>
+        <p className="o-card-sub">{t('من المهارات والاحتياجات اللي كتبوها في AroundMe', 'From the skills and needs they shared on AroundMe')}</p>
+        <div className="o-people">
+          {PEOPLE.map(([l, v]) => <div key={l[1]}><b>{v}%</b><small>{pick(l)}</small></div>)}
+        </div>
+        <h4 className="o-sub-h">{t('يقدرون يساعدون في', 'They can help with')}</h4>
+        <ul className="o-top-items">
+          {SKILLS.map(([l, v]) => <li key={l[1]}><span className="o-top-name">{pick(l)}</span><span className="o-top-bar"><i style={{ width: `${(v / SKILLS[0][1]) * 100}%` }} /></span><b>{v}%</b></li>)}
+        </ul>
+        <h4 className="o-sub-h">{t('يجون يحتاجون مساعدة في', 'They come needing help with')}</h4>
+        <ul className="o-top-items needs">
+          {NEEDS.map(([l, v]) => <li key={l[1]}><span className="o-top-name">{pick(l)}</span><span className="o-top-bar"><i style={{ width: `${(v / NEEDS[0][1]) * 100}%` }} /></span><b>{v}%</b></li>)}
+        </ul>
+        <p className="o-note"><Lightbulb />{t('كافيهك صار مكان المبرمجين والمصممين ورواد الأعمال. فكّر في ركن هادئ بمقابس، أو باقة «جلسة عمل» قهوة ومعجنات بسعر واحد.', 'Your café has become a spot for developers, designers and founders. Think about a quiet corner with sockets, or a “work session” bundle of coffee and a pastry at one price.')}</p>
+      </section>
 
       <section className="o-card">
         <h3>{t('متى يجيك عملاء AroundMe', 'When AroundMe customers come')}</h3>
@@ -133,6 +171,31 @@ export default function Insights({ items }: { items: Item[] }) {
             ))}
           </ul>
         </section>
+      )}
+
+      {meetupsOpen && (
+        <Sheet title={t('لقاءات في كافيهك', 'Meetups at your café')} onClose={() => setMeetupsOpen(false)}>
+          <div className="o-meet-stats">
+            <div><b>{fmt(n(WEEK.meetups))}</b><small>{t('لقاء', 'meetups')}</small></div>
+            <div><b>{t('21 د', '21 min')}</b><small>{t('متوسط اللقاء', 'average length')}</small></div>
+            <div><b>91%</b><small>{t('قالوا التقينا', 'said they met')}</small></div>
+          </div>
+          <p className="o-note"><Lock />{t('ما نعرض أسماء ولا صور. تشوف نوع المساعدة ووقتها ومكانها بس.', 'No names or photos. You only see the kind of help, when and where.')}</p>
+          <ul className="o-meet-list">
+            {MEETUPS.map((m, i) => (
+              <li key={i}>
+                <div className="o-meet-top"><span>{pick(m.when)} · {t(`${m.mins} دقيقة`, `${m.mins} min`)}</span><span>{pick(m.seat)}</span></div>
+                <b>{pick(m.topic)}</b>
+                <p>{t(`${pick(m.helper)} ${m.f ? 'ساعدت' : 'ساعد'} ${pick(m.helped)}`, `${an(pick(m.helper))} helped ${an(pick(m.helped)).toLowerCase()}`)}</p>
+                <div className="o-meet-tags">
+                  {m.tags.map(tag => <span key={tag[1]}>{pick(tag)}</span>)}
+                  <span className="o-meet-order">{t(`${m.ordered === 1 ? 'طلب واحد' : m.ordered === 2 ? 'طلبين' : `${m.ordered} طلبات`}`, `${m.ordered} order${m.ordered === 1 ? '' : 's'}`)}</span>
+                  {m.again && <span className="o-meet-again"><MessageCircleHeart />{t('اتفقوا يلتقون مرة ثانية هنا', 'Plan to meet here again')}</span>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Sheet>
       )}
 
       <p className="o-fine">{t('أرقام تجريبية تورّيك شكل لوحتك بعد أول أسابيعك على AroundMe', 'Sample numbers showing how your dashboard looks after your first weeks on AroundMe')}</p>
