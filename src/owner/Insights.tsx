@@ -1,7 +1,12 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { Armchair, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Clock, HeartHandshake, Lightbulb, Lock, MessageCircleHeart, Repeat, ShoppingBag, Sparkles, TrendingUp, UserPlus, Wallet, Zap } from 'lucide-react'
+import { Armchair, CalendarClock, Check, Coffee, Gift, Percent, Send, CalendarDays, ChevronLeft, ChevronRight, Clock, HeartHandshake, Lightbulb, Lock, MessageCircleHeart, Repeat, ShoppingBag, Sparkles, TrendingUp, UserPlus, Wallet, Zap } from 'lucide-react'
 import { Sheet, useT } from './Owner'
+
+// A thank-you the café sends to a pair who agreed to meet there again. It reaches them through the app, so the café still never learns who they are.
+type Offer = { kind: 'drink' | 'sweet' | 'off'; pct: number; days: number; note: string; used?: boolean }
+const PCTS = [10, 15, 20, 25, 50]
+const DAYS = [7, 14, 30]
 import type { Item } from './data'
 
 type Period = 'day' | 'week' | 'month'
@@ -59,6 +64,11 @@ export default function Insights({ items }: { items: Item[] }) {
   const [period, setPeriod] = useState<Period>('week')
   const [hover, setHover] = useState<number | null>(null)
   const [meetupsOpen, setMeetupsOpen] = useState(false)
+  // Sample: the first pair already got a free drink and came back with it.
+  const [offers, setOffers] = useState<Record<number, Offer>>({ 0: { kind: 'drink', pct: 0, days: 14, note: '', used: true } })
+  const [offerFor, setOfferFor] = useState<number | null>(null)
+  const [draft, setDraft] = useState<Offer>({ kind: 'drink', pct: 20, days: 14, note: '' })
+  const [sentToast, setSentToast] = useState(false)
   const [tomorrowTab, setTomorrowTab] = useState<'visits' | 'orders' | 'tables' | null>(null)
   const pick = (x: T2) => (lang === 'ar' ? x[0] : x[1])
   const Fwd = lang === 'ar' ? ChevronLeft : ChevronRight
@@ -87,6 +97,10 @@ export default function Insights({ items }: { items: Item[] }) {
   const parts = PARTS.map(([label, end], i) => ({ label, visits: TOMORROW.filter(v => v.at[0] < end && v.at[0] >= (i ? PARTS[i - 1][1] : 0)) })).filter(g => g.visits.length)
   const orderText = (o: [string, number][]) => o.map(([en, q]) => `${q > 1 ? `${q}× ` : ''}${itemName(en)}`).join(t('، ', ', '))
   const kindLabel = (k: Visit['kind']) => k === 'visit' ? t('زيارة فقط', 'Just visiting') : k === 'need' ? t('يحتاج مساعدة', 'Needs help') : t('يستطيع المساعدة', 'Can help')
+  const offerText = (o: Offer) => o.kind === 'drink' ? t('مشروب مجاني لكل منهما', 'A free drink each') : o.kind === 'sweet' ? t('حلى مجاني لكل منهما', 'A free dessert each') : t(`خصم ${o.pct}% على طلبهما`, `${o.pct}% off their order`)
+  const daysText = (d: number) => t(d === 7 ? 'أسبوع' : d === 14 ? 'أسبوعين' : 'شهر', d === 7 ? '1 week' : d === 14 ? '2 weeks' : '1 month')
+  const openOffer = (i: number) => { setDraft({ kind: 'drink', pct: 20, days: 14, note: '' }); setOfferFor(i) }
+  const sendOffer = () => { if (offerFor == null) return; setOffers(o => ({ ...o, [offerFor]: draft })); setOfferFor(null); setSentToast(true); setTimeout(() => setSentToast(false), 2600) }
   const an = (x: string) => `${/^[aeiou]/i.test(x) ? 'An' : 'A'} ${x.toLowerCase()}`
   const k = SCALE[period]
   const n = (x: number) => Math.max(1, Math.round(x * k))
@@ -229,7 +243,7 @@ export default function Insights({ items }: { items: Item[] }) {
         </section>
       )}
 
-      {meetupsOpen && (
+      {meetupsOpen && offerFor == null && (
         <Sheet title={t('لقاءات في كافيهك', 'Meetups at your café')} onClose={() => setMeetupsOpen(false)}>
           <p className="o-range"><CalendarDays />{range}</p>
           <div className="o-meet-stats">
@@ -249,11 +263,54 @@ export default function Insights({ items }: { items: Item[] }) {
                   <span className="o-meet-order">{t(`${m.ordered === 1 ? 'طلب واحد' : m.ordered === 2 ? 'طلبين' : `${m.ordered} طلبات`}`, `${m.ordered} order${m.ordered === 1 ? '' : 's'}`)}</span>
                   {m.again && <span className="o-meet-again"><MessageCircleHeart />{t('اتفقوا على اللقاء هنا مرة أخرى', 'Plan to meet here again')}</span>}
                 </div>
+                {m.again && (offers[i] ? (
+                  <div className={`o-offer-sent ${offers[i].used ? 'used' : ''}`}>
+                    <Gift />
+                    <span><b>{offerText(offers[i])}</b><small>{offers[i].used ? t('استخدماه وعادا إلى الكافيه', 'They used it and came back') : t(`أُرسل إليهما · صالح ${daysText(offers[i].days)} · لم يُستخدم بعد`, `Sent · valid ${daysText(offers[i].days)} · not used yet`)}</small></span>
+                    {offers[i].used && <Check />}
+                  </div>
+                ) : (
+                  <button type="button" className="o-offer-btn" onClick={() => openOffer(i)}><Gift />{t('شجّعهما على العودة بعرض', 'Invite them back with an offer')}</button>
+                ))}
               </li>
             ))}
           </ul>
         </Sheet>
       )}
+
+      {offerFor != null && (
+        <Sheet title={t('عرض للعودة', 'Come-back offer')} onClose={() => setOfferFor(null)} footer={
+          <>
+            <button type="button" className="o-primary" onClick={sendOffer}><Send />{t('أرسل العرض', 'Send offer')}</button>
+            <button type="button" className="o-text-btn" onClick={() => setOfferFor(null)}>{t('رجوع', 'Back')}</button>
+          </>
+        }>
+          <p className="o-offer-for"><MessageCircleHeart /><span><b>{pick(MEETUPS[offerFor].topic)}</b><small>{t('اتفقا على اللقاء في كافيهك مرة أخرى', 'They agreed to meet at your café again')}</small></span></p>
+          <span className="o-label">{t('نوع العرض', 'Offer')}</span>
+          <div className="o-offer-kinds">
+            {([['drink', <Coffee />, t('مشروب مجاني', 'Free drink')], ['sweet', <Gift />, t('حلى مجاني', 'Free dessert')], ['off', <Percent />, t('خصم', 'Discount')]] as const).map(([k, icon, label]) => (
+              <button key={k} type="button" className={draft.kind === k ? 'active' : ''} aria-pressed={draft.kind === k} onClick={() => setDraft(d => ({ ...d, kind: k }))}>{icon}{label}</button>
+            ))}
+          </div>
+          {draft.kind === 'off' && (
+            <>
+              <span className="o-label">{t('نسبة الخصم', 'Discount')}</span>
+              <div className="o-chips wrap">{PCTS.map(p => <button key={p} type="button" className={`o-chip ${draft.pct === p ? 'active' : ''}`} onClick={() => setDraft(d => ({ ...d, pct: p }))}>{p}%</button>)}</div>
+            </>
+          )}
+          <span className="o-label">{t('صالح لمدة', 'Valid for')}</span>
+          <div className="o-chips wrap">{DAYS.map(d => <button key={d} type="button" className={`o-chip ${draft.days === d ? 'active' : ''}`} onClick={() => setDraft(x => ({ ...x, days: d }))}>{daysText(d)}</button>)}</div>
+          <label className="o-label" htmlFor="o-offer-note">{t('رسالة قصيرة (اختياري)', 'Short message (optional)')}</label>
+          <input id="o-offer-note" className="o-field" value={draft.note} maxLength={80} onChange={e => setDraft(d => ({ ...d, note: e.target.value }))} placeholder={t('مثلًا: سعدنا بزيارتكما، ننتظركما مرة أخرى', 'e.g. Glad you met here, see you again')} />
+          <span className="o-label">{t('هكذا يصلهما', 'What they see')}</span>
+          <div className="o-offer-preview">
+            <Gift />
+            <span><b>{offerText(draft)}</b><small>{draft.note.trim() || t('شكرًا للقائكما عندنا، ننتظركما في الزيارة القادمة.', 'Thanks for meeting here. See you next time.')}</small><em>{t(`صالح ${daysText(draft.days)} · يظهر عند الطلب من التطبيق`, `Valid ${daysText(draft.days)} · applied when they order in the app`)}</em></span>
+          </div>
+          <p className="o-note"><Lock />{t('يصل العرض إليهما عبر التطبيق، ولا تظهر لك أسماؤهما.', 'The offer reaches them through the app. You still never see their names.')}</p>
+        </Sheet>
+      )}
+      {sentToast && <div className="o-toast" role="status"><Check />{t('أرسلنا العرض إليهما', 'Offer sent to both')}</div>}
 
       {tomorrowTab && (
         <Sheet title={t('زيارات الغد', "Tomorrow's visits")} onClose={() => setTomorrowTab(null)}>
