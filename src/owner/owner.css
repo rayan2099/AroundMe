@@ -386,7 +386,8 @@ svg { flex: none; }
 .o-meetups-icon svg { width: 22px; }
 .o-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .o-tile { padding: 14px; border-radius: 18px; background: #fff; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 1px; }
-.o-tile-icon { width: 30px; height: 30px; border-radius: 10px; background: var(--green-soft); color: var(--green); display: grid; place-items: center; margin-bottom: 8px; }
+.o-tile-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.o-tile-icon { width: 34px; height: 34px; border-radius: 11px; background: var(--green-soft); color: var(--green); display: grid; place-items: center; flex: none; }
 .o-tile-icon svg { width: 16px; }
 .o-tile b { font-size: 21px; font-weight: 800; line-height: 1.3; }
 .o-tile-label { font-size: 13px; font-weight: 700; }
@@ -505,3 +506,8 @@ button.o-meetups { width: 100%; text-align: start; }
   html.o-web .o-sheet { max-width: 560px; max-height: 86vh; border-radius: 24px; }
   html.o-web .o-toast { inset-inline: auto; left: 50%; transform: translateX(-50%); bottom: 32px; width: max-content; max-width: 480px; }
 }
+
+.o-range { display: flex; align-items: center; gap: 6px; margin: -2px 0 0; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.o-range svg { width: 14px; color: var(--green); }
+.o-sheet-body > .o-range { margin: 2px 0 10px; }
+@media (min-width: 900px) { html.o-web .o-range { grid-column: 1 / -1; } }

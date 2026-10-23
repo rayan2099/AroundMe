@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { Armchair, CalendarClock, ChevronLeft, ChevronRight, Clock, HeartHandshake, Lightbulb, Lock, MessageCircleHeart, Repeat, Sparkles, TrendingUp, UserPlus, Wallet, Zap } from 'lucide-react'
+import { Armchair, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Clock, HeartHandshake, Lightbulb, Lock, MessageCircleHeart, Repeat, Sparkles, TrendingUp, UserPlus, Wallet, Zap } from 'lucide-react'
 import { Sheet, useT } from './Owner'
 import type { Item } from './data'
 
@@ -16,13 +16,13 @@ const QUIET = [13, 14, 15, 16]
 type T2 = [string, string]
 // Meetups at the café. Owners see what kind of help happened, never who: no names or photos.
 // Help is one-way: one person needed help and another helped.
-const MEETUPS: { helper: T2; f?: boolean; helped: T2; topic: T2; tags: T2[]; when: T2; mins: number; seat: T2; ordered: number; again?: boolean }[] = [
-  { helper: ['مطور تطبيقات', 'App developer'], helped: ['صاحبة مشروع ناشئ', 'Startup founder'], topic: ['تطبيقها يعلّق في صفحة الدفع', 'Her app froze on the payment page'], tags: [['برمجة', 'Coding'], ['تطبيقات', 'Apps']], when: ['اليوم 4:10 م', 'Today 4:10pm'], mins: 25, seat: ['عند النافذة', 'By the window'], ordered: 2, again: true },
-  { helper: ['مصممة جرافيك', 'Graphic designer'], f: true, helped: ['صاحب متجر إلكتروني', 'Online store owner'], topic: ['رأي في شعار المتجر الجديد', 'Feedback on a new store logo'], tags: [['تصميم', 'Design'], ['هوية بصرية', 'Branding']], when: ['اليوم 2:35 م', 'Today 2:35pm'], mins: 15, seat: ['الطاولة الطويلة', 'Long table'], ordered: 2 },
-  { helper: ['محللة مالية', 'Financial analyst'], f: true, helped: ['رائد أعمال', 'Entrepreneur'], topic: ['مراجعة جدول التدفقات النقدية', 'Reviewing a cash-flow sheet'], tags: [['مالية', 'Finance'], ['Excel', 'Excel']], when: ['أمس 6:20 م', 'Yesterday 6:20pm'], mins: 30, seat: ['منطقة الهدوء', 'Quiet area'], ordered: 3, again: true },
-  { helper: ['مختص تسويق رقمي', 'Digital marketer'], helped: ['صاحبة مشروع هدايا', 'Gift shop owner'], topic: ['خطة إعلان على سناب', 'A Snapchat ad plan'], tags: [['تسويق', 'Marketing']], when: ['أمس 5:05 م', 'Yesterday 5:05pm'], mins: 20, seat: ['الجلسات الخارجية', 'Outdoor seating'], ordered: 2 },
-  { helper: ['كاتبة إعلانية', 'Copywriter'], f: true, helped: ['طالب جامعي', 'University student'], topic: ['تدقيق رسالة تقديم وظيفة', 'Proofreading a job cover letter'], tags: [['كتابة', 'Writing']], when: ['الثلاثاء 3:40 م', 'Tuesday 3:40pm'], mins: 10, seat: ['قريب من الكاونتر', 'Near the counter'], ordered: 1 },
-  { helper: ['مصور منتجات', 'Product photographer'], helped: ['صاحبة متجر عطور', 'Perfume shop owner'], topic: ['تصوير منتجات بالجوال', 'Shooting products on a phone'], tags: [['تصوير', 'Photography']], when: ['الإثنين 1:15 م', 'Monday 1:15pm'], mins: 25, seat: ['عند النافذة', 'By the window'], ordered: 2 },
+const MEETUPS: { helper: T2; f?: boolean; helped: T2; topic: T2; tags: T2[]; when: [number, number, number]; mins: number; seat: T2; ordered: number; again?: boolean }[] = [
+  { helper: ['مطور تطبيقات', 'App developer'], helped: ['صاحبة مشروع ناشئ', 'Startup founder'], topic: ['تطبيقها يعلّق في صفحة الدفع', 'Her app froze on the payment page'], tags: [['برمجة', 'Coding'], ['تطبيقات', 'Apps']], when: [0, 16, 10], mins: 25, seat: ['عند النافذة', 'By the window'], ordered: 2, again: true },
+  { helper: ['مصممة جرافيك', 'Graphic designer'], f: true, helped: ['صاحب متجر إلكتروني', 'Online store owner'], topic: ['رأي في شعار المتجر الجديد', 'Feedback on a new store logo'], tags: [['تصميم', 'Design'], ['هوية بصرية', 'Branding']], when: [0, 14, 35], mins: 15, seat: ['الطاولة الطويلة', 'Long table'], ordered: 2 },
+  { helper: ['محللة مالية', 'Financial analyst'], f: true, helped: ['رائد أعمال', 'Entrepreneur'], topic: ['مراجعة جدول التدفقات النقدية', 'Reviewing a cash-flow sheet'], tags: [['مالية', 'Finance'], ['Excel', 'Excel']], when: [1, 18, 20], mins: 30, seat: ['منطقة الهدوء', 'Quiet area'], ordered: 3, again: true },
+  { helper: ['مختص تسويق رقمي', 'Digital marketer'], helped: ['صاحبة مشروع هدايا', 'Gift shop owner'], topic: ['خطة إعلان على سناب', 'A Snapchat ad plan'], tags: [['تسويق', 'Marketing']], when: [1, 17, 5], mins: 20, seat: ['الجلسات الخارجية', 'Outdoor seating'], ordered: 2 },
+  { helper: ['كاتبة إعلانية', 'Copywriter'], f: true, helped: ['طالب جامعي', 'University student'], topic: ['تدقيق رسالة تقديم وظيفة', 'Proofreading a job cover letter'], tags: [['كتابة', 'Writing']], when: [2, 15, 40], mins: 10, seat: ['قريب من الكاونتر', 'Near the counter'], ordered: 1 },
+  { helper: ['مصور منتجات', 'Product photographer'], helped: ['صاحبة متجر عطور', 'Perfume shop owner'], topic: ['تصوير منتجات بالجوال', 'Shooting products on a phone'], tags: [['تصوير', 'Photography']], when: [3, 13, 15], mins: 25, seat: ['عند النافذة', 'By the window'], ordered: 2 },
 ]
 // What the café's AroundMe customers say they can help with, and what they come needing help with (share of people).
 const SKILLS: [T2, number][] = [[['برمجة وتطبيقات', 'Coding and apps'], 31], [['تصميم', 'Design'], 22], [['تسويق', 'Marketing'], 17], [['مالية وExcel', 'Finance and Excel'], 12], [['كتابة وترجمة', 'Writing and translation'], 10], [['تصوير', 'Photography'], 8]]
@@ -38,6 +38,19 @@ export default function Insights({ items }: { items: Item[] }) {
   const [meetupsOpen, setMeetupsOpen] = useState(false)
   const pick = (x: T2) => (lang === 'ar' ? x[0] : x[1])
   const Fwd = lang === 'ar' ? ChevronLeft : ChevronRight
+  // Gregorian dates with Western digits in both languages (plain 'ar' could fall back to the Hijri calendar on some devices).
+  const loc = lang === 'ar' ? 'ar-u-ca-gregory-nu-latn' : 'en-US'
+  const dayMonth = (d: Date) => d.toLocaleDateString(loc, { day: 'numeric', month: 'long' })
+  const daysAgo = (n: number) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n); return d }
+  const today = daysAgo(0)
+  const rangeFrom = period === 'day' ? today : period === 'week' ? daysAgo(6) : new Date(today.getFullYear(), today.getMonth(), 1)
+  const range = period === 'day' ? `${today.toLocaleDateString(loc, { weekday: 'long' })} ${dayMonth(today)}` : `${dayMonth(rangeFrom)} – ${dayMonth(today)}`
+  const meetWhen = ([ago, h, m]: [number, number, number]) => {
+    const d = daysAgo(ago); d.setHours(h, m)
+    const day = ago === 0 ? t('اليوم', 'Today') : ago === 1 ? t('أمس', 'Yesterday') : d.toLocaleDateString(loc, { weekday: 'long' })
+    const time = lang === 'ar' ? `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'ص' : 'م'}` : `${h % 12 || 12}:${String(m).padStart(2, '0')}${h < 12 ? 'am' : 'pm'}`
+    return `${day} ${dayMonth(d)} · ${time}`
+  }
   const an = (x: string) => `${/^[aeiou]/i.test(x) ? 'An' : 'A'} ${x.toLowerCase()}`
   const k = SCALE[period]
   const n = (x: number) => Math.max(1, Math.round(x * k))
@@ -78,6 +91,7 @@ export default function Insights({ items }: { items: Item[] }) {
           </button>
         ))}
       </div>
+      <p className="o-range"><CalendarDays />{range}</p>
 
       <div className="o-hero-stat">
         <small>{t('دخل جابه لك AroundMe', 'Revenue AroundMe brought you')}</small>
@@ -97,8 +111,7 @@ export default function Insights({ items }: { items: Item[] }) {
       <div className="o-tiles">
         {tiles.map(([icon, v, label, sub]) => (
           <div key={label} className="o-tile">
-            <span className="o-tile-icon">{icon}</span>
-            <b>{v}</b>
+            <span className="o-tile-head"><span className="o-tile-icon">{icon}</span><b>{v}</b></span>
             <span className="o-tile-label">{label}</span>
             <small>{sub}</small>
           </div>
@@ -181,6 +194,7 @@ export default function Insights({ items }: { items: Item[] }) {
 
       {meetupsOpen && (
         <Sheet title={t('لقاءات في كافيهك', 'Meetups at your café')} onClose={() => setMeetupsOpen(false)}>
+          <p className="o-range"><CalendarDays />{range}</p>
           <div className="o-meet-stats">
             <div><b>{fmt(n(WEEK.meetups))}</b><small>{t('لقاء', 'meetups')}</small></div>
             <div><b>{t('21 د', '21 min')}</b><small>{t('متوسط اللقاء', 'average length')}</small></div>
@@ -188,9 +202,9 @@ export default function Insights({ items }: { items: Item[] }) {
           </div>
           <p className="o-note"><Lock />{t('ما نعرض أسماء ولا صور. تشوف نوع المساعدة ووقتها ومكانها بس.', 'No names or photos. You only see the kind of help, when and where.')}</p>
           <ul className="o-meet-list">
-            {MEETUPS.map((m, i) => (
+            {MEETUPS.filter(m => period !== 'day' || m.when[0] === 0).map((m, i) => (
               <li key={i}>
-                <div className="o-meet-top"><span>{pick(m.when)} · {t(`${m.mins} دقيقة`, `${m.mins} min`)}</span><span>{pick(m.seat)}</span></div>
+                <div className="o-meet-top"><span>{meetWhen(m.when)} · {t(`${m.mins} دقيقة`, `${m.mins} min`)}</span><span>{pick(m.seat)}</span></div>
                 <b>{pick(m.topic)}</b>
                 <p>{t(`${pick(m.helper)} ${m.f ? 'ساعدت' : 'ساعد'} ${pick(m.helped)}`, `${an(pick(m.helper))} helped ${an(pick(m.helped)).toLowerCase()}`)}</p>
                 <div className="o-meet-tags">
