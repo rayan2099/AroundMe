@@ -450,3 +450,58 @@ button.o-meetups { width: 100%; text-align: start; }
 .o-sub-h { margin: 18px 0 0; font-size: 13px; font-weight: 700; color: #4d4943; }
 .o-top-items.needs .o-top-bar i { background: var(--orange); }
 .o-top-items + .o-note { margin-top: 14px; }
+
+/* ---------- Computer layout (owner-web.html). Phones and narrow windows keep the mobile layout above. ---------- */
+@media (min-width: 900px) {
+  html.o-web .o-shell { padding: 0; align-items: stretch; }
+  html.o-web body, html.o-web .o-shell { background: var(--bg); }
+  html.o-web .o-screen { width: 100%; max-width: none; height: 100dvh; border: 0; border-radius: 0; box-shadow: none; }
+  html.o-web .o-top { --gutter: 32px; min-height: 68px; border-bottom: 1px solid var(--border); background: #fff; padding-top: 12px; padding-bottom: 12px; }
+  html.o-web .o-top .o-steps { max-width: 420px; margin-inline: auto; }
+  html.o-web .o-top > .o-icon-btn, html.o-web .o-top > .o-icon-spacer { order: 0; }
+  html.o-web .o-brand { font-size: 20px; }
+
+  /* Onboarding steps: one centred column */
+  html.o-web .o-body > .o-pad { width: 100%; max-width: 680px; margin-inline: auto; padding: 28px 24px 40px; }
+  html.o-web .o-body > .o-footer { padding-inline: max(24px, calc((100% - 632px) / 2)); }
+  html.o-web .o-sticky { position: static; margin: 28px 0 0; padding: 0; background: none; }
+  html.o-web .o-welcome { display: grid; grid-template-columns: 1.1fr 1fr; gap: 0 36px; align-items: center; max-width: 1040px !important; flex: none; margin-block: auto !important; }
+  html.o-web .o-welcome .o-hero { margin: 0; padding: 40px 36px; }
+  html.o-web .o-welcome .o-hero h1 { font-size: 36px; }
+  html.o-web .o-welcome .o-points { margin: 0; }
+  html.o-web .o-welcome .o-sticky { grid-column: 2; margin-top: 8px; }
+  html.o-web .o-reading { justify-content: center; }
+  html.o-web .o-cat-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  html.o-web .o-tab-chips { margin-inline: 0; padding-inline: 0; flex-wrap: wrap; overflow: visible; }
+
+  /* Review and the menu: items in two columns */
+  html.o-web .o-body > .o-review, html.o-web .o-body > .o-customer { max-width: 920px; }
+  html.o-web .o-items { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  html.o-web .o-phone-preview { margin-inline: 0; padding: 22px 24px; }
+  html.o-web .o-phone-preview .o-tab-chips { margin-inline: 0; }
+
+  /* Dashboard: wide, cards in a grid */
+  html.o-web .o-body > .o-live, html.o-web .o-body > .o-preview-bar { max-width: 1200px; padding-inline: 32px; }
+  html.o-web .o-body > .o-preview-bar + .o-customer { max-width: 1200px; padding-inline: 32px; }
+  html.o-web .o-live-card { padding: 20px 24px; }
+  html.o-web .o-live-tabs { max-width: 420px; }
+  html.o-web .o-live .o-items { grid-template-columns: repeat(3, 1fr); }
+  html.o-web .o-stats { max-width: 560px; }
+  html.o-web .o-insights { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; align-items: start; }
+  html.o-web .o-period { grid-column: 1 / -1; max-width: 420px; }
+  html.o-web .o-hero-stat, html.o-web .o-meetups { align-self: stretch; }
+  html.o-web .o-hero-stat { justify-content: center; padding: 24px; }
+  html.o-web .o-hero-stat b { font-size: 40px; }
+  html.o-web .o-tiles { grid-column: 1 / -1; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  html.o-web .o-card { padding: 20px; }
+  html.o-web .o-insights > .o-fine { grid-column: 1 / -1; }
+  html.o-web .o-customers { grid-column: 1 / -1; }
+  html.o-web .o-customers .o-people { max-width: 560px; }
+  html.o-web .o-skill-needs { display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px; }
+  html.o-web .o-insights > .o-card { align-self: stretch; }
+
+  /* Sheets become centred dialogs */
+  html.o-web .o-sheet-layer { align-items: center; justify-content: center; padding: 32px; }
+  html.o-web .o-sheet { max-width: 560px; max-height: 86vh; border-radius: 24px; }
+  html.o-web .o-toast { inset-inline: auto; left: 50%; transform: translateX(-50%); bottom: 32px; width: max-content; max-width: 480px; }
+}

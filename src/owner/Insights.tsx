@@ -105,20 +105,26 @@ export default function Insights({ items }: { items: Item[] }) {
         ))}
       </div>
 
-      <section className="o-card">
+      <section className="o-card o-customers">
         <h3>{t('مين عملاؤك', 'Who your customers are')}</h3>
         <p className="o-card-sub">{t('من المهارات والاحتياجات اللي كتبوها في AroundMe', 'From the skills and needs they shared on AroundMe')}</p>
         <div className="o-people">
           {PEOPLE.map(([l, v]) => <div key={l[1]}><b>{v}%</b><small>{pick(l)}</small></div>)}
         </div>
+        <div className="o-skill-needs">
+        <div>
         <h4 className="o-sub-h">{t('يقدرون يساعدون في', 'They can help with')}</h4>
         <ul className="o-top-items">
           {SKILLS.map(([l, v]) => <li key={l[1]}><span className="o-top-name">{pick(l)}</span><span className="o-top-bar"><i style={{ width: `${(v / SKILLS[0][1]) * 100}%` }} /></span><b>{v}%</b></li>)}
         </ul>
+        </div>
+        <div>
         <h4 className="o-sub-h">{t('يجون يحتاجون مساعدة في', 'They come needing help with')}</h4>
         <ul className="o-top-items needs">
           {NEEDS.map(([l, v]) => <li key={l[1]}><span className="o-top-name">{pick(l)}</span><span className="o-top-bar"><i style={{ width: `${(v / NEEDS[0][1]) * 100}%` }} /></span><b>{v}%</b></li>)}
         </ul>
+        </div>
+        </div>
         <p className="o-note"><Lightbulb />{t('كافيهك صار مكان المبرمجين والمصممين ورواد الأعمال. فكّر في ركن هادئ بمقابس، أو باقة «جلسة عمل» قهوة ومعجنات بسعر واحد.', 'Your café has become a spot for developers, designers and founders. Think about a quiet corner with sockets, or a “work session” bundle of coffee and a pastry at one price.')}</p>
       </section>
 
