@@ -17,12 +17,12 @@ type T2 = [string, string]
 // Meetups at the café. Owners see what kind of help happened, never who: no names or photos.
 // Help is one-way: one person needed help and another helped.
 const MEETUPS: { helper: T2; f?: boolean; helped: T2; topic: T2; tags: T2[]; when: [number, number, number]; mins: number; seat: T2; ordered: number; again?: boolean }[] = [
-  { helper: ['مطور تطبيقات', 'App developer'], helped: ['صاحبة مشروع ناشئ', 'Startup founder'], topic: ['تطبيقها يعلّق في صفحة الدفع', 'Her app froze on the payment page'], tags: [['برمجة', 'Coding'], ['تطبيقات', 'Apps']], when: [0, 16, 10], mins: 25, seat: ['عند النافذة', 'By the window'], ordered: 2, again: true },
+  { helper: ['مطور تطبيقات', 'App developer'], helped: ['صاحبة مشروع ناشئ', 'Startup founder'], topic: ['تطبيقها يتوقف عند صفحة الدفع', 'Her app froze on the payment page'], tags: [['برمجة', 'Coding'], ['تطبيقات', 'Apps']], when: [0, 16, 10], mins: 25, seat: ['عند النافذة', 'By the window'], ordered: 2, again: true },
   { helper: ['مصممة جرافيك', 'Graphic designer'], f: true, helped: ['صاحب متجر إلكتروني', 'Online store owner'], topic: ['رأي في شعار المتجر الجديد', 'Feedback on a new store logo'], tags: [['تصميم', 'Design'], ['هوية بصرية', 'Branding']], when: [0, 14, 35], mins: 15, seat: ['الطاولة الطويلة', 'Long table'], ordered: 2 },
   { helper: ['محللة مالية', 'Financial analyst'], f: true, helped: ['رائد أعمال', 'Entrepreneur'], topic: ['مراجعة جدول التدفقات النقدية', 'Reviewing a cash-flow sheet'], tags: [['مالية', 'Finance'], ['Excel', 'Excel']], when: [1, 18, 20], mins: 30, seat: ['منطقة الهدوء', 'Quiet area'], ordered: 3, again: true },
-  { helper: ['مختص تسويق رقمي', 'Digital marketer'], helped: ['صاحبة مشروع هدايا', 'Gift shop owner'], topic: ['خطة إعلان على سناب', 'A Snapchat ad plan'], tags: [['تسويق', 'Marketing']], when: [1, 17, 5], mins: 20, seat: ['الجلسات الخارجية', 'Outdoor seating'], ordered: 2 },
+  { helper: ['مختص تسويق رقمي', 'Digital marketer'], helped: ['صاحبة مشروع هدايا', 'Gift shop owner'], topic: ['خطة إعلان على سناب شات', 'A Snapchat ad plan'], tags: [['تسويق', 'Marketing']], when: [1, 17, 5], mins: 20, seat: ['الجلسات الخارجية', 'Outdoor seating'], ordered: 2 },
   { helper: ['كاتبة إعلانية', 'Copywriter'], f: true, helped: ['طالب جامعي', 'University student'], topic: ['تدقيق رسالة تقديم وظيفة', 'Proofreading a job cover letter'], tags: [['كتابة', 'Writing']], when: [2, 15, 40], mins: 10, seat: ['قريب من الكاونتر', 'Near the counter'], ordered: 1 },
-  { helper: ['مصور منتجات', 'Product photographer'], helped: ['صاحبة متجر عطور', 'Perfume shop owner'], topic: ['تصوير منتجات بالجوال', 'Shooting products on a phone'], tags: [['تصوير', 'Photography']], when: [3, 13, 15], mins: 25, seat: ['عند النافذة', 'By the window'], ordered: 2 },
+  { helper: ['مصور منتجات', 'Product photographer'], helped: ['صاحبة متجر عطور', 'Perfume shop owner'], topic: ['تصوير المنتجات بالجوال', 'Shooting products on a phone'], tags: [['تصوير', 'Photography']], when: [3, 13, 15], mins: 25, seat: ['عند النافذة', 'By the window'], ordered: 2 },
 ]
 // What the café's AroundMe customers say they can help with, and what they come needing help with (share of people).
 const SKILLS: [T2, number][] = [[['برمجة وتطبيقات', 'Coding and apps'], 31], [['تصميم', 'Design'], 22], [['تسويق', 'Marketing'], 17], [['مالية وExcel', 'Finance and Excel'], 12], [['كتابة وترجمة', 'Writing and translation'], 10], [['تصوير', 'Photography'], 8]]
@@ -32,24 +32,24 @@ const PEOPLE: [T2, number][] = [[['موظفين', 'Employees'], 38], [['مستق
 // Tomorrow's AroundMe visits as the owner sees them: time, party size, why they're coming, table and pre-order. No names.
 type Visit = { at: [number, number]; ppl: number; kind: 'visit' | 'need' | 'help'; tag: T2; seat?: T2; order?: [string, number][] }
 const TOMORROW: Visit[] = [
-  { at: [8, 30], ppl: 1, kind: 'visit', tag: ['شغل', 'Work'], order: [['Flat white', 1], ['Butter croissant', 1]] },
-  { at: [9, 15], ppl: 1, kind: 'visit', tag: ['أطلب وأمشي', 'Grab and go'], order: [['Iced latte', 1]] },
+  { at: [8, 30], ppl: 1, kind: 'visit', tag: ['عمل', 'Work'], order: [['Flat white', 1], ['Butter croissant', 1]] },
+  { at: [9, 15], ppl: 1, kind: 'visit', tag: ['طلب سريع', 'Grab and go'], order: [['Iced latte', 1]] },
   { at: [10, 0], ppl: 3, kind: 'visit', tag: ['اجتماع', 'Meeting'], seat: ['الطاولة الطويلة', 'Long table'], order: [['Latte', 2], ['Cortado', 1]] },
   { at: [11, 30], ppl: 1, kind: 'need', tag: ['حل مشكلة كود', 'Fixing code'] },
-  { at: [12, 0], ppl: 2, kind: 'visit', tag: ['أقابل أصحاب', 'Meeting friends'], order: [['Spanish latte', 2]] },
+  { at: [12, 0], ppl: 2, kind: 'visit', tag: ['لقاء أصدقاء', 'Meeting friends'], order: [['Spanish latte', 2]] },
   { at: [13, 0], ppl: 1, kind: 'visit', tag: ['مذاكرة', 'Studying'], seat: ['منطقة الهدوء', 'Quiet area'] },
   { at: [13, 45], ppl: 1, kind: 'help', tag: ['تصميم', 'Design'] },
   { at: [14, 30], ppl: 1, kind: 'visit', tag: ['قراءة', 'Reading'], order: [['V60', 1]] },
-  { at: [15, 0], ppl: 2, kind: 'visit', tag: ['شغل', 'Work'], seat: ['عند النافذة', 'By the window'], order: [['Iced Spanish latte', 2], ['San Sebastián cheesecake', 1]] },
+  { at: [15, 0], ppl: 2, kind: 'visit', tag: ['عمل', 'Work'], seat: ['عند النافذة', 'By the window'], order: [['Iced Spanish latte', 2], ['San Sebastián cheesecake', 1]] },
   { at: [15, 30], ppl: 1, kind: 'need', tag: ['مراجعة فكرة مشروع', 'Startup idea feedback'] },
-  { at: [16, 0], ppl: 4, kind: 'visit', tag: ['أقابل أصحاب', 'Meeting friends'], seat: ['الجلسات الخارجية', 'Outdoor seating'], order: [['Spanish latte', 3], ['San Sebastián cheesecake', 2]] },
+  { at: [16, 0], ppl: 4, kind: 'visit', tag: ['لقاء أصدقاء', 'Meeting friends'], seat: ['الجلسات الخارجية', 'Outdoor seating'], order: [['Spanish latte', 3], ['San Sebastián cheesecake', 2]] },
   { at: [16, 0], ppl: 1, kind: 'help', tag: ['برمجة', 'Coding'] },
-  { at: [16, 15], ppl: 1, kind: 'visit', tag: ['أروّق', 'Chilling'], order: [['Spanish latte', 1]] },
+  { at: [16, 15], ppl: 1, kind: 'visit', tag: ['استرخاء', 'Chilling'], order: [['Spanish latte', 1]] },
   { at: [16, 30], ppl: 2, kind: 'visit', tag: ['مذاكرة', 'Studying'], seat: ['منطقة الهدوء', 'Quiet area'] },
-  { at: [17, 30], ppl: 1, kind: 'visit', tag: ['أطلب وأمشي', 'Grab and go'], order: [['Cold brew', 1]] },
+  { at: [17, 30], ppl: 1, kind: 'visit', tag: ['طلب سريع', 'Grab and go'], order: [['Cold brew', 1]] },
   { at: [18, 0], ppl: 1, kind: 'need', tag: ['تسويق وإعلانات', 'Marketing and ads'] },
-  { at: [19, 30], ppl: 2, kind: 'visit', tag: ['أروّق', 'Chilling'], seat: ['عند النافذة', 'By the window'], order: [['Lotus cheesecake', 2], ['Iced latte', 2]] },
-  { at: [21, 0], ppl: 1, kind: 'visit', tag: ['شغل', 'Work'], order: [['Matcha latte', 1]] },
+  { at: [19, 30], ppl: 2, kind: 'visit', tag: ['استرخاء', 'Chilling'], seat: ['عند النافذة', 'By the window'], order: [['Lotus cheesecake', 2], ['Iced latte', 2]] },
+  { at: [21, 0], ppl: 1, kind: 'visit', tag: ['عمل', 'Work'], order: [['Matcha latte', 1]] },
 ]
 
 const TOP = [['Spanish latte', 64], ['San Sebastián cheesecake', 41], ['Butter croissant', 33], ['Iced latte', 25]] as const
@@ -86,7 +86,7 @@ export default function Insights({ items }: { items: Item[] }) {
   const PARTS: [T2, number][] = [[['الصباح', 'Morning'], 12], [['الظهر', 'Midday'], 15], [['العصر', 'Afternoon'], 18], [['المساء', 'Evening'], 24]]
   const parts = PARTS.map(([label, end], i) => ({ label, visits: TOMORROW.filter(v => v.at[0] < end && v.at[0] >= (i ? PARTS[i - 1][1] : 0)) })).filter(g => g.visits.length)
   const orderText = (o: [string, number][]) => o.map(([en, q]) => `${q > 1 ? `${q}× ` : ''}${itemName(en)}`).join(t('، ', ', '))
-  const kindLabel = (k: Visit['kind']) => k === 'visit' ? t('بس زيارة', 'Just visiting') : k === 'need' ? t('يبي مساعدة', 'Needs help') : t('يقدر يساعد', 'Can help')
+  const kindLabel = (k: Visit['kind']) => k === 'visit' ? t('زيارة فقط', 'Just visiting') : k === 'need' ? t('يحتاج مساعدة', 'Needs help') : t('يستطيع المساعدة', 'Can help')
   const an = (x: string) => `${/^[aeiou]/i.test(x) ? 'An' : 'A'} ${x.toLowerCase()}`
   const k = SCALE[period]
   const n = (x: number) => Math.max(1, Math.round(x * k))
@@ -110,10 +110,10 @@ export default function Insights({ items }: { items: Item[] }) {
   const topMax = Math.max(...top.map(x => x.c), 1)
 
   const tiles: [ReactNode, string, string, string][] = [
-    [<UserPlus />, fmt(n(WEEK.visits * WEEK.newShare)), t('عملاء جدد', 'New customers'), t('أول مرة يزورونك، جوك عن طريق AroundMe', 'First visit ever, found you on AroundMe')],
-    [<Repeat />, `${WEEK.returnRate}%`, t('رجعوا لك', 'Came back'), t('زاروك مرة ثانية خلال أسبوعين', 'Visited again within two weeks')],
+    [<UserPlus />, fmt(n(WEEK.visits * WEEK.newShare)), t('عملاء جدد', 'New customers'), t('يزورونك لأول مرة عن طريق AroundMe', 'First visit ever, found you on AroundMe')],
+    [<Repeat />, `${WEEK.returnRate}%`, t('عادوا إليك', 'Came back'), t('زاروك مرة أخرى خلال أسبوعين', 'Visited again within two weeks')],
     [<Wallet />, sar(WEEK.avgOrder), t('متوسط الطلب', 'Average order'), t(`أعلى بـ ${sar(WEEK.avgOrder - WEEK.counterAvg)} من الكاونتر`, `${sar(WEEK.avgOrder - WEEK.counterAvg)} more than at the counter`)],
-    [<Zap />, saved, t('وفّرنا على الكاشير', 'Saved at the counter'), t(`${fmt(orders)} طلب جاهز ومدفوع قبل يوصلون`, `${fmt(orders)} orders ready and paid before arrival`)],
+    [<Zap />, saved, t('وفّرنا على الكاشير', 'Saved at the counter'), t(`${fmt(orders)} طلب جاهز ومدفوع قبل وصولهم`, `${fmt(orders)} orders ready and paid before arrival`)],
     [<Armchair />, fmt(n(WEEK.bookings)), t('طاولات محجوزة', 'Tables booked'), t(`${money(WEEK.bookings * WEEK.fee)} رسوم حجز لك`, `${money(WEEK.bookings * WEEK.fee)} in booking fees to you`)],
     [<Clock />, `${Math.floor(WEEK.stayMin / 60)}:${String(WEEK.stayMin % 60).padStart(2, '0')}`, t('متوسط الجلسة', 'Average stay'), t(`ساعة و${WEEK.stayMin % 60} دقيقة، ويطلبون أكثر من مرة`, `${WEEK.stayMin} minutes, and they order more than once`)],
   ]
@@ -123,14 +123,14 @@ export default function Insights({ items }: { items: Item[] }) {
       <div className="o-period" role="tablist" aria-label={t('الفترة', 'Period')}>
         {(['day', 'week', 'month'] as Period[]).map(p => (
           <button key={p} type="button" role="tab" aria-selected={period === p} className={period === p ? 'active' : ''} onClick={() => setPeriod(p)}>
-            {p === 'day' ? t('اليوم', 'Today') : p === 'week' ? t('هالأسبوع', 'This week') : t('هالشهر', 'This month')}
+            {p === 'day' ? t('اليوم', 'Today') : p === 'week' ? t('هذا الأسبوع', 'This week') : t('هذا الشهر', 'This month')}
           </button>
         ))}
       </div>
       <p className="o-range"><CalendarDays />{range}</p>
 
       <div className="o-hero-stat">
-        <small>{t('دخل جابه لك AroundMe', 'Revenue AroundMe brought you')}</small>
+        <small>{t('دخل جاءك من AroundMe', 'Revenue AroundMe brought you')}</small>
         <b>{money(WEEK.revenue)}</b>
         <span><em><TrendingUp />{GROWTH[period]}%</em>{t(`من ${fmt(visits)} زيارة · ${fmt(orders)} طلب`, `from ${fmt(visits)} visits · ${fmt(orders)} orders`)}</span>
       </div>
@@ -138,9 +138,9 @@ export default function Insights({ items }: { items: Item[] }) {
       <button type="button" className="o-meetups" onClick={() => setMeetupsOpen(true)}>
         <span className="o-meetups-icon"><HeartHandshake /></span>
         <div>
-          <b>{t(`${fmt(n(WEEK.meetups))} لقاء صار في كافيهك`, `${fmt(n(WEEK.meetups))} meetups happened at your café`)}</b>
-          <small>{t('ناس ساعدوا بعض على طاولاتك. هذا اللي يخلّيهم يختارونك على غيرك.', 'People helped each other at your tables. This is why they pick you over the café next door.')}</small>
-          <em>{t('شوف التفاصيل', 'See details')}<Fwd /></em>
+          <b>{t(`${fmt(n(WEEK.meetups))} لقاءً تم في كافيهك`, `${fmt(n(WEEK.meetups))} meetups happened at your café`)}</b>
+          <small>{t('أشخاص ساعدوا بعضهم على طاولاتك. وهذا ما يجعلهم يختارونك دون غيرك.', 'People helped each other at your tables. This is why they pick you over the café next door.')}</small>
+          <em>{t('عرض التفاصيل', 'See details')}<Fwd /></em>
         </div>
       </button>
 
@@ -155,31 +155,31 @@ export default function Insights({ items }: { items: Item[] }) {
       </div>
 
       <section className="o-card o-customers">
-        <h3>{t('مين عملاؤك', 'Who your customers are')}</h3>
-        <p className="o-card-sub">{t('من المهارات والاحتياجات اللي كتبوها في AroundMe', 'From the skills and needs they shared on AroundMe')}</p>
+        <h3>{t('من هم عملاؤك', 'Who your customers are')}</h3>
+        <p className="o-card-sub">{t('من المهارات والاحتياجات التي كتبوها في AroundMe', 'From the skills and needs they shared on AroundMe')}</p>
         <div className="o-people">
           {PEOPLE.map(([l, v]) => <div key={l[1]}><b>{v}%</b><small>{pick(l)}</small></div>)}
         </div>
         <div className="o-skill-needs">
         <div>
-        <h4 className="o-sub-h">{t('يقدرون يساعدون في', 'They can help with')}</h4>
+        <h4 className="o-sub-h">{t('يستطيعون المساعدة في', 'They can help with')}</h4>
         <ul className="o-top-items">
           {SKILLS.map(([l, v]) => <li key={l[1]}><span className="o-top-name">{pick(l)}</span><span className="o-top-bar"><i style={{ width: `${(v / SKILLS[0][1]) * 100}%` }} /></span><b>{v}%</b></li>)}
         </ul>
         </div>
         <div>
-        <h4 className="o-sub-h">{t('يجون يحتاجون مساعدة في', 'They come needing help with')}</h4>
+        <h4 className="o-sub-h">{t('يأتون لطلب المساعدة في', 'They come needing help with')}</h4>
         <ul className="o-top-items needs">
           {NEEDS.map(([l, v]) => <li key={l[1]}><span className="o-top-name">{pick(l)}</span><span className="o-top-bar"><i style={{ width: `${(v / NEEDS[0][1]) * 100}%` }} /></span><b>{v}%</b></li>)}
         </ul>
         </div>
         </div>
-        <p className="o-note"><Lightbulb />{t('كافيهك صار مكان المبرمجين والمصممين ورواد الأعمال. فكّر في ركن هادئ بمقابس، أو باقة «جلسة عمل» قهوة ومعجنات بسعر واحد.', 'Your café has become a spot for developers, designers and founders. Think about a quiet corner with sockets, or a “work session” bundle of coffee and a pastry at one price.')}</p>
+        <p className="o-note"><Lightbulb />{t('أصبح كافيهك مكانًا للمبرمجين والمصممين ورواد الأعمال. فكّر في ركن هادئ بمقابس كهرباء، أو باقة «جلسة عمل» تضم القهوة والمعجنات بسعر واحد.', 'Your café has become a spot for developers, designers and founders. Think about a quiet corner with sockets, or a “work session” bundle of coffee and a pastry at one price.')}</p>
       </section>
 
       <section className="o-card">
-        <h3>{t('متى يجيك عملاء AroundMe', 'When AroundMe customers come')}</h3>
-        <p className="o-card-sub">{t(`${quietShare}% من زياراتهم في وقتك الهادي، بين 1 و5 العصر`, `${quietShare}% of their visits land in your quiet hours, 1 to 5pm`)}</p>
+        <h3>{t('متى يأتيك عملاء AroundMe', 'When AroundMe customers come')}</h3>
+        <p className="o-card-sub">{t(`${quietShare}% من زياراتهم في وقتك الهادئ، بين 1 و5 عصرًا`, `${quietShare}% of their visits land in your quiet hours, 1 to 5pm`)}</p>
         <div className="o-hours" dir="ltr" onMouseLeave={() => setHover(null)}>
           {hourly.map((v, i) => {
             const h = FIRST_HOUR + i
@@ -192,25 +192,25 @@ export default function Insights({ items }: { items: Item[] }) {
           })}
         </div>
         <div className="o-hours-axis" dir="ltr">{[7, 11, 15, 19, 23].map(h => <span key={h} dir={dir}>{hourLabel(h)}</span>)}</div>
-        <p className="o-legend"><span className="o-quiet-swatch" />{t('وقتك الهادي', 'Your quiet hours')}</p>
+        <p className="o-legend"><span className="o-quiet-swatch" />{t('وقتك الهادئ', 'Your quiet hours')}</p>
       </section>
 
       <section className="o-card o-tomorrow">
-        <h3><CalendarClock />{t('بكرة عندك', 'Tomorrow')}</h3>
+        <h3><CalendarClock />{t('غدًا لديك', 'Tomorrow')}</h3>
         <div className="o-tomorrow-row">
           <button type="button" onClick={() => setTomorrowTab('visits')}><b>{TOMORROW.length}</b><small>{t('زيارة مجدولة', 'planned visits')}</small></button>
           <button type="button" onClick={() => setTomorrowTab('orders')}><b>{TOMORROW.filter(v => v.order).length}</b><small>{t('طلب مسبق', 'pre-orders')}</small></button>
           <button type="button" onClick={() => setTomorrowTab('tables')}><b>{TOMORROW.filter(v => v.seat).length}</b><small>{t('طاولات', 'tables')}</small></button>
         </div>
-        <p className="o-note"><Sparkles />{t(`أكثر وقت زحمة 4م، وأكثر صنف مطلوب مسبقًا ${top[0] ? tx(top[0].item.name) : ''}. جهّز له بدري.`, `Busiest at 4pm, and the most pre-ordered item is ${top[0] ? tx(top[0].item.name) : ''}. Get it ready early.`)}</p>
-        <button type="button" className="o-more" onClick={() => setTomorrowTab('visits')}>{t('شوف التفاصيل', 'See details')}<Fwd /></button>
+        <p className="o-note"><Sparkles />{t(`وقت الذروة 4 م، والصنف الأكثر طلبًا مسبقًا ${top[0] ? tx(top[0].item.name) : ''}. جهّزه مبكرًا.`, `Busiest at 4pm, and the most pre-ordered item is ${top[0] ? tx(top[0].item.name) : ''}. Get it ready early.`)}</p>
+        <button type="button" className="o-more" onClick={() => setTomorrowTab('visits')}>{t('عرض التفاصيل', 'See details')}<Fwd /></button>
       </section>
 
       {lost && (
         <section className="o-card o-lost">
           <h3>{t('طلبات فاتتك', 'Orders you missed')}</h3>
-          <p>{t(`${fmt(lostTries)} حاولوا يطلبون «${tx(lost.name)}» وهو نفد، تقريبًا ${sar(lostTries * (lost.price ?? 20))}.`, `${fmt(lostTries)} people tried to order “${tx(lost.name)}” while it was sold out, about ${sar(lostTries * (lost.price ?? 20))}.`)}</p>
-          <small>{t('رجّعه متوفر من المنيو أول ما يجهز.', 'Turn it back on in the menu as soon as it is ready.')}</small>
+          <p>{t(`${fmt(lostTries)} حاولوا طلب «${tx(lost.name)}» بعد نفاده، بقيمة تقارب ${sar(lostTries * (lost.price ?? 20))}.`, `${fmt(lostTries)} people tried to order “${tx(lost.name)}” while it was sold out, about ${sar(lostTries * (lost.price ?? 20))}.`)}</p>
+          <small>{t('فعّله من المنيو فور تجهيزه.', 'Turn it back on in the menu as soon as it is ready.')}</small>
         </section>
       )}
 
@@ -235,9 +235,9 @@ export default function Insights({ items }: { items: Item[] }) {
           <div className="o-meet-stats">
             <div><b>{fmt(n(WEEK.meetups))}</b><small>{t('لقاء', 'meetups')}</small></div>
             <div><b>{t('21 د', '21 min')}</b><small>{t('متوسط اللقاء', 'average length')}</small></div>
-            <div><b>91%</b><small>{t('قالوا التقينا', 'said they met')}</small></div>
+            <div><b>91%</b><small>{t('أكدوا اللقاء', 'said they met')}</small></div>
           </div>
-          <p className="o-note"><Lock />{t('ما نعرض أسماء ولا صور. تشوف نوع المساعدة ووقتها ومكانها بس.', 'No names or photos. You only see the kind of help, when and where.')}</p>
+          <p className="o-note"><Lock />{t('لا نعرض الأسماء ولا الصور. يظهر لك نوع المساعدة ووقتها ومكانها فقط.', 'No names or photos. You only see the kind of help, when and where.')}</p>
           <ul className="o-meet-list">
             {MEETUPS.filter(m => period !== 'day' || m.when[0] === 0).map((m, i) => (
               <li key={i}>
@@ -247,7 +247,7 @@ export default function Insights({ items }: { items: Item[] }) {
                 <div className="o-meet-tags">
                   {m.tags.map(tag => <span key={tag[1]}>{pick(tag)}</span>)}
                   <span className="o-meet-order">{t(`${m.ordered === 1 ? 'طلب واحد' : m.ordered === 2 ? 'طلبين' : `${m.ordered} طلبات`}`, `${m.ordered} order${m.ordered === 1 ? '' : 's'}`)}</span>
-                  {m.again && <span className="o-meet-again"><MessageCircleHeart />{t('اتفقوا يلتقون مرة ثانية هنا', 'Plan to meet here again')}</span>}
+                  {m.again && <span className="o-meet-again"><MessageCircleHeart />{t('اتفقوا على اللقاء هنا مرة أخرى', 'Plan to meet here again')}</span>}
                 </div>
               </li>
             ))}
@@ -256,7 +256,7 @@ export default function Insights({ items }: { items: Item[] }) {
       )}
 
       {tomorrowTab && (
-        <Sheet title={t('زيارات بكرة', "Tomorrow's visits")} onClose={() => setTomorrowTab(null)}>
+        <Sheet title={t('زيارات الغد', "Tomorrow's visits")} onClose={() => setTomorrowTab(null)}>
           <p className="o-range"><CalendarDays />{`${tomorrow.toLocaleDateString(loc, { weekday: 'long' })} ${dayMonth(tomorrow)}`}</p>
           <div className="o-segmented o-tm-tabs" role="tablist">
             {([['visits', t('الزيارات', 'Visits'), TOMORROW.length], ['orders', t('الطلبات', 'Orders'), TOMORROW.filter(v => v.order).length], ['tables', t('الطاولات', 'Tables'), TOMORROW.filter(v => v.seat).length]] as const).map(([id, label, c]) => (
@@ -290,13 +290,13 @@ export default function Insights({ items }: { items: Item[] }) {
                   </ul>
                 </section>
               ))}
-              <p className="o-note"><Lock />{t('ما نعرض أسماء ولا صور. تشوف الوقت والعدد وسبب الزيارة بس.', 'No names or photos. You only see the time, party size and reason for the visit.')}</p>
+              <p className="o-note"><Lock />{t('لا نعرض الأسماء ولا الصور. يظهر لك الوقت والعدد وسبب الزيارة فقط.', 'No names or photos. You only see the time, party size and reason for the visit.')}</p>
             </>
           )}
 
           {tomorrowTab === 'orders' && (
             <>
-              <h4 className="o-sheet-h">{t('جهّز هذي', 'Get these ready')}</h4>
+              <h4 className="o-sheet-h">{t('جهّز هذه', 'Get these ready')}</h4>
               <div className="o-prep-grid">
                 {prep.map(p => <div key={p.en}><b>{p.qty}</b><span>{itemName(p.en)}</span></div>)}
               </div>
@@ -319,7 +319,7 @@ export default function Insights({ items }: { items: Item[] }) {
                   <li key={i}>
                     <span className="o-visit-time">{clock(...v.at)}</span>
                     <div><b>{pick(v.seat!)}</b><small>{people(v.ppl)} · {pick(v.tag)}</small></div>
-                    <span className="o-held">{t(`محجوزة لين ${clock(v.at[0] + 1, v.at[1])}`, `held till ${clock(v.at[0] + 1, v.at[1])}`)}</span>
+                    <span className="o-held">{t(`محجوزة حتى ${clock(v.at[0] + 1, v.at[1])}`, `held till ${clock(v.at[0] + 1, v.at[1])}`)}</span>
                   </li>
                 ))}
               </ul>
@@ -329,7 +329,7 @@ export default function Insights({ items }: { items: Item[] }) {
         </Sheet>
       )}
 
-      <p className="o-fine">{t('أرقام تجريبية تورّيك شكل لوحتك بعد أول أسابيعك على AroundMe', 'Sample numbers showing how your dashboard looks after your first weeks on AroundMe')}</p>
+      <p className="o-fine">{t('أرقام تجريبية توضح شكل لوحتك بعد أسابيعك الأولى على AroundMe', 'Sample numbers showing how your dashboard looks after your first weeks on AroundMe')}</p>
     </div>
   )
 }

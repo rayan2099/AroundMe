@@ -113,9 +113,9 @@ function Flow() {
 
       {screen === 'preview' && (
         <footer className="o-footer">
-          <p className="o-footer-note"><Eye />{t('هذا شكل المنيو عند عملائك في AroundMe', 'This is how customers see your menu in AroundMe')}</p>
-          <button type="button" className="o-primary" onClick={() => { go('live'); setToast(t('نشرنا المنيو، وصار عملاؤك يقدرون يطلبون', 'Your menu is live. Customers can order now')) }}>{t('انشر المنيو', 'Publish menu')}</button>
-          <button type="button" className="o-text-btn" onClick={() => go('review')}>{t('ارجع وعدّل', 'Go back and edit')}</button>
+          <p className="o-footer-note"><Eye />{t('هكذا يظهر منيوك لعملائك في AroundMe', 'This is how customers see your menu in AroundMe')}</p>
+          <button type="button" className="o-primary" onClick={() => { go('live'); setToast(t('نُشر منيوك، ويمكن لعملائك الطلب الآن', 'Your menu is live. Customers can order now')) }}>{t('انشر المنيو', 'Publish menu')}</button>
+          <button type="button" className="o-text-btn" onClick={() => go('review')}>{t('عُد للتعديل', 'Go back and edit')}</button>
         </footer>
       )}
 
@@ -171,16 +171,16 @@ function Head({ icon, title, sub }: { icon?: ReactNode; title: string; sub?: str
 function Welcome({ onStart }: { onStart: () => void }) {
   const { t } = useT()
   const points: [ReactNode, string, string][] = [
-    [<Store />, t('لقينا كافيهك', 'We find your café'), t('من خرائط Google، بالاسم والموقع والصور', 'From Google Maps, with its name, location and photos')],
-    [<ScanLine />, t('صوّر المنيو', 'Snap your menu'), t('نقرأ الأقسام والأصناف والأسعار عنك', 'We read the sections, items and prices for you')],
-    [<BadgeCheck />, t('راجع وانشر', 'Check and publish'), t('تصحح أي شي، وعملاؤك يطلبون على طول', 'Fix anything, and customers can order right away')],
+    [<Store />, t('نحدد كافيهك', 'We find your café'), t('من خرائط Google بالاسم والموقع والصور', 'From Google Maps, with its name, location and photos')],
+    [<ScanLine />, t('صوّر المنيو', 'Snap your menu'), t('نقرأ لك الأقسام والأصناف والأسعار', 'We read the sections, items and prices for you')],
+    [<BadgeCheck />, t('راجع وانشر', 'Check and publish'), t('صحّح ما تريد، ويبدأ عملاؤك الطلب فورًا', 'Fix anything, and customers can order right away')],
   ]
   return (
     <div className="o-pad o-welcome">
       <div className="o-hero">
-        <span className="o-hero-badge"><Sparkles />{t('أقل من 5 دقايق', 'Under 5 minutes')}</span>
-        <h1>{t('خلّ كافيهك على AroundMe', 'Put your café on AroundMe')}</h1>
-        <p>{t('عملاؤك يحجزون طاولة ويطلبون قبل يوصلون، وأنت ترفع المنيو بصورة وحدة.', 'Customers book a table and order before they arrive. You add your menu with one photo.')}</p>
+        <span className="o-hero-badge"><Sparkles />{t('أقل من 5 دقائق', 'Under 5 minutes')}</span>
+        <h1>{t('أضف كافيهك إلى AroundMe', 'Put your café on AroundMe')}</h1>
+        <p>{t('يحجز عملاؤك طاولاتهم ويطلبون قبل وصولهم، وترفع أنت المنيو بصورة واحدة.', 'Customers book a table and order before they arrive. You add your menu with one photo.')}</p>
       </div>
       <ol className="o-points">
         {points.map(([icon, h, p], i) => (
@@ -189,7 +189,7 @@ function Welcome({ onStart }: { onStart: () => void }) {
       </ol>
       <div className="o-sticky">
         <button type="button" className="o-primary" onClick={onStart}>{t('ابدأ', 'Get started')}</button>
-        <p className="o-fine">{t('مجاني للتجربة، وتقدر تعدّل المنيو أي وقت', 'Free to try, and you can edit your menu any time')}</p>
+        <p className="o-fine">{t('مجاني للتجربة، ويمكنك تعديل المنيو في أي وقت', 'Free to try, and you can edit your menu any time')}</p>
       </div>
     </div>
   )
@@ -202,7 +202,7 @@ function FindCafe({ selected, onPick }: { selected: Place | null; onPick: (p: Pl
   const shown = PLACES.filter(p => !q.trim() || `${p.name.ar} ${p.name.en} ${p.area.ar} ${p.area.en}`.toLowerCase().includes(q.trim().toLowerCase()))
   return (
     <div className="o-pad">
-      <Head icon={<Store />} title={t('وش اسم كافيهك؟', "What's your café called?")} sub={t('نجيب معلوماته من خرائط Google', 'We bring its details from Google Maps')} />
+      <Head icon={<Store />} title={t('ما اسم كافيهك؟', "What's your café called?")} sub={t('نجلب معلوماته من خرائط Google', 'We bring its details from Google Maps')} />
       <label className="o-search">
         <Search />
         <input value={q} onChange={e => setQ(e.target.value)} placeholder={t('ابحث باسم الكافيه أو الحي', 'Search by café name or district')} aria-label={t('ابحث عن كافيهك', 'Search for your café')} />
@@ -223,7 +223,7 @@ function FindCafe({ selected, onPick }: { selected: Place | null; onPick: (p: Pl
           ))}
         </ul>
       ) : (
-        <div className="o-empty"><Search /><b>{t('ما لقينا كافيه بهالاسم', 'No café found with that name')}</b><small>{t('جرّب اسم الحي أو جزء من الاسم', 'Try the district or part of the name')}</small></div>
+        <div className="o-empty"><Search /><b>{t('لم نجد كافيه بهذا الاسم', 'No café found with that name')}</b><small>{t('جرّب اسم الحي أو جزءًا من الاسم', 'Try the district or part of the name')}</small></div>
       )}
     </div>
   )
@@ -258,15 +258,15 @@ function Verify({ place, onDone }: { place: Place; onDone: () => void }) {
         <PlaceLogo place={place} big />
         <div><b>{tx(place.name)}</b><small><MapPin />{tx(place.area)}</small><small><Star />{place.rating} · {t(`${place.reviews} تقييم`, `${place.reviews} reviews`)}</small></div>
       </div>
-      <Head title={t('نتأكد إنه كافيهك', "Let's confirm it's yours")} sub={t(`أرسلنا كود لرقم الكافيه المسجل في Google، المنتهي بـ ${place.phone}`, `We sent a code to the café's number on Google, ending in ${place.phone}`)} />
+      <Head title={t('نتأكد أنه كافيهك', "Let's confirm it's yours")} sub={t(`أرسلنا رمزًا إلى رقم الكافيه المسجّل في Google، المنتهي بـ ${place.phone}`, `We sent a code to the café's number on Google, ending in ${place.phone}`)} />
       <label className="o-otp" onClick={() => input.current?.focus()}>
-        <input ref={input} inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} aria-label={t('الكود', 'Code')} />
+        <input ref={input} inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} aria-label={t('الرمز', 'Code')} />
         <span className="o-otp-boxes" dir="ltr" aria-hidden>
           {Array.from({ length: 6 }, (_, i) => <span key={i} className={`${code[i] ? 'filled' : ''} ${i === Math.min(code.length, 5) ? 'caret' : ''} ${code.length === 6 ? 'ok' : ''}`}>{code[i] ?? ''}</span>)}
         </span>
       </label>
       <p className="o-hint">{code.length === 6 ? <><Check />{t('تم التأكيد', 'Confirmed')}</> : t('للتجربة: اكتب أي 6 أرقام', 'For this demo: type any 6 digits')}</p>
-      <button type="button" className="o-text-btn" onClick={() => setCode('482913')}>{t('عبّي الكود عني', 'Fill in the code for me')}</button>
+      <button type="button" className="o-text-btn" onClick={() => setCode('482913')}>{t('املأ الرمز عني', 'Fill in the code for me')}</button>
     </div>
   )
 }
@@ -282,29 +282,29 @@ function Method({ onFile, onSample, onLink, onManual }: { onFile: (f: { url?: st
   }
   return (
     <div className="o-pad">
-      <Head icon={<Utensils />} title={t('كيف تحب تضيف المنيو؟', 'How would you like to add your menu?')} sub={t('اختر الأسهل لك، وتقدر تعدّل كل شي بعدين', 'Pick the easiest way. You can change anything later')} />
+      <Head icon={<Utensils />} title={t('كيف تريد إضافة المنيو؟', 'How would you like to add your menu?')} sub={t('اختر الأسهل لك، ويمكنك تعديل كل شيء لاحقًا', 'Pick the easiest way. You can change anything later')} />
       <div className="o-method-hero">
         <span className="o-reco"><Sparkles />{t('الأسرع', 'Fastest')}</span>
         <ScanLine className="o-method-art" />
         <b>{t('صوّر المنيو', 'Snap your menu')}</b>
-        <small>{t('صورة للوحة المنيو أو المنيو المطبوع أو ملف PDF. نقرأ الأقسام والأصناف والأسعار، وأنت تراجع.', 'A photo of your menu board, a printed menu or a PDF. We read the sections, items and prices, and you check them.')}</small>
+        <small>{t('صورة للوحة المنيو أو المنيو المطبوع أو ملف PDF. نقرأ الأقسام والأصناف والأسعار، وتراجعها أنت.', 'A photo of your menu board, a printed menu or a PDF. We read the sections, items and prices, and you check them.')}</small>
         <div className="o-method-actions">
           <button type="button" className="o-primary" onClick={() => camera.current?.click()}><Camera />{t('صوّر', 'Take photo')}</button>
           <button type="button" className="o-secondary" onClick={() => files.current?.click()}><Upload />{t('ارفع صورة أو PDF', 'Upload a file')}</button>
         </div>
         <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={e => pick(e.target.files)} />
         <input ref={files} type="file" accept="image/*,application/pdf" hidden onChange={e => pick(e.target.files)} />
-        <button type="button" className="o-text-btn" onClick={onSample}>{t('ما عندك صورة الحين؟ جرّب بمنيو تجريبي', 'No photo right now? Try a sample menu')}</button>
+        <button type="button" className="o-text-btn" onClick={onSample}>{t('ليست لديك صورة الآن؟ جرّب منيو تجريبيًا', 'No photo right now? Try a sample menu')}</button>
       </div>
       <div className="o-rows">
         <button type="button" className="o-row" onClick={onLink}>
           <span className="o-row-icon"><Link2 /></span>
-          <span><b>{t('استورده من تطبيق توصيل', 'Import from a delivery app')}</b><small>{t('هنقرستيشن، جاهز أو فودكس', 'HungerStation, Jahez or Foodics')}</small></span>
+          <span><b>{t('استورده من تطبيق توصيل', 'Import from a delivery app')}</b><small>{t('هنقرستيشن أو جاهز أو فودكس', 'HungerStation, Jahez or Foodics')}</small></span>
           <Chevron />
         </button>
         <button type="button" className="o-row" onClick={onManual}>
           <span className="o-row-icon"><PenLine /></span>
-          <span><b>{t('أضيفه بنفسي', "I'll add it myself")}</b><small>{t('نبدأ لك بأقسام جاهزة', 'We start you off with ready-made sections')}</small></span>
+          <span><b>{t('أضيفه بنفسي', "I'll add it myself")}</b><small>{t('نبدأ معك بأقسام جاهزة', 'We start you off with ready-made sections')}</small></span>
           <Chevron />
         </button>
       </div>
@@ -318,14 +318,14 @@ function ImportLink({ platform, setPlatform, onImport }: { platform: string; set
   const p = PLATFORMS.find(x => x.id === platform)!
   return (
     <div className="o-pad o-fill">
-      <Head icon={<Link2 />} title={t('استورد المنيو', 'Import your menu')} sub={t('نجيب الأقسام والأصناف والأسعار من صفحتك', 'We bring the sections, items and prices from your page')} />
-      <label className="o-label">{t('وين منيوك موجود؟', 'Where is your menu now?')}</label>
+      <Head icon={<Link2 />} title={t('استورد المنيو', 'Import your menu')} sub={t('نجلب الأقسام والأصناف والأسعار من صفحتك', 'We bring the sections, items and prices from your page')} />
+      <label className="o-label">{t('أين يوجد منيوك؟', 'Where is your menu now?')}</label>
       <div className="o-chips">
         {PLATFORMS.map(x => <button key={x.id} type="button" className={`o-chip ${platform === x.id ? 'active' : ''}`} onClick={() => setPlatform(x.id)}>{tx(x.name)}</button>)}
       </div>
       <label className="o-label" htmlFor="o-link">{t(`رابط صفحتك في ${tx(p.name)}`, `Your ${tx(p.name)} page link`)}</label>
       <input id="o-link" className="o-field" dir="ltr" inputMode="url" value={url} onChange={e => setUrl(e.target.value)} placeholder={`https://${platform === 'foodics' ? 'menu.foodics.com' : platform === 'jahez' ? 'jahez.net' : 'hungerstation.com'}/…`} />
-      <p className="o-hint">{t('للتجربة: أي رابط يمشي', 'For this demo: any link works')}</p>
+      <p className="o-hint">{t('للتجربة: أي رابط يعمل', 'For this demo: any link works')}</p>
       <div className="o-sticky">
         <button type="button" className="o-primary" disabled={!url.trim()} onClick={onImport}>{t('استورد', 'Import')}</button>
       </div>
@@ -339,7 +339,7 @@ function PickCategories({ onDone }: { onDone: (cats: Category[]) => void }) {
   const flip = (id: string) => setOn(o => (o.includes(id) ? o.filter(x => x !== id) : [...o, id]))
   return (
     <div className="o-pad o-fill">
-      <Head icon={<PenLine />} title={t('وش تقدّم؟', 'What do you serve?')} sub={t('اختر أقسام منيوك. تقدر تغيّر أسماءها وتضيف غيرها', 'Pick the sections of your menu. You can rename them and add more')} />
+      <Head icon={<PenLine />} title={t('ماذا تقدّم؟', 'What do you serve?')} sub={t('اختر أقسام منيوك. يمكنك تغيير أسمائها وإضافة غيرها', 'Pick the sections of your menu. You can rename them and add more')} />
       <div className="o-cat-grid">
         {SUGGESTED.map(c => (
           <button key={c.id} type="button" className={`o-cat-tile ${on.includes(c.id) ? 'active' : ''}`} aria-pressed={on.includes(c.id)} onClick={() => flip(c.id)}>
@@ -349,7 +349,7 @@ function PickCategories({ onDone }: { onDone: (cats: Category[]) => void }) {
       </div>
       <div className="o-sticky">
         <button type="button" className="o-primary" disabled={!on.length} onClick={() => onDone(SUGGESTED.filter(c => on.includes(c.id)))}>
-          {on.length ? t(`تابع بـ ${nSections(on.length)}`, `Continue with ${nSections(on.length)}`) : t('اختر قسم واحد على الأقل', 'Pick at least one section')}
+          {on.length ? t(`تابع بـ ${nSections(on.length)}`, `Continue with ${nSections(on.length)}`) : t('اختر قسمًا واحدًا على الأقل', 'Pick at least one section')}
         </button>
       </div>
     </div>
@@ -362,8 +362,8 @@ function Reading({ source, upload, platform, onDone }: { source: Source; upload:
   const [phase, setPhase] = useState(0)
   const p = PLATFORMS.find(x => x.id === platform)!
   const phases = source === 'link'
-    ? [t(`نفتح صفحتك في ${tx(p.name)}`, `Opening your ${tx(p.name)} page`), t('نجيب الأقسام والأصناف', 'Bringing in sections and items'), t('نرتب الأسعار والصور', 'Sorting prices and photos')]
-    : [t('نلقى أقسام المنيو', 'Finding the menu sections'), t('نقرأ الأصناف والوصف', 'Reading items and descriptions'), t('نطابق الأسعار', 'Matching prices')]
+    ? [t(`نفتح صفحتك في ${tx(p.name)}`, `Opening your ${tx(p.name)} page`), t('نجلب الأقسام والأصناف', 'Bringing in sections and items'), t('نرتب الأسعار والصور', 'Sorting prices and photos')]
+    : [t('نحدد أقسام المنيو', 'Finding the menu sections'), t('نقرأ الأصناف والوصف', 'Reading items and descriptions'), t('نطابق الأسعار', 'Matching prices')]
   useEffect(() => {
     const ids = [900, 1900, 2900].map((ms, i) => setTimeout(() => setPhase(i + 1), ms))
     const done = setTimeout(onDone, 3500)
@@ -457,7 +457,7 @@ function ItemRow({ item, cat, onOpen, trailing }: { item: Item; cat?: Category; 
         <b>{tx(item.name) || t('صنف بدون اسم', 'Untitled item')}</b>
         {tx(item.desc) && <small>{tx(item.desc)}</small>}
         <em>{item.price == null ? <span className="o-warn-text">{t('بدون سعر', 'No price')}</span> : sar(item.price)}</em>
-        {item.flag && <span className="o-flag"><CircleAlert />{item.flag === 'price' ? t('ما قدرنا نقرأ السعر، أكّده', "Couldn't read the price, please check") : t('تأكد من الاسم', 'Check the name')}</span>}
+        {item.flag && <span className="o-flag"><CircleAlert />{item.flag === 'price' ? t('تعذّرت قراءة السعر، أكّده', "Couldn't read the price, please check") : t('تأكد من الاسم', 'Check the name')}</span>}
       </span>
     </>
   )
@@ -484,7 +484,7 @@ function Review(props: MenuProps & { source: Source; platform: string; onNext: (
     ? t('أضف أصنافك في كل قسم', 'Add your items to each section')
     : source === 'link'
       ? t(`استوردنا ${nSections(cats.length)} و${nItems(items.length)} من ${tx(p.name)}`, `Imported ${nSections(cats.length)} and ${nItems(items.length)} from ${tx(p.name)}`)
-      : t(`لقينا ${nSections(cats.length)} و${nItems(items.length)}. صحّح أي شي غلط.`, `We found ${nSections(cats.length)} and ${nItems(items.length)}. Fix anything that's wrong.`)
+      : t(`وجدنا ${nSections(cats.length)} و${nItems(items.length)}. صحّح أي خطأ.`, `We found ${nSections(cats.length)} and ${nItems(items.length)}. Fix anything that's wrong.`)
   const showFirstFlag = () => { const f = flagged[0]; if (f) { setCur(f.cat); ed.edit(f) } }
 
   return (
@@ -499,7 +499,7 @@ function Review(props: MenuProps & { source: Source; platform: string; onNext: (
           <div className="o-banner">
             <CircleAlert />
             <span>{t(`${nItems(flagged.length)} ${flagged.length === 1 ? 'يحتاج مراجعة' : 'تحتاج مراجعة'}`, `${nItems(flagged.length)} need${flagged.length === 1 ? 's' : ''} a check`)}</span>
-            <button type="button" onClick={showFirstFlag}>{t('وريني', 'Show me')}</button>
+            <button type="button" onClick={showFirstFlag}>{t('أرني', 'Show me')}</button>
           </div>
         )}
 
@@ -512,14 +512,14 @@ function Review(props: MenuProps & { source: Source; platform: string; onNext: (
         <ul className="o-items">
           {inCat.map(i => <ItemRow key={i.id} item={i} cat={cats.find(c => c.id === i.cat)} onOpen={() => ed.edit(i)} trailing={i.flag ? <button type="button" className="o-confirm" onClick={() => i.price == null ? ed.edit(i) : setItems(l => l.map(x => (x.id === i.id ? { ...x, flag: undefined } : x)))}>{i.price == null ? t('أضف السعر', 'Add price') : t('صحيح', 'Looks right')}</button> : <Chevron />} />)}
         </ul>
-        {!inCat.length && <div className="o-empty small"><CatIcon icon={cats.find(c => c.id === cur)?.icon ?? 'other'} /><b>{t('ما فيه أصناف في هالقسم بعد', 'No items in this section yet')}</b></div>}
+        {!inCat.length && <div className="o-empty small"><CatIcon icon={cats.find(c => c.id === cur)?.icon ?? 'other'} /><b>{t('لا توجد أصناف في هذا القسم بعد', 'No items in this section yet')}</b></div>}
         {cur && <button type="button" className="o-dashed" onClick={() => ed.add(cur)}><Plus />{t(`أضف صنف في ${tx(cats.find(c => c.id === cur)!.name)}`, `Add an item to ${tx(cats.find(c => c.id === cur)!.name)}`)}</button>}
       </div>
 
       <footer className="o-footer">
         {flagged.length
-          ? <button type="button" className="o-primary warn" onClick={showFirstFlag}>{flagged.length === 1 ? t('راجع الصنف الباقي', 'Check the last item') : t(`راجع ${nItems(flagged.length)} باقية`, `Check ${nItems(flagged.length)} left`)}</button>
-          : <button type="button" className="o-primary" disabled={!items.length} onClick={onNext}>{items.length ? t('شوف المنيو مثل عملائك', 'See it as customers will') : t('أضف صنف واحد على الأقل', 'Add at least one item')}</button>}
+          ? <button type="button" className="o-primary warn" onClick={showFirstFlag}>{flagged.length === 1 ? t('راجع الصنف الباقي', 'Check the last item') : t(`راجع ${nItems(flagged.length)} متبقية`, `Check ${nItems(flagged.length)} left`)}</button>
+          : <button type="button" className="o-primary" disabled={!items.length} onClick={onNext}>{items.length ? t('اعرض المنيو كما يراه عملاؤك', 'See it as customers will') : t('أضف صنف واحد على الأقل', 'Add at least one item')}</button>}
       </footer>
       {ed.sheets}
     </>
@@ -567,20 +567,20 @@ function ItemSheet({ item, cats, onSave, onDelete, onClose }: { item: Item; cats
         {!isNew && <button type="button" className="o-text-btn danger" onClick={() => onDelete(item)}><Trash2 />{t('احذف الصنف', 'Delete item')}</button>}
       </>}
     >
-      {item.flag && <p className="o-note warn"><CircleAlert />{item.flag === 'price' ? t('السعر ما كان واضح في الصورة. اكتبه هنا.', "The price wasn't clear in the photo. Type it here.") : t('الاسم ما كان واضح في الصورة. تأكد إنه صحيح.', "The name wasn't clear in the photo. Make sure it's right.")}</p>}
+      {item.flag && <p className="o-note warn"><CircleAlert />{item.flag === 'price' ? t('لم يكن السعر واضحًا في الصورة. اكتبه هنا.', "The price wasn't clear in the photo. Type it here.") : t('لم يكن الاسم واضحًا في الصورة. تأكد من صحته.', "The name wasn't clear in the photo. Make sure it's right.")}</p>}
       <div className="o-photo-row">
         <button type="button" className="o-photo" onClick={() => file.current?.click()} aria-label={t('أضف صورة', 'Add photo')}>
           {photo ? <img src={photo} alt="" /> : <ImagePlus />}
         </button>
-        <div><b>{photo ? t('صورة الصنف', 'Item photo') : t('أضف صورة', 'Add a photo')}</b><small>{t('اختياري. الأصناف اللي لها صور تنطلب أكثر', 'Optional. Items with photos get ordered more')}</small>
-          {photo && <button type="button" className="o-text-btn o-inline danger" onClick={() => setPhoto(undefined)}>{t('شيل الصورة', 'Remove photo')}</button>}
+        <div><b>{photo ? t('صورة الصنف', 'Item photo') : t('أضف صورة', 'Add a photo')}</b><small>{t('اختياري. الأصناف المصوّرة تُطلب أكثر', 'Optional. Items with photos get ordered more')}</small>
+          {photo && <button type="button" className="o-text-btn o-inline danger" onClick={() => setPhoto(undefined)}>{t('احذف الصورة', 'Remove photo')}</button>}
         </div>
         <input ref={file} type="file" accept="image/*" hidden onChange={e => { const f = e.target.files?.[0]; if (f) setPhoto(URL.createObjectURL(f)) }} />
       </div>
       <label className="o-label" htmlFor="o-name">{t('الاسم', 'Name')}</label>
-      <input id="o-name" className={`o-field ${item.flag === 'name' ? 'warn' : ''}`} value={name} onChange={e => setName(e.target.value)} maxLength={40} placeholder={t('مثلاً: تشيز كيك لوتس', 'e.g. Lotus cheesecake')} />
+      <input id="o-name" className={`o-field ${item.flag === 'name' ? 'warn' : ''}`} value={name} onChange={e => setName(e.target.value)} maxLength={40} placeholder={t('مثلًا: تشيز كيك لوتس', 'e.g. Lotus cheesecake')} />
       <label className="o-label" htmlFor="o-desc">{t('الوصف', 'Description')} <span className="o-optional">{t('اختياري', 'Optional')}</span></label>
-      <input id="o-desc" className="o-field" value={desc} onChange={e => setDesc(e.target.value)} maxLength={60} placeholder={t('مثلاً: قطعة بصوص اللوتس', 'e.g. A slice with Lotus sauce')} />
+      <input id="o-desc" className="o-field" value={desc} onChange={e => setDesc(e.target.value)} maxLength={60} placeholder={t('مثلًا: قطعة بصوص اللوتس', 'e.g. A slice with Lotus sauce')} />
       <label className="o-label" htmlFor="o-price">{t('السعر', 'Price')}</label>
       <div className={`o-price ${item.flag === 'price' && !price ? 'warn' : ''}`}>
         <input id="o-price" ref={priceRef} inputMode="decimal" value={price} onChange={e => setPrice(e.target.value.replace(/[^\d.٠-٩]/g, ''))} placeholder="0" />
@@ -591,7 +591,7 @@ function ItemSheet({ item, cats, onSave, onDelete, onClose }: { item: Item; cats
         {cats.map(c => <button key={c.id} type="button" className={`o-chip ${cat === c.id ? 'active' : ''}`} onClick={() => setCat(c.id)}><CatIcon icon={c.icon} />{tx(c.name)}</button>)}
       </div>
       <button type="button" className="o-switch-row" role="switch" aria-checked={!soldOut} onClick={() => setSoldOut(s => !s)}>
-        <span><b>{soldOut ? t('نفد', 'Sold out') : t('متوفر', 'Available')}</b><small>{soldOut ? t('يبان لعملائك بس ما يقدرون يطلبونه', "Customers see it but can't order it") : t('عملاؤك يقدرون يطلبونه', 'Customers can order it')}</small></span>
+        <span><b>{soldOut ? t('نفد', 'Sold out') : t('متوفر', 'Available')}</b><small>{soldOut ? t('يظهر لعملائك لكن لا يمكنهم طلبه', "Customers see it but can't order it") : t('يمكن لعملائك طلبه', 'Customers can order it')}</small></span>
         <em className={!soldOut ? 'on' : ''} />
       </button>
     </Sheet>
@@ -612,15 +612,15 @@ function CategoriesSheet({ cats, setCats, items, setItems, onClose }: Pick<MenuP
   const unused = SUGGESTED.filter(s => !cats.some(c => c.id === s.id))
   return (
     <Sheet title={t('أقسام المنيو', 'Menu sections')} onClose={onClose} footer={<button type="button" className="o-primary" onClick={onClose}>{t('تم', 'Done')}</button>}>
-      <p className="o-sheet-sub">{t('نفس الترتيب يشوفه عملاؤك. اضغط على الاسم عشان تغيّره.', 'Customers see them in this order. Tap a name to change it.')}</p>
+      <p className="o-sheet-sub">{t('هذا هو الترتيب الذي يراه عملاؤك. اضغط على الاسم لتغييره.', 'Customers see them in this order. Tap a name to change it.')}</p>
       <ul className="o-cat-list">
         {cats.map((c, i) => (
           <li key={c.id}>
             <span className="o-cat-icon"><CatIcon icon={c.icon} /></span>
             <input value={c.name[lang]} onChange={e => rename(c.id, e.target.value)} onBlur={e => !e.target.value.trim() && rename(c.id, lang === 'ar' ? c.name.en : c.name.ar)} aria-label={t('اسم القسم', 'Section name')} maxLength={24} />
-            <small>{counts[c.id] ? nItems(counts[c.id]) : t('فاضي', 'Empty')}</small>
-            <button type="button" disabled={i === 0} onClick={() => move(i, -1)} aria-label={t('لفوق', 'Move up')}><ArrowUp /></button>
-            <button type="button" disabled={i === cats.length - 1} onClick={() => move(i, 1)} aria-label={t('لتحت', 'Move down')}><ArrowDown /></button>
+            <small>{counts[c.id] ? nItems(counts[c.id]) : t('فارغ', 'Empty')}</small>
+            <button type="button" disabled={i === 0} onClick={() => move(i, -1)} aria-label={t('للأعلى', 'Move up')}><ArrowUp /></button>
+            <button type="button" disabled={i === cats.length - 1} onClick={() => move(i, 1)} aria-label={t('للأسفل', 'Move down')}><ArrowDown /></button>
             <button type="button" className="danger" disabled={cats.length === 1} onClick={() => (counts[c.id] ? setConfirm(c) : drop(c))} aria-label={t('احذف القسم', 'Delete section')}><Trash2 /></button>
           </li>
         ))}
@@ -628,7 +628,7 @@ function CategoriesSheet({ cats, setCats, items, setItems, onClose }: Pick<MenuP
       {confirm && (
         <div className="o-note warn o-confirm-box">
           <CircleAlert />
-          <span>{t(`نحذف «${tx(confirm.name)}» و${nItems(counts[confirm.id])} فيه؟`, `Delete “${tx(confirm.name)}” and its ${nItems(counts[confirm.id])}?`)}</span>
+          <span>{t(`حذف «${tx(confirm.name)}» و${nItems(counts[confirm.id])} فيه؟`, `Delete “${tx(confirm.name)}” and its ${nItems(counts[confirm.id])}?`)}</span>
           <button type="button" onClick={() => setConfirm(null)}>{t('لا', 'No')}</button>
           <button type="button" className="danger" onClick={() => drop(confirm)}>{t('احذف', 'Delete')}</button>
         </div>
@@ -636,7 +636,7 @@ function CategoriesSheet({ cats, setCats, items, setItems, onClose }: Pick<MenuP
       <label className="o-label">{t('أضف قسم', 'Add a section')}</label>
       {unused.length > 0 && <div className="o-chips wrap">{unused.map(s => <button key={s.id} type="button" className="o-chip" onClick={() => add(s)}><Plus />{tx(s.name)}</button>)}</div>}
       <div className="o-add-field">
-        <input className="o-field" value={custom} onChange={e => setCustom(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCustom()} maxLength={24} placeholder={t('اسم قسم ثاني، مثلاً: عروض الصباح', 'Another name, e.g. Morning deals')} />
+        <input className="o-field" value={custom} onChange={e => setCustom(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCustom()} maxLength={24} placeholder={t('اسم قسم آخر، مثلًا: عروض الصباح', 'Another name, e.g. Morning deals')} />
         <button type="button" className="o-secondary" disabled={!custom.trim()} onClick={addCustom}>{t('أضف', 'Add')}</button>
       </div>
     </Sheet>
@@ -653,7 +653,7 @@ function CustomerMenu({ place, cats, items }: { place: Place; cats: Category[]; 
       <div className="o-phone-preview">
         <div className="o-cust-head">
           <PlaceLogo place={place} />
-          <div><b>{tx(place.name)}</b><small>{t('اطلب قبل توصل', 'Order before you arrive')}</small></div>
+          <div><b>{tx(place.name)}</b><small>{t('اطلب قبل وصولك', 'Order before you arrive')}</small></div>
         </div>
         <MenuTabs cats={shown} current={cur} onPick={setCur} />
         <ul className="o-items">
@@ -694,7 +694,7 @@ function Live(props: MenuProps & { place: Place }) {
   const [drawer, setDrawer] = useState(false)
   const toggle = (i: Item) => {
     setItems(l => l.map(x => (x.id === i.id ? { ...x, soldOut: !x.soldOut } : x)))
-    notify(i.soldOut ? t(`«${tx(i.name)}» رجع متوفر`, `“${tx(i.name)}” is available again`) : t(`«${tx(i.name)}» صار نفد، وما ينطلب لين ترجعه`, `“${tx(i.name)}” is sold out and can't be ordered until you turn it back on`))
+    notify(i.soldOut ? t(`«${tx(i.name)}» متوفر مجددًا`, `“${tx(i.name)}” is available again`) : t(`«${tx(i.name)}» نفد، ولن يُطلب حتى تعيد تفعيله`, `“${tx(i.name)}” is sold out and can't be ordered until you turn it back on`))
   }
   if (preview) return (
     <>
@@ -715,7 +715,7 @@ function Live(props: MenuProps & { place: Place }) {
             <b>{tx(place.name)}</b>
             <span className="o-live-row">
               <span className="o-live-badge"><i />{t('المنيو منشور', 'Menu is live')}</span>
-              <button type="button" className="o-live-view" onClick={() => setPreview(true)}><Eye />{t('شوفه كعميل', 'Customer view')}</button>
+              <button type="button" className="o-live-view" onClick={() => setPreview(true)}><Eye />{t('اعرضه كعميل', 'Customer view')}</button>
             </span>
           </div>
         </div>
@@ -733,7 +733,7 @@ function Live(props: MenuProps & { place: Place }) {
           <MenuTabs cats={cats} current={cur} onPick={setCur} extra={<span className="o-tabs-end" />} />
           <button type="button" className="o-tabs-edit" onClick={ed.openCats} aria-label={t('عدّل الأقسام', 'Edit sections')}><PenLine /></button>
         </div>
-        <p className="o-fine start">{t('اضغط على المفتاح لما يخلص صنف، واضغط على الصنف عشان تعدّله.', 'Flip the switch when something runs out. Tap an item to edit it.')}</p>
+        <p className="o-fine start">{t('اضغط على المفتاح عند نفاد صنف، واضغط على الصنف لتعديله.', 'Flip the switch when something runs out. Tap an item to edit it.')}</p>
         <ul className="o-items">
           {items.filter(i => i.cat === cur).map(i => (
             <ItemRow key={i.id} item={i} cat={cats.find(c => c.id === i.cat)} onOpen={() => ed.edit(i)} trailing={
@@ -761,7 +761,7 @@ function Live(props: MenuProps & { place: Place }) {
             )
           })}
         </nav>
-        <button type="button" className="o-side-view" onClick={() => { setPreview(true); setDrawer(false) }}><Eye />{t('شوف المنيو كعميل', 'See the menu as a customer')}</button>
+        <button type="button" className="o-side-view" onClick={() => { setPreview(true); setDrawer(false) }}><Eye />{t('اعرض المنيو كعميل', 'See the menu as a customer')}</button>
       </aside>
       {drawer && <div className="o-side-scrim" onClick={() => setDrawer(false)} />}
       {ed.sheets}

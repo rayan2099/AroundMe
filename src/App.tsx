@@ -17,7 +17,7 @@ export type Tab = 'home' | 'map' | 'people' | 'inbox' | 'account'
 export type ActionMode = 'seek' | 'help'
 // A visit's purpose: needing help, offering help, or just visiting (to order, work, study…), with tags saying why.
 export type VisitMode = ActionMode | 'visit'
-const VISIT_TAGS = ['شغل', 'مذاكرة', 'اجتماع', 'أقابل أصحاب', 'أروّق', 'قراءة', 'أطلب وأمشي']
+const VISIT_TAGS = ['عمل', 'مذاكرة', 'اجتماع', 'لقاء أصدقاء', 'استرخاء', 'قراءة', 'طلب سريع']
 export type PresenceFilter = 'all' | 'now' | 'today'
 export type Presence = 'now' | 'today'
 export type Gender = 'm' | 'f'
@@ -102,16 +102,16 @@ function LanguageBridge({ language }: { language: Language }) {
 // One vocabulary for the whole app. Change a word here and it changes everywhere.
 const COPY = {
   seek: 'أحتاج مساعدة',
-  help: 'أقدر أساعد',
-  visit: 'بس زيارة',
+  help: 'أستطيع المساعدة',
+  visit: 'زيارة فقط',
   nearTab: 'حولك',
   nowGroup: 'متواجدون الآن',
   todayGroup: 'قادمون اليوم',
   pending: 'بانتظار الرد',
-  declined: 'مو متاح الحين',
+  declined: 'غير متاح الآن',
   openChat: 'افتح المحادثة',
   offer: 'أعرض مساعدتي',
-  consent: 'ما أحد يقدر يراسلك إلا إذا وافقتوا الاثنين.',
+  consent: 'لا يمكن لأحد مراسلتك إلا بموافقتكما معًا.',
 }
 const DURATIONS = [10, 15, 30, 60]
 // Arabic number agreement: 1 دقيقة، 2 دقيقتين، 3-10 دقائق، 11+ دقيقة. Hours follow the same rule.
@@ -164,10 +164,10 @@ export type Person = {
 }
 
 const allPeople: Person[] = [
-  { id: 'layla', name: 'ليلى حسن', g: 'f', image: images.layla, job: 'مصممة جرافيك مستقلة', bio: 'أصمم هويات بصرية للمشاريع الناشئة، وأحب أساعد في مراجعة الشعارات والعروض التقديمية.', tag: 'تصميم هوية بصرية', seat: 'عند النافذة', cafe: 'عنوان القهوة', presence: 'now', time: '', leaveAt: leaveIn(95), visitDetails: 'متاحة للمساعدة حتى 6:30 م', skills: ['تصميم هوية بصرية', 'UI/UX', 'Figma'], serviceOffer: 'مراجعة الهوية والشعارات وتنسيق الواجهات وتجربة المستخدم' },
-  { id: 'omar', name: 'عمر سعيد', g: 'm', image: images.omar, job: 'مطور تطبيقات موبايل', bio: 'أطور تطبيقات React Native وTypeScript، وأقدر أساعد في حل مشاكل الكود واكتشاف الأخطاء بسرعة.', tag: 'React Native', seat: 'الطاولة الطويلة', cafe: 'عنوان القهوة', presence: 'now', time: '', leaveAt: leaveIn(150), visitDetails: 'متاح للأسئلة البرمجية حتى 8:00 م', skills: ['React Native', 'TypeScript', 'تطوير تطبيقات', 'حل أخطاء'], serviceOffer: 'حل مشاكل كود React Native واستكشاف أخطاء الدفع والربط' },
-  { id: 'khaled', name: 'خالد منصور', g: 'm', image: images.khaled, job: 'مختص تسويق رقمي', bio: 'أشتغل في التسويق الرقمي والإعلانات الممولة وحملات النمو للمتاجر الإلكترونية.', tag: 'تسويق رقمي', seat: 'قريب من الكاونتر', cafe: 'عنوان القهوة', presence: 'today', time: clock(leaveIn(45)), arriveAt: leaveIn(45), visitDetails: 'متاح للاستشارات التسويقية من 4:30 إلى 7:00 م', skills: ['تسويق رقمي', 'SEO', 'إعلانات تيك توك وسناب', 'حملات نمو'], serviceOffer: 'استشارات تسويقية وخطط إطلاق الحملات الإعلانية' },
-  { id: 'rana', name: 'رنا فارس', g: 'f', image: images.rana, job: 'صاحبة مشروع ناشئ', bio: 'أبني مشروع ناشئ للمناسبات والهدايا، وأهتم جداً بتجربة العميل وجودة التفاصيل.', tag: 'تصوير منتجات', seat: 'الجلسات الخارجية', cafe: 'عنوان القهوة', presence: 'today', time: clock(leaveIn(70)), arriveAt: leaveIn(70), visitDetails: 'متاحة لجلسات تصوير سريعة من 5:15 م', skills: ['تصوير منتجات', 'صناعة محتوى', 'تجربة مستخدم'], serviceOffer: 'تصوير المنتجات وجلسات سريعة بالجوال' },
+  { id: 'layla', name: 'ليلى حسن', g: 'f', image: images.layla, job: 'مصممة جرافيك مستقلة', bio: 'أصمم هويات بصرية للمشاريع الناشئة، ويسعدني المساعدة في مراجعة الشعارات والعروض التقديمية.', tag: 'تصميم هوية بصرية', seat: 'عند النافذة', cafe: 'عنوان القهوة', presence: 'now', time: '', leaveAt: leaveIn(95), visitDetails: 'متاحة للمساعدة حتى 6:30 م', skills: ['تصميم هوية بصرية', 'UI/UX', 'Figma'], serviceOffer: 'مراجعة الهوية والشعارات وتنسيق الواجهات وتجربة المستخدم' },
+  { id: 'omar', name: 'عمر سعيد', g: 'm', image: images.omar, job: 'مطور تطبيقات موبايل', bio: 'أطور تطبيقات React Native وTypeScript، وأستطيع المساعدة في حل مشاكل الكود واكتشاف الأخطاء بسرعة.', tag: 'React Native', seat: 'الطاولة الطويلة', cafe: 'عنوان القهوة', presence: 'now', time: '', leaveAt: leaveIn(150), visitDetails: 'متاح للأسئلة البرمجية حتى 8:00 م', skills: ['React Native', 'TypeScript', 'تطوير تطبيقات', 'حل أخطاء'], serviceOffer: 'حل مشاكل كود React Native واستكشاف أخطاء الدفع والربط' },
+  { id: 'khaled', name: 'خالد منصور', g: 'm', image: images.khaled, job: 'مختص تسويق رقمي', bio: 'أعمل في التسويق الرقمي والإعلانات الممولة وحملات النمو للمتاجر الإلكترونية.', tag: 'تسويق رقمي', seat: 'قريب من الكاونتر', cafe: 'عنوان القهوة', presence: 'today', time: clock(leaveIn(45)), arriveAt: leaveIn(45), visitDetails: 'متاح للاستشارات التسويقية من 4:30 إلى 7:00 م', skills: ['تسويق رقمي', 'SEO', 'إعلانات تيك توك وسناب', 'حملات نمو'], serviceOffer: 'استشارات تسويقية وخطط إطلاق الحملات الإعلانية' },
+  { id: 'rana', name: 'رنا فارس', g: 'f', image: images.rana, job: 'صاحبة مشروع ناشئ', bio: 'أبني مشروع ناشئ للمناسبات والهدايا، وأهتم كثيرًا بتجربة العميل وجودة التفاصيل.', tag: 'تصوير منتجات', seat: 'الجلسات الخارجية', cafe: 'عنوان القهوة', presence: 'today', time: clock(leaveIn(70)), arriveAt: leaveIn(70), visitDetails: 'متاحة لجلسات تصوير سريعة من 5:15 م', skills: ['تصوير منتجات', 'صناعة محتوى', 'تجربة مستخدم'], serviceOffer: 'تصوير المنتجات وجلسات سريعة بالجوال' },
   { id: 'sara', name: 'سارة الشمري', g: 'f', image: images.sara, job: 'محللة مالية ونمذجة', bio: 'أساعد رواد الأعمال في بناء جداول التدفقات النقدية ودراسات الجدوى المالية لطلبات الاستثمار.', tag: 'Excel ومالية', seat: 'منطقة الهدوء', cafe: 'ستاربكس', presence: 'now', time: '', leaveAt: leaveIn(40), visitDetails: 'متاحة لمراجعة النماذج المالية حتى 5:00 م', skills: ['Excel ونمذجة', 'مالية', 'دراسات جدوى', 'عروض استثمار'], serviceOffer: 'مراجعة نماذج Excel وحسابات التدفقات النقدية للمشاريع' },
   { id: 'tariq', name: 'طارق الجاسم', g: 'm', image: images.tariq, job: 'مهندس حلول سحابية', bio: 'أبني بنى تحتية سحابية وأنظمة Backend عالية الأداء للمنصات الرقمية.', tag: 'هندسة سحابية', seat: 'غرفة الاجتماعات 2', cafe: 'ستاربكس', presence: 'today', time: clock(leaveIn(110)), arriveAt: leaveIn(110), visitDetails: 'متاح لأسئلة السحابة والخوادم من 6:00 م', skills: ['Cloud', 'DevOps', 'Node.js', 'PostgreSQL'], serviceOffer: 'استشارات معمارية الأنظمة السحابية وخوادم التطبيقات' },
   { id: 'faisal', name: 'فيصل العتيبي', g: 'm', image: images.faisal, job: 'صانع محتوى ومصور', bio: 'أساعد أصحاب المشاريع في محتوى السوشال ميديا والتيك توك.', tag: 'صناعة محتوى', seat: 'الجلسات الخارجية', cafe: 'دانكن', presence: 'now', time: '', leaveAt: leaveIn(70), visitDetails: 'متاح لمراجعة الحسابات وأفكار المحتوى حتى المغرب', skills: ['محتوى تيك توك', 'تصوير بالجوال', 'كتابة سيناريو'], serviceOffer: 'أفكار محتوى ومراجعة حسابات التواصل الاجتماعي' },
@@ -182,11 +182,11 @@ export type Need = {
 
 const allNeeds: Need[] = [
   { id: 'n1', personId: 'rana', name: 'رنا فارس', g: 'f', image: images.rana, cafe: 'عنوان القهوة', text: 'أحتاج رأي وملاحظات سريعة في تصميم تجربة واجهات تطبيق مشروعي', topic: 'تصميم تطبيق', tags: ['تصميم', 'تطبيقات', 'UI/UX'], minutes: 15, presence: 'today', time: clock(leaveIn(70)), arriveAt: leaveIn(70), seat: 'الجلسات الخارجية' },
-  { id: 'n2', personId: 'reem', name: 'ريم السالم', g: 'f', image: '', cafe: 'عنوان القهوة', text: 'تطبيقي يعلّق ويظهر خطأ لما أفتح صفحة الدفع في Stripe', topic: 'React Native', tags: ['React Native', 'دفع إلكتروني', 'كود'], minutes: 10, presence: 'now', time: '', leaveAt: leaveIn(12), seat: 'عند النافذة' },
-  { id: 'n3', personId: 'yousef', name: 'يوسف العلي', g: 'm', image: '', cafe: 'ستاربكس', text: 'واجهة تطبيقي ما تضبط على الجوالات ذات الشاشات الصغيرة وأحتاج مساعدة في CSS', topic: 'تطوير واجهات', tags: ['تطوير واجهات', 'CSS', 'Responsive'], minutes: 20, presence: 'now', time: '', leaveAt: leaveIn(120), seat: 'منطقة الهدوء' },
+  { id: 'n2', personId: 'reem', name: 'ريم السالم', g: 'f', image: '', cafe: 'عنوان القهوة', text: 'تطبيقي يتوقف ويظهر خطأ عند فتح صفحة الدفع في Stripe', topic: 'React Native', tags: ['React Native', 'دفع إلكتروني', 'كود'], minutes: 10, presence: 'now', time: '', leaveAt: leaveIn(12), seat: 'عند النافذة' },
+  { id: 'n3', personId: 'yousef', name: 'يوسف العلي', g: 'm', image: '', cafe: 'ستاربكس', text: 'واجهة تطبيقي لا تظهر بشكل صحيح على الجوالات ذات الشاشات الصغيرة وأحتاج مساعدة في CSS', topic: 'تطوير واجهات', tags: ['تطوير واجهات', 'CSS', 'Responsive'], minutes: 20, presence: 'now', time: '', leaveAt: leaveIn(120), seat: 'منطقة الهدوء' },
   { id: 'n4', personId: 'majed', name: 'ماجد الحربي', g: 'm', image: '', cafe: 'دانكن', text: 'أبحث عن استشارة سريعة في تسعير اشتراكات تطبيق جديد موجه للشركات', topic: 'تسعير واستراتيجية', tags: ['تسعير', 'تسويق', 'B2B'], minutes: 15, presence: 'today', time: clock(leaveIn(40)), arriveAt: leaveIn(40), seat: 'الجلسات الخارجية' },
   { id: 'n5', personId: 'hind', name: 'هند القحطاني', g: 'f', image: '', cafe: 'جافا تايم', text: 'مراجعة سريعة لشرائح العرض الاستثماري Pitch Deck قبل عرضه غداً', topic: 'عروض تقديمية', tags: ['عروض تقديمية', 'استثمار', 'Pitch Deck'], minutes: 20, presence: 'now', time: '', leaveAt: leaveIn(55), seat: 'الحديقة الجانبية' },
-  { id: 'n6', personId: 'abdullah', name: 'عبدالله الزهراني', g: 'm', image: '', cafe: 'عنوان القهوة', text: 'أبغى أحد يراجع معي خطة إطلاق حملة إعلانية على سناب', topic: 'تسويق', tags: ['تسويق', 'إعلانات', 'سناب'], minutes: 15, presence: 'today', time: clock(leaveIn(120)), arriveAt: leaveIn(120), seat: 'قريب من الكاونتر' },
+  { id: 'n6', personId: 'abdullah', name: 'عبدالله الزهراني', g: 'm', image: '', cafe: 'عنوان القهوة', text: 'أريد من يراجع معي خطة إطلاق حملة إعلانية على سناب', topic: 'تسويق', tags: ['تسويق', 'إعلانات', 'سناب'], minutes: 15, presence: 'today', time: clock(leaveIn(120)), arriveAt: leaveIn(120), seat: 'قريب من الكاونتر' },
 ]
 
 // hours: opening and closing hour (24 = midnight), used to keep visits inside opening times.
@@ -245,8 +245,8 @@ const needsAt = (d: Data, cafe: string) => d.needs.filter(n => n.cafe === cafe)
 const cafeCount = (d: Data, cafe: string, act: ActionMode) => (act === 'help' ? needsAt(d, cafe).length : peopleAt(d, cafe).length)
 const countLine = (d: Data, cafe: string, act: ActionMode) => {
   const n = cafeCount(d, cafe, act)
-  if (act === 'seek') return n ? `${n} يقدرون يساعدونك` : 'ما فيه أحد متاح للمساعدة حاليًا'
-  return n ? `${n} يحتاجون مساعدتك` : 'ما فيه احتياجات حاليًا'
+  if (act === 'seek') return n ? `${n} يمكنهم مساعدتك` : 'لا يوجد أحد متاح للمساعدة حاليًا'
+  return n ? `${n} يحتاجون مساعدتك` : 'لا توجد احتياجات حاليًا'
 }
 
 const first = (name: string) => name.split(' ')[0]
@@ -270,7 +270,7 @@ const targetId = (t: Target) => (t.kind === 'offer' ? t.need.personId : t.person
 
 const hidePhoto = (e: React.SyntheticEvent<HTMLImageElement>) => { e.currentTarget.style.visibility = 'hidden' }
 const now = () => new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-// Demo pacing: each agreed minute passes in one second, so "15 دقيقة" asks "تقابلتوا؟" after 15 seconds.
+// Demo pacing: each agreed minute passes in one second, so "15 دقيقة" asks "هل التقيتم؟" after 15 seconds.
 const DEMO_MS_PER_MINUTE = 1000
 const onEnter = (fn: () => void) => (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn() } }
 
@@ -299,11 +299,11 @@ function useNow(ms = 5000) {
 }
 const timeLeft = (leaveAt: number, t: number) => {
   const left = leaveAt - t
-  return left <= 0 ? 'وقته خلص' : left < 60000 ? 'أقل من دقيقة' : span(Math.ceil(left / 60000))
+  return left <= 0 ? 'انتهى وقته' : left < 60000 ? 'أقل من دقيقة' : span(Math.ceil(left / 60000))
 }
 function StayLine({ person: p }: { person: Person }) {
   const t = useNow()
-  if (p.presence === 'now' && p.leaveAt) return <>{`موجود${p.g === 'f' ? 'ة' : ''} الحين، و${leaveLine(p.g, p.leaveAt, t)} (الساعة ${clock(p.leaveAt)})`}</>
+  if (p.presence === 'now' && p.leaveAt) return <>{`موجود${p.g === 'f' ? 'ة' : ''} الآن، و${leaveLine(p.g, p.leaveAt, t)} (الساعة ${clock(p.leaveAt)})`}</>
   if (p.presence === 'today' && p.arriveAt) return <>{`${arriveLine(p.g, p.arriveAt, t)} (الساعة ${p.time})`}</>
   return <>{p.visitDetails}</>
 }
@@ -317,10 +317,10 @@ function PresenceBadge({ presence, time, seat }: { presence: Presence; time: str
   )
 }
 
-// Plain words for when someone is at the café: «يطلع من الكافيه بعد ساعة» while they're here, «يوصل الكافيه بعد 20 دقيقة» on the way.
+// Plain words for when someone is at the café: «يغادر الكافيه بعد ساعة» while they're here, «يوصل الكافيه بعد 20 دقيقة» on the way.
 // Green dot = here now; footsteps = on the way; the here timer turns red-clay in the last 15 minutes.
-const leaveLine = (g: Gender, at: number, t: number) => (at - t <= 0 ? (g === 'f' ? 'طلعت من الكافيه' : 'طلع من الكافيه') : `${g === 'f' ? 'تطلع' : 'يطلع'} من الكافيه بعد ${timeLeft(at, t)}`)
-const arriveLine = (g: Gender, at: number, t: number) => (at - t <= 0 ? (g === 'f' ? 'وصلت الكافيه' : 'وصل الكافيه') : `${g === 'f' ? 'توصل' : 'يوصل'} الكافيه بعد ${timeLeft(at, t)}`)
+const leaveLine = (g: Gender, at: number, t: number) => (at - t <= 0 ? (g === 'f' ? 'غادرت الكافيه' : 'غادر الكافيه') : `${g === 'f' ? 'تغادر' : 'يغادر'} الكافيه بعد ${timeLeft(at, t)}`)
+const arriveLine = (g: Gender, at: number, t: number) => (at - t <= 0 ? (g === 'f' ? 'وصلت الكافيه' : 'وصل الكافيه') : `${g === 'f' ? 'تصل' : 'يصل'} الكافيه بعد ${timeLeft(at, t)}`)
 // Presence without extra words: a ring around the photo empties as their time at the café runs out
 // (dashed when they're still on the way), and one short line in the card footer says how long.
 const STAY_SHOWN = 40 * 60000 // pretend everyone arrived 40 minutes ago, so the ring has a starting point
@@ -337,7 +337,7 @@ function StayMeta({ g, seat, leaveAt, arriveAt, time }: { g: Gender; seat: strin
   const t = useNow()
   if (leaveAt) {
     const soon = leaveAt - t <= 15 * 60000
-    return <div className={`service-meta-info stay-meta ${soon ? 'is-soon' : ''}`} title={`${g === 'f' ? 'تطلع' : 'يطلع'} من الكافيه الساعة ${clock(leaveAt)}`}><Coffee />{leaveAt - t <= 0 ? (g === 'f' ? 'طلعت' : 'طلع') : `مغادرة بعد: ${timeLeft(leaveAt, t)}`}</div>
+    return <div className={`service-meta-info stay-meta ${soon ? 'is-soon' : ''}`} title={`${g === 'f' ? 'تغادر' : 'يغادر'} الكافيه الساعة ${clock(leaveAt)}`}><Coffee />{leaveAt - t <= 0 ? (g === 'f' ? 'غادرت' : 'غادر') : `مغادرة بعد: ${timeLeft(leaveAt, t)}`}</div>
   }
   if (arriveAt) {
     return <div className="service-meta-info stay-meta is-coming" title={`الساعة ${time}`}><Footprints />{arriveAt - t <= 0 ? (g === 'f' ? 'وصلت' : 'وصل') : `وصول بعد: ${timeLeft(arriveAt, t)}`}</div>
@@ -440,7 +440,7 @@ function IntentSwitch({ mode, onChange }: { mode: ActionMode; onChange: (m: Acti
   return (
     <div className="service-segmented-tabs" role="tablist" aria-label="نوع الأشخاص حولك">
       <button type="button" role="tab" aria-selected={mode === 'help'} className={`service-tab-btn ${mode === 'help' ? 'active' : ''}`} onClick={() => onChange('help')}><HeartHandshake />يحتاجون مساعدة</button>
-      <button type="button" role="tab" aria-selected={mode === 'seek'} className={`service-tab-btn ${mode === 'seek' ? 'active' : ''}`} onClick={() => onChange('seek')}><UsersRound />يقدرون يساعدون</button>
+      <button type="button" role="tab" aria-selected={mode === 'seek'} className={`service-tab-btn ${mode === 'seek' ? 'active' : ''}`} onClick={() => onChange('seek')}><UsersRound />يمكنهم المساعدة</button>
     </div>
   )
 }
@@ -524,7 +524,7 @@ function EmptyState({ title, hint, action, onAction, icon }: { title: string; hi
 // Shown on every list when the chosen city isn't live yet, instead of a silent empty screen.
 function NotLiveState({ onChange }: { onChange: () => void }) {
   const { loc } = useData()
-  return <EmptyState icon={<MapPin />} title={`AroundMe لسا ما وصل ${loc.city}`} hint={`حالياً متاح في ${LIVE_CITY} بس. نبلغك أول ما نوصل مدينتك.`} action="غيّر المدينة" onAction={onChange} />
+  return <EmptyState icon={<MapPin />} title={`AroundMe لم يصل بعد إلى ${loc.city}`} hint={`متاح حاليًا في ${LIVE_CITY} فقط. سنبلغك فور وصولنا إلى مدينتك.`} action="غيّر المدينة" onAction={onChange} />
 }
 
 function ConsentNote() {
@@ -564,13 +564,13 @@ function ProfilePreviewDrawer({ person, h, onClose, onOpenCafe }: { person: Pers
           <Coffee />
           <span>
             <b>{person.cafe}{cafe ? ` · ${cafe.distance} منك` : ''}</b>
-            <small>{isNow ? `الجلسة: ${person.seat}` : `${gx(person, 'يوصل', 'توصل')} الساعة ${person.time}`}</small>
+            <small>{isNow ? `الجلسة: ${person.seat}` : `${gx(person, 'يصل', 'تصل')} الساعة ${person.time}`}</small>
           </span>
           <ChevronLeft />
         </button>
 
         <div className="drawer-detail-section">
-          <h4><HeartHandshake /> {gx(person, 'يقدر يساعدك في', 'تقدر تساعدك في')}</h4>
+          <h4><HeartHandshake /> {gx(person, 'يستطيع مساعدتك في', 'تستطيع مساعدتك في')}</h4>
           <p>{person.serviceOffer}</p>
           <div className="service-tags-row">{person.skills.map(s => <span key={s} className="service-tag">{s}</span>)}</div>
         </div>
@@ -603,13 +603,13 @@ function Onboarding({ next }: { next: () => void }) {
         <span className="radar-tag tag-translator">أبحث عن مترجم</span>
         <span className="radar-tag tag-photographer">مصوّر</span>
         <span className="radar-ring-label ring-table">طاولتك</span>
-        <span className="radar-ring-label ring-cafe">نفس الكوفي</span>
+        <span className="radar-ring-label ring-cafe">نفس الكافيه</span>
       </div>
       <div className="onboard-copy">
         <div className="brand"><BrandLogo /></div>
-        <h1><span>لا تبحث بالنت،</span><strong>ابحث حولك.</strong></h1>
-        <p>في نفس الكوفي، وعلى طاولة قريبة… تلقى اللي تحتاجه.</p>
-        <PrimaryButton onClick={next}>يلا نبدأ</PrimaryButton>
+        <h1><span>لا تبحث في الإنترنت،</span><strong>ابحث حولك.</strong></h1>
+        <p>في نفس الكافيه، وعلى طاولة قريبة… تجد ما تحتاجه.</p>
+        <PrimaryButton onClick={next}>لنبدأ</PrimaryButton>
       </div>
     </div>
   )
@@ -626,7 +626,7 @@ function PhoneScreen({ next, back }: { next: () => void; back: () => void }) {
       <div className="form-content">
         <span className="form-icon"><Phone /></span>
         <h1>رقم جوالك</h1>
-        <p>عشان يكون كل اللي حولك أشخاص حقيقيين. رقمك ما يظهر لأحد.</p>
+        <p>ليكون كل من حولك أشخاصًا حقيقيين. رقمك لا يظهر لأحد.</p>
         <label htmlFor="phone">رقم الجوال</label>
         <div className="phone-input" dir="ltr">
           <b>{language === 'en' ? '+1' : '+966'}</b>
@@ -656,7 +656,7 @@ function OtpScreen({ next, back }: { next: () => void; back: () => void }) {
       <TopBar back={back} />
       <div className="form-content">
         <span className="form-icon"><ShieldCheck /></span>
-        <h1>اكتب الرمز اللي وصلك</h1>
+        <h1>اكتب الرمز الذي وصلك</h1>
         <p>أرسلنا رمز التحقق المكوّن من {BUSINESS.OTP_LENGTH} أرقام.</p>
         {/* One real input (keeps paste and SMS autofill) drawn as one box per digit. */}
         <label className="otp-field" dir="ltr">
@@ -668,7 +668,7 @@ function OtpScreen({ next, back }: { next: () => void; back: () => void }) {
           </span>
         </label>
         <button className="text-button" disabled={resendIn > 0} onClick={() => { setCode(''); setResendIn(BUSINESS.OTP_RESEND_SECONDS) }}>
-          {resendIn ? `إعادة الإرسال بعد ${resendIn} ث` : 'أرسل الرمز مرة ثانية'}
+          {resendIn ? `إعادة الإرسال بعد ${resendIn} ث` : 'أرسل الرمز مرة أخرى'}
         </button>
       </div>
       <div className="sticky-action"><PrimaryButton onClick={next} disabled={code.length < BUSINESS.OTP_LENGTH}>تأكيد الرمز</PrimaryButton></div>
@@ -683,10 +683,10 @@ function LocationScreen({ next, manual, back }: { next: () => void; manual: () =
       <TopBar back={back} />
       <div className="location-visual"><div className="radar"><MapPin /><i /><i /></div></div>
       <div className="onboard-copy">
-        <h1>خلنا نشوف وش حولك</h1>
-        <p>نستخدم موقعك عشان نوريك الأقرب لك أول. موقعك الدقيق ما يظهر لأي أحد، يظهر بس اسم الكافيه.</p>
+        <h1>لنكتشف ما حولك</h1>
+        <p>نستخدم موقعك لنعرض لك الأقرب أولًا. موقعك الدقيق لا يظهر لأحد، يظهر اسم الكافيه فقط.</p>
         <PrimaryButton onClick={next} icon={<LocateFixed />}>استخدم موقعي</PrimaryButton>
-        <button className="text-button" onClick={manual}>أختار المدينة والحي بنفسي</button>
+        <button className="text-button" onClick={manual}>سأختار المدينة والحي بنفسي</button>
       </div>
     </div>
   )
@@ -700,7 +700,7 @@ function LocationSheet({ current, close, save }: { current: Loc; close: () => vo
     <BottomSheet onClose={close}>
       <div className="sheet-title">
         <span className="sheet-icon"><MapPin /></span>
-        <div><h2>وين أنت؟</h2><p>نرتّب لك الأشخاص والكافيهات من الأقرب لك</p></div>
+        <div><h2>أين أنت؟</h2><p>نرتّب لك الأشخاص والكافيهات من الأقرب لك</p></div>
       </div>
       <button type="button" className="select-row as-button" onClick={() => save(DEFAULT_LOC)}>
         <LocateFixed />
@@ -716,7 +716,7 @@ function LocationSheet({ current, close, save }: { current: Loc; close: () => vo
           <div className="chip-row">{Object.keys(AREAS).map(a => <Chip key={a} active={area === a} onClick={() => setArea(a)}>{a}</Chip>)}</div>
         </>
       ) : (
-        <p className="inline-empty">AroundMe متاح حاليًا في {LIVE_CITY} بس. تقدر تختار {city} ونبلغك أول ما نوصلها.</p>
+        <p className="inline-empty">AroundMe متاح حاليًا في {LIVE_CITY} فقط. يمكنك اختيار {city} وسنبلغك فور وصولنا إليها.</p>
       )}
       <PrimaryButton onClick={() => save({ mode: 'manual', city, area: city === LIVE_CITY ? area : '' })}>اعتمد الموقع</PrimaryButton>
     </BottomSheet>
@@ -726,10 +726,10 @@ function LocationSheet({ current, close, save }: { current: Loc; close: () => vo
 function MetPrompt({ name, onAnswer }: { name: string; onAnswer: (met: boolean) => void }) {
   return (
     <div className="met-prompt">
-      <b>تقابلت مع {first(name)}؟</b>
+      <b>هل التقيت بـ{first(name)}؟</b>
       <div>
-        <button className="met-no" onClick={() => onAnswer(false)}>لا، مو بعد</button>
-        <button className="met-yes" onClick={() => onAnswer(true)}><Check /> إيه، تقابلنا</button>
+        <button className="met-no" onClick={() => onAnswer(false)}>لا، ليس بعد</button>
+        <button className="met-yes" onClick={() => onAnswer(true)}><Check /> نعم، التقينا</button>
       </div>
     </div>
   )
@@ -773,16 +773,16 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
           <button className="journey-card seek moment" onClick={onHereNow}>
             <span className="journey-icon"><MapPin /></span>
             <span className="journey-copy">
-              <b>أنا في الكوفي الحين</b>
-              <em>{d.live ? 'شوف مهارات واحتياجات اللي حولك' : `ما وصلنا ${d.loc.city} للحين`}</em>
+              <b>أنا في الكافيه الآن</b>
+              <em>{d.live ? 'اكتشف مهارات واحتياجات من حولك' : `لم نصل إلى ${d.loc.city} بعد`}</em>
             </span>
             <i><ChevronLeft /></i>
           </button>
           <button className="journey-card help moment" onClick={onGoing}>
             <span className="journey-icon"><Navigation /></span>
             <span className="journey-copy">
-              <b>رايح للكوفي الآن</b>
-              <em>علّمهم إنك بالطريق واطلب مسبقاً</em>
+              <b>في طريقي إلى الكافيه</b>
+              <em>أخبرهم أنك في الطريق واطلب مسبقًا</em>
             </span>
             <i><ChevronLeft /></i>
           </button>
@@ -790,12 +790,12 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
             <span className="journey-icon"><CalendarPlus /></span>
             <span className="journey-copy">
               <b>جَدوِل زيارتك القادمة</b>
-              <em>احجز طاولتك واطلب قبل توصل</em>
+              <em>احجز طاولتك واطلب قبل وصولك</em>
             </span>
             <i><ChevronLeft /></i>
           </button>
         </div>
-        <div className="gateway-trust"><Sparkles /><span><small>يمكن تكون جالس جنب شخص يملك حل مشكلتك أو يحتاج خبرتك! AroundMe يبيّن لك اهتمامات ومهارات الناس المتواجدين معك بالكوفي، ويحوّل الجلسة لفرصة تعاون.</small></span></div>
+        <div className="gateway-trust"><Sparkles /><span><small>ربما تجلس بجانب شخص يملك حل مشكلتك أو يحتاج خبرتك! يعرض لك AroundMe اهتمامات ومهارات الموجودين معك في الكافيه، ويحوّل الجلسة إلى فرصة تعاون.</small></span></div>
       </section>
 
       {visit && (
@@ -806,7 +806,7 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
               <small>{visit.going ? <Navigation /> : <CalendarClock />} {visit.going ? 'في طريقك' : 'زيارتك القادمة'}</small>
               <b>{visit.cafe}</b>
               <em>{visitWhen(visit.at, now)}</em>
-              <i>{visit.at <= now ? (visit.order ? `بدأت زيارتك · رقم طلبك #${visit.order.code}` : 'بدأت زيارتك') : `${visit.going ? 'توصل' : 'تبدأ'} بعد ${timeLeft(visit.at, now)}`}</i>
+              <i>{visit.at <= now ? (visit.order ? `بدأت زيارتك · رقم طلبك #${visit.order.code}` : 'بدأت زيارتك') : `${visit.going ? 'تصل' : 'تبدأ'} بعد ${timeLeft(visit.at, now)}`}</i>
             </span>
             <ChevronLeft />
           </button>
@@ -819,7 +819,7 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
           {(visitPurpose(visit) || visit.workOn) && (
             <div className="home-visit-notes">
               {visitPurpose(visit) && <span className={`visit-purpose ${visit.mode ?? ''}`}><PurposeIcon mode={visit.mode} />{visitPurpose(visit)}</span>}
-              {visit.workOn && <span>{visit.mode === 'visit' ? visit.workOn : `بشتغل على: ${visit.workOn}`}</span>}
+              {visit.workOn && <span>{visit.mode === 'visit' ? visit.workOn : `سأعمل على: ${visit.workOn}`}</span>}
             </div>
           )}
         </section>
@@ -847,31 +847,31 @@ function IntentScreen({ mode, cafe, back, mySkills, privateMode, onContinue }: {
       <main>
         <span className="intent-hero-icon">{seek ? <Search /> : <HeartHandshake />}</span>
         {cafe && <span className="intent-here"><MapPin />أنت في {cafe}</span>}
-        <h1>{seek ? 'وش تحتاج تنجز اليوم؟' : 'وش تقدر تساعد فيه؟'}</h1>
-        <p>{seek ? 'اكتب احتياجك بشكل بسيط أو اختر من الاقتراحات.' : 'اختر مهارة أو أكثر، وأضف تفاصيل لو تبي.'}</p>
+        <h1>{seek ? 'ماذا تريد أن تنجز اليوم؟' : 'بماذا يمكنك المساعدة؟'}</h1>
+        <p>{seek ? 'اكتب احتياجك بشكل بسيط أو اختر من الاقتراحات.' : 'اختر مهارة أو أكثر، وأضف تفاصيل إن أردت.'}</p>
         {seek && (
           <>
-            <textarea value={text} onChange={e => setText(e.target.value)} placeholder="مثلاً: أبغى أحد يراجع عرضي التقديمي" maxLength={BUSINESS.MAX_NEED_TEXT_CHARS} aria-label="احتياجك" />
+            <textarea value={text} onChange={e => setText(e.target.value)} placeholder="مثلًا: أريد من يراجع عرضي التقديمي" maxLength={BUSINESS.MAX_NEED_TEXT_CHARS} aria-label="احتياجك" />
             {topics.length > 0 && <div className="understood"><small>فهمنا:</small>{topics.map(t => <span key={t}>{t}</span>)}</div>}
           </>
         )}
         <div className="intent-choice-grid">
           {choices.map(c => <Chip key={c} active={selected.includes(c)} onClick={() => toggle(c)}>{selected.includes(c) && <Check />}{c}</Chip>)}
         </div>
-        {!seek && <textarea value={text} onChange={e => setText(e.target.value)} placeholder="تفاصيل إضافية (اختياري): مثلاً أقدر أراجع كود React Native" maxLength={BUSINESS.MAX_NEED_TEXT_CHARS} aria-label="تفاصيل إضافية" />}
+        {!seek && <textarea value={text} onChange={e => setText(e.target.value)} placeholder="تفاصيل إضافية (اختياري): مثلًا يمكنني مراجعة كود React Native" maxLength={BUSINESS.MAX_NEED_TEXT_CHARS} aria-label="تفاصيل إضافية" />}
         <div className="intent-privacy">
           <ShieldCheck />
           <span>
             <b>خصوصيتك محفوظة</b>
             <small>{seek
-              ? privateMode ? 'احتياجك يظهر بدون اسمك وصورتك حتى توافقون الاثنين.' : 'احتياجك يظهر مع اسمك للي حولك، والمحادثة ما تبدأ إلا بموافقتكم.'
+              ? privateMode ? 'يظهر احتياجك دون اسمك وصورتك حتى توافقا معًا.' : 'يظهر احتياجك مع اسمك لمن حولك، ولا تبدأ المحادثة إلا بموافقتكما.'
               : 'مهاراتك تظهر فقط للأشخاص القريبين منك.'}</small>
           </span>
         </div>
       </main>
       <div className="sticky-action">
         <PrimaryButton onClick={() => onContinue(text.trim(), selected)} disabled={!ready}>
-          {cafe ? (seek ? `اعرض اللي يقدرون يساعدوني هنا` : `اعرض اللي يحتاجون مساعدتي هنا`) : seek ? 'اعرض اللي يقدرون يساعدوني' : 'اعرض اللي يحتاجون مساعدتي'}
+          {cafe ? (seek ? `اعرض من يمكنهم مساعدتي هنا` : `اعرض من يحتاجون مساعدتي هنا`) : seek ? 'اعرض من يمكنهم مساعدتي' : 'اعرض من يحتاجون مساعدتي'}
         </PrimaryButton>
       </div>
     </div>
@@ -933,13 +933,13 @@ function PeopleScreen({ onTab, unread, h, actionMode, onActionModeChange, presen
           </div>
 
           <main className="people-discovery">
-            {count === 0 && <EmptyState title="ما لقينا أحد بهالخيارات" hint="جرّب «الكل» أو كلمة بحث ثانية." action="اعرض الكل" onAction={resetAll} />}
+            {count === 0 && <EmptyState title="لم نجد أحدًا بهذه الخيارات" hint="جرّب «الكل» أو كلمة بحث أخرى." action="اعرض الكل" onAction={resetAll} />}
             {groups.map(g => (
               <section key={g.cafe.id} className="cafe-group">
                 <button type="button" className="cafe-group-head" onClick={() => onCafe(g.cafe.name)} aria-label={`${g.cafe.name}، ${g.cafe.area}، ${g.cafe.distance}`}>
                   <img className="cafe-group-thumb" src={g.cafe.image} alt="" onError={hidePhoto} />
                   <span className="cafe-group-copy"><b>{g.cafe.name}</b><small>{g.cafe.area} · {g.cafe.distance}</small></span>
-                  <strong>{seek ? `${g.people.length} يقدرون يساعدون` : `${g.needs.length} يحتاجون مساعدة`}</strong>
+                  <strong>{seek ? `${g.people.length} يمكنهم المساعدة` : `${g.needs.length} يحتاجون مساعدة`}</strong>
                   <ChevronLeft />
                 </button>
                 <div className="card-stack cafe-thread">
@@ -994,7 +994,7 @@ function MapScreen({ onTab, unread, onCafe, actionMode, onActionModeChange, cont
             <Chip active={filter === 'outdoor'} onClick={() => setFilter('outdoor')}>جلسات خارجية</Chip>
           </div>
           <main className="cafes-browser">
-            {visible.length === 0 && <EmptyState title="ما لقينا كافيه بهالخيارات" hint={query ? 'جرّب اسم الحي بدل اسم الكافيه.' : 'جرّب فلتر ثاني.'} action="اعرض الكل" onAction={() => { setQuery(''); setFilter('all') }} />}
+            {visible.length === 0 && <EmptyState title="لم نجد كافيه بهذه الخيارات" hint={query ? 'جرّب اسم الحي بدلًا من اسم الكافيه.' : 'جرّب فلترًا آخر.'} action="اعرض الكل" onAction={() => { setQuery(''); setFilter('all') }} />}
             {visible.map(cafe => (
               <button className="cafe-browse-card" key={cafe.id} onClick={() => onCafe(cafe.name)}>
                 <div className="cafe-image"><CafeThumb cafe={cafe} />{badgeFor(cafe)}</div>
@@ -1020,7 +1020,7 @@ function MapScreen({ onTab, unread, onCafe, actionMode, onActionModeChange, cont
 
 function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onActionModeChange, h, visit, onPlan, onOrderHere, onOpenVisit, now, here = false }: {
   visit?: Visit; onPlan: () => void; onOrderHere: () => void; onOpenVisit: (id: string) => void; now: number;
-  // The person said they're in this café right now («أنا في الكوفي الحين»): they order from their seat instead of booking ahead.
+  // The person said they're in this café right now («أنا في الكافيه الآن»): they order from their seat instead of booking ahead.
   here?: boolean;
   cafeName: string; back: () => void; saved: boolean; onToggleSave: () => void; actionMode: ActionMode; onActionModeChange: (m: ActionMode) => void;
   h: CardHandlers;
@@ -1058,34 +1058,34 @@ function CafeDetailScreen({ cafeName, back, saved, onToggleSave, actionMode, onA
         {here && !visit && (
           <button className="plan-visit" onClick={onOrderHere}>
             <Receipt />
-            <span><b>اطلب من مكانك</b><small>تطلب وتدفع من جوالك، ونجهز طلبك الحين</small></span>
+            <span><b>اطلب من مكانك</b><small>اطلب وادفع من جوالك، ونبدأ تجهيز طلبك فورًا</small></span>
             <ChevronLeft />
           </button>
         )}
         {(visit || !here) && <button className="plan-visit" onClick={() => (visit ? onOpenVisit(visit.id) : onPlan())}>
           <CalendarPlus />
-          <span><b>{visit ? 'زيارتك القادمة هنا' : 'جَدوِل زيارتك هنا'}</b><small>{visit ? `${visitWhen(visit.at, now)}${visit.table ? ` · ${tableLabel(visit.table)}` : ''}${visit.order ? ' · طلبك مدفوع' : ''}` : 'احجز طاولتك واطلب قبل توصل'}</small></span>
+          <span><b>{visit ? 'زيارتك القادمة هنا' : 'جَدوِل زيارتك هنا'}</b><small>{visit ? `${visitWhen(visit.at, now)}${visit.table ? ` · ${tableLabel(visit.table)}` : ''}${visit.order ? ' · طلبك مدفوع' : ''}` : 'احجز طاولتك واطلب قبل وصولك'}</small></span>
           <ChevronLeft />
         </button>}
         <section className="cafe-section">
           <IntentSwitch mode={actionMode} onChange={onActionModeChange} />
           <div className="section-head">
-            <h2>{seek ? 'يقدرون يساعدونك هنا' : 'يحتاجون مساعدتك هنا'}</h2>
+            <h2>{seek ? 'يمكنهم مساعدتك هنا' : 'يحتاجون مساعدتك هنا'}</h2>
             <small>{seek ? cafePeople.length : cafeNeeds.length}</small>
           </div>
           {seek && (cafePeople.length
             ? <div className="card-stack">{sortNow(cafePeople).map(p => <HelperCard key={p.id} p={p} h={h} showCafe={false} />)}</div>
-            : <EmptyState title="ما فيه أحد هنا يقدر يساعد حاليًا" hint="جرّب كافيه ثاني قريب." action="ارجع" onAction={back} />)}
+            : <EmptyState title="لا يوجد هنا من يستطيع المساعدة حاليًا" hint="جرّب كافيه آخر قريبًا." action="ارجع" onAction={back} />)}
           {!seek && (cafeNeeds.length
             ? <div className="card-stack">{sortNow(cafeNeeds).map(n => <NeedCard key={n.id} n={n} h={h} showCafe={false} />)}</div>
-            : <EmptyState title="ما فيه احتياجات هنا حاليًا" hint="جرّب كافيهًا آخر قريبًا." />)}
+            : <EmptyState title="لا توجد احتياجات هنا حاليًا" hint="جرّب كافيهًا آخر قريبًا." />)}
         </section>
         <section className="cafe-section cafe-menu" ref={menuRef}>
-          <div className="section-head"><h2>المنيو</h2>{here ? <button type="button" className="text-button" onClick={onOrderHere}>اطلب الحين</button> : <button type="button" className="text-button" onClick={() => (visit && !visit.order ? onOpenVisit(visit.id) : onPlan())}>اطلب قبل توصل</button>}</div>
+          <div className="section-head"><h2>المنيو</h2>{here ? <button type="button" className="text-button" onClick={onOrderHere}>اطلب الآن</button> : <button type="button" className="text-button" onClick={() => (visit && !visit.order ? onOpenVisit(visit.id) : onPlan())}>اطلب قبل وصولك</button>}</div>
           <ul className="menu-preview">
             {MENU.filter(m => ['latte', 'v60', 'matcha', 'croissant'].includes(m.id)).map(m => <li key={m.id}><span className="menu-icon">{m.icon}</span><b>{m.name}</b><em>{sar(m.price)}</em></li>)}
           </ul>
-          <p className="plan-note"><ShieldCheck />{here ? 'تطلب وتدفع من جوالك، وما تدفع شي عند الكاونتر.' : 'تطلب وتدفع من التطبيق قبل توصل، وما تدفع شي في الكافيه.'}</p>
+          <p className="plan-note"><ShieldCheck />{here ? 'اطلب وادفع من جوالك، ولا شيء تدفعه عند الكاونتر.' : 'اطلب وادفع من التطبيق قبل وصولك، ولا شيء تدفعه في الكافيه.'}</p>
         </section>
         <section className="cafe-section">
           <div className="section-head"><h2>عن المكان</h2></div>
@@ -1136,8 +1136,8 @@ function MatchProfileScreen({ back, initialSkills, initialGoals, initialNeedDesc
         <section className="match-hero-card">
           <span className="hero-icon"><Sparkles /></span>
           <div>
-            <h2>اللي يشوفه الناس حولك</h2>
-            <p>نستخدم مهاراتك واحتياجاتك عشان نوريك القريبين المناسبين، والتواصل دايمًا بموافقة الطرفين.</p>
+            <h2>ما يراه الناس من حولك</h2>
+            <p>نستخدم مهاراتك واحتياجاتك لنعرض لك المناسبين القريبين منك، والتواصل دائمًا بموافقة الطرفين.</p>
           </div>
         </section>
 
@@ -1146,7 +1146,7 @@ function MatchProfileScreen({ back, initialSkills, initialGoals, initialNeedDesc
             <h3><Code2 /> {`${COPY.help} في`}</h3>
             <span>{count(skills.length, 'مهارة', 'مهارتين', 'مهارات')}</span>
           </div>
-          <p className="match-subtext">تظهر للموجودين في الكافيه لما يدورون على أحد يساعدهم في هالمجالات.</p>
+          <p className="match-subtext">تظهر للموجودين في الكافيه عندما يبحثون عمّن يساعدهم في هذه المجالات.</p>
           <div className="tag-cloud-editable">
             {skills.map(s => (
               <span key={s} className="editable-tag">
@@ -1154,10 +1154,10 @@ function MatchProfileScreen({ back, initialSkills, initialGoals, initialNeedDesc
                 <button type="button" onClick={() => removeSkill(s)} aria-label={`حذف ${s}`}><X /></button>
               </span>
             ))}
-            {skills.length === 0 && <small className="empty-tag-hint">ما أضفت مهارات بعد. اكتب مهارة تحت عشان تظهر للي يحتاجونها.</small>}
+            {skills.length === 0 && <small className="empty-tag-hint">لم تضف مهارات بعد. اكتب مهارة بالأسفل لتظهر لمن يحتاجها.</small>}
           </div>
           <div className="add-tag-box">
-            <input value={newSkill} onChange={e => setNewSkill(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSkill(newSkill))} placeholder="اكتب مهارة (مثلاً: Flutter، SEO)" aria-label="مهارة جديدة" />
+            <input value={newSkill} onChange={e => setNewSkill(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSkill(newSkill))} placeholder="اكتب مهارة (مثلًا: Flutter، SEO)" aria-label="مهارة جديدة" />
             <button type="button" onClick={() => addSkill(newSkill)} disabled={!newSkill.trim()}>إضافة</button>
           </div>
           <div className="suggested-chips">
@@ -1168,7 +1168,7 @@ function MatchProfileScreen({ back, initialSkills, initialGoals, initialNeedDesc
               </Chip>
             ))}
           </div>
-          <label className="field-label">الوقت اللي تقدر تعطيه عادةً</label>
+          <label className="field-label">الوقت الذي يمكنك منحه عادةً</label>
           <div className="chip-row duration-row">
             {DURATIONS.map(m => <Chip key={m} active={duration === m} onClick={() => setDuration(m)}>{mins(m)}</Chip>)}
           </div>
@@ -1179,7 +1179,7 @@ function MatchProfileScreen({ back, initialSkills, initialGoals, initialNeedDesc
             <h3><Handshake /> {`${COPY.seek} في`}</h3>
             <span>{count(goals.length, 'مجال', 'مجالين', 'مجالات')}</span>
           </div>
-          <p className="match-subtext">حدد المجالات اللي تحتاج فيها مساعدة عادةً، عشان نوريك القريبين اللي عندهم هالخبرة.</p>
+          <p className="match-subtext">حدد المجالات التي تحتاج فيها مساعدة عادةً، لنعرض لك القريبين ممن لديهم هذه الخبرة.</p>
           <div className="goal-chips-grid">
             {GOAL_OPTIONS.map(g => (
               <button key={g} type="button" className={`goal-btn ${goals.includes(g) ? 'active' : ''}`} onClick={() => toggleGoal(g)} aria-pressed={goals.includes(g)}>
@@ -1187,24 +1187,24 @@ function MatchProfileScreen({ back, initialSkills, initialGoals, initialNeedDesc
               </button>
             ))}
           </div>
-          <label className="field-label">وش تحتاج أو تبي تنجز حاليًا؟</label>
-          <textarea className="help-typein-field" value={needDesc} onChange={e => setNeedDesc(e.target.value)} placeholder="مثلاً: أحتاج أحد يراجع معمارية قاعدة بيانات تطبيقي" rows={3} maxLength={BUSINESS.MAX_NEED_TEXT_CHARS} />
+          <label className="field-label">ماذا تحتاج أو تريد أن تنجز حاليًا؟</label>
+          <textarea className="help-typein-field" value={needDesc} onChange={e => setNeedDesc(e.target.value)} placeholder="مثلًا: أحتاج من يراجع معمارية قاعدة بيانات تطبيقي" rows={3} maxLength={BUSINESS.MAX_NEED_TEXT_CHARS} />
         </section>
 
         <section className="match-section">
           <div className="match-section-head"><h3><ShieldCheck /> التواجد والتنبيهات</h3></div>
           <button type="button" className="settings-row" onClick={() => setAvailable(!available)} role="switch" aria-checked={available}>
-            <span><HeartHandshake /><i><b>متاح للمساعدة</b><small>تظهر في قائمة «يقدرون يساعدون» عند تفعيل هذا الخيار</small></i></span>
+            <span><HeartHandshake /><i><b>متاح للمساعدة</b><small>تظهر في قائمة «يمكنهم المساعدة» عند تفعيل هذا الخيار</small></i></span>
             <em className={available ? 'on' : ''} />
           </button>
           <button type="button" className="settings-row" onClick={() => setNotify(!notify)} role="switch" aria-checked={notify}>
-            <span><Bell /><i><b>نبّهني بالمناسبين</b><small>لما يتواجد قريب مني أحد يقدر يساعدني أو يحتاج خبرتي</small></i></span>
+            <span><Bell /><i><b>نبّهني بالمناسبين</b><small>عندما يتواجد قربي من يستطيع مساعدتي أو يحتاج خبرتي</small></i></span>
             <em className={notify ? 'on' : ''} />
           </button>
         </section>
 
         <section className="preview-match-card">
-          <div className="preview-badge-row"><span className="live-pulse"><i /> كيف يشوفك الآخرون</span></div>
+          <div className="preview-badge-row"><span className="live-pulse"><i /> كيف يراك الآخرون</span></div>
           <div className="preview-user-row">
             <Avatar src={images.samer} size={58} name={name} />
             <div className="preview-user-info"><h4>{name}</h4><p>{job}</p></div>
@@ -1219,7 +1219,7 @@ function MatchProfileScreen({ back, initialSkills, initialGoals, initialNeedDesc
 
         <div className="match-action-box">
           <PrimaryButton onClick={handleSave} icon={<Check />}>حفظ التعديلات</PrimaryButton>
-          <button type="button" className="text-button explore-cafes-btn" onClick={onExploreCafes}><Compass /> شوف المناسبين حولك</button>
+          <button type="button" className="text-button explore-cafes-btn" onClick={onExploreCafes}><Compass /> اعرض المناسبين حولك</button>
         </div>
       </main>
     </div>
@@ -1268,7 +1268,7 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
         </section>
         <button className="account-row" onClick={onMatchProfile}>
           <div>
-            <small className="eyebrow">اللي يشوفه الناس حولك</small>
+            <small className="eyebrow">ما يراه الناس من حولك</small>
             <h3>مهاراتي واحتياجاتي</h3>
             <div className="account-tags">
               {skills.slice(0, 2).map(s => <span key={s}>{s} <Code2 /></span>)}
@@ -1288,7 +1288,7 @@ function AccountScreen({ onTab, unread, onSettings, onCafe, onEdit, onMatchProfi
           <h2>زياراتك القادمة</h2>
           <button onClick={onPlanVisit}>زيارة جديدة</button>
         </div>
-        {visits.length === 0 && <p className="visit-empty">ما عندك زيارات قادمة</p>}
+        {visits.length === 0 && <p className="visit-empty">لا توجد لديك زيارات قادمة</p>}
         {visits.map(v => {
           const c = allCafes.find(x => x.name === v.cafe)
           return (
@@ -1363,7 +1363,7 @@ function SettingsScreen({ back, privateMode, setPrivateMode, notifications, setN
         <section>
           <h3>الخصوصية والتواصل</h3>
           <button className="settings-row" onClick={() => setPrivateMode(!privateMode)} role="switch" aria-checked={privateMode}>
-            <span><ShieldCheck /><i><b>إخفاء هويتي قبل الموافقة</b><small>ما يظهر اسمك أو صورتك إلا بعد موافقة الطرفين</small></i></span>
+            <span><ShieldCheck /><i><b>إخفاء هويتي قبل الموافقة</b><small>لا يظهر اسمك أو صورتك إلا بعد موافقة الطرفين</small></i></span>
             <em className={privateMode ? 'on' : ''} />
           </button>
           <button className="settings-row" onClick={() => setNotifications(!notifications)} role="switch" aria-checked={notifications}>
@@ -1375,13 +1375,13 @@ function SettingsScreen({ back, privateMode, setPrivateMode, notifications, setN
           <h3>الموقع والظهور</h3>
           <button className="settings-link" onClick={onLocation}><span><MapPin /><i className="settings-link-copy"><b>موقعي</b><small>{locLabel(loc)}</small></i></span><ChevronLeft /></button>
           <button className="settings-row" onClick={() => setPref(pref === 'same' ? 'all' : 'same')} role="switch" aria-checked={pref === 'same'}>
-            <span><UsersRound /><i><b>أتواصل مع نفس الجنس فقط</b><small>يظهر لك ويشوفك بس الأشخاص من نفس الجنس</small></i></span>
+            <span><UsersRound /><i><b>أتواصل مع نفس الجنس فقط</b><small>يظهر لك ويراك الأشخاص من نفس الجنس فقط</small></i></span>
             <em className={pref === 'same' ? 'on' : ''} />
           </button>
         </section>
         <section>
           <h3>الدفع</h3>
-          <p className="settings-hint">تدفع طلباتك من التطبيق قبل توصل، وما تدفع شي في الكافيه.</p>
+          <p className="settings-hint">تدفع طلباتك من التطبيق قبل وصولك، ولا شيء تدفعه في الكافيه.</p>
           {(['apple', 'google'] as WalletKind[]).map(w => (
             <button key={w} className="settings-row" onClick={() => setWallet(w)} role="radio" aria-checked={wallet === w}>
               <span><WalletLogo kind={w} className="settings-wallet-logo" /><i><b dir="ltr">{WALLET_NAME[w]}</b><small>{wallet === w ? 'طريقة الدفع المفضلة' : 'استخدمها كطريقة مفضلة'}</small></i></span>
@@ -1428,9 +1428,9 @@ function InboxScreen({ onTab, unread, connections, openChat, cafeVisits, now, op
         {list.length === 0 ? (seg === 'active' && cafeVisits.length ? null : (
           <div className="empty-note">
             <MessageCircle />
-            <b>{seg === 'active' ? 'ما عندك محادثات الحين' : 'ما فيه محادثات سابقة'}</b>
-            <small>{seg === 'active' ? 'لما توافق أنت وشخص ثاني، تنفتح بينكم محادثة هنا.' : 'المحادثات اللي انتهت تظهر هنا.'}</small>
-            {seg === 'active' && <button className="text-button" onClick={() => onTab('people')}>شوف مين حولك</button>}
+            <b>{seg === 'active' ? 'لا توجد لديك محادثات الآن' : 'لا توجد محادثات سابقة'}</b>
+            <small>{seg === 'active' ? 'عندما توافق أنت وشخص آخر، تُفتح بينكما محادثة هنا.' : 'تظهر هنا المحادثات المنتهية.'}</small>
+            {seg === 'active' && <button className="text-button" onClick={() => onTab('people')}>اكتشف من حولك</button>}
           </div>
         )) : (
           list.map(c => {
@@ -1454,7 +1454,7 @@ function InboxScreen({ onTab, unread, connections, openChat, cafeVisits, now, op
   )
 }
 
-const QUICK = ['أنا جايك', 'وين جالس؟', 'بتأخر شوي']
+const QUICK = ['أنا قادم إليك', 'أين تجلس؟', 'سأتأخر قليلًا']
 
 function ChatScreen({ c, back, send, onMenu, onMet }: { c: Connection; back: () => void; send: (text: string) => void; onMenu: () => void; onMet: (met: boolean) => void }) {
   const [draft, setDraft] = useState('')
@@ -1471,7 +1471,7 @@ function ChatScreen({ c, back, send, onMenu, onMet }: { c: Connection; back: () 
         <Avatar src={c.image} size={43} name={c.name} online={false} />
         <div>
           <h3>{c.name}</h3>
-          <p>{c.cafe} · {open ? c.topic : c.endedMet ? 'تقابلتوا' : 'انتهت المحادثة'}</p>
+          <p>{c.cafe} · {open ? c.topic : c.endedMet ? 'التقينا' : 'انتهت المحادثة'}</p>
         </div>
         <button className="icon-btn" onClick={onMenu} aria-label="خيارات"><MoreHorizontal /></button>
       </header>
@@ -1493,7 +1493,7 @@ function ChatScreen({ c, back, send, onMenu, onMet }: { c: Connection; back: () 
         </div>
       ) : (
         <div className="chat-compose chat-readonly">
-          <span>{c.endedMet ? 'تقابلتوا. المحادثة صارت للقراءة بس.' : 'انتهت المحادثة، وتقدر تقراها بس.'}</span>
+          <span>{c.endedMet ? 'التقيتما. أصبحت المحادثة للقراءة فقط.' : 'انتهت المحادثة، ويمكنك قراءتها فقط.'}</span>
           <button className="chat-inbox-route-btn" onClick={back}><MessageCircle /> رجوع للرسائل</button>
         </div>
       )}
@@ -1525,9 +1525,9 @@ const visitWhen = (at: number, now: number) => `${visitDay(at, now)} · ${clock(
 // One line for a visit's purpose, wherever the visit is shown.
 const visitPurpose = (v: Visit) => {
   if (v.mode === 'seek') return v.detail ? `أحتاج مساعدة في: ${v.detail}` : COPY.seek
-  if (v.mode === 'help') return v.detail ? `أقدر أساعد في: ${v.detail}` : COPY.help
+  if (v.mode === 'help') return v.detail ? `أستطيع المساعدة في: ${v.detail}` : COPY.help
   if (v.mode === 'visit') return v.tags?.length ? `${COPY.visit} · ${v.tags.join('، ')}` : COPY.visit
-  return v.canHelp ? `أقدر أساعد في: ${v.canHelp}` : v.why ?? ''
+  return v.canHelp ? `أستطيع المساعدة في: ${v.canHelp}` : v.why ?? ''
 }
 
 const PurposeIcon = ({ mode }: { mode?: VisitMode }) => (mode === 'seek' ? <Search /> : mode === 'visit' ? <Coffee /> : <HeartHandshake />)
@@ -1542,9 +1542,9 @@ function VisitModes({ label, mode, setMode, tags, setTags, note, setNote }: { la
   return (
     <>
       <div className="visit-modes three" role="radiogroup" aria-label={label}>
-        {opt('seek', <Search />, COPY.seek, 'عندي شيء أبي أنجزه')}
-        {opt('help', <HeartHandshake />, COPY.help, 'عندي خبرة أقدر أشاركها')}
-        {opt('visit', <Coffee />, COPY.visit, 'أطلب وأجلس على راحتي')}
+        {opt('seek', <Search />, COPY.seek, 'لدي شيء أريد إنجازه')}
+        {opt('help', <HeartHandshake />, COPY.help, 'لدي خبرة يمكنني مشاركتها')}
+        {opt('visit', <Coffee />, COPY.visit, 'أطلب وأجلس براحتي')}
       </div>
       {mode === 'visit' && (
         <>
@@ -1553,7 +1553,7 @@ function VisitModes({ label, mode, setMode, tags, setTags, note, setNote }: { la
             {VISIT_TAGS.map(tag => <Chip key={tag} active={tags.includes(tag)} onClick={() => setTags(tags.includes(tag) ? tags.filter(x => x !== tag) : [...tags, tag])}>{tags.includes(tag) && <Check />}{tag}</Chip>)}
           </div>
           <label className="field-label" htmlFor="visit-note">ملاحظة <span className="field-optional">اختياري</span></label>
-          <input id="visit-note" className="field" value={note} onChange={e => setNote(e.target.value)} maxLength={80} placeholder="مثلاً: عندي اجتماع أونلاين ساعة" />
+          <input id="visit-note" className="field" value={note} onChange={e => setNote(e.target.value)} maxLength={80} placeholder="مثلًا: لدي اجتماع أونلاين لمدة ساعة" />
         </>
       )}
     </>
@@ -1593,7 +1593,7 @@ const sar = (n: number) => `${n} ر.س`
 const linesTotal = (lines: OrderLine[]) => lines.reduce((t, l) => t + (menuItem(l.id)?.price ?? 0) * l.qty, 0)
 const linesCount = (lines: OrderLine[]) => lines.reduce((t, l) => t + l.qty, 0)
 const itemsLabel = (n: number) => count(n, 'صنف', 'صنفين', 'أصناف')
-const partyLabel = (n: number) => (n === 1 ? 'لحالي' : n === 2 ? 'شخصين' : `${n} أشخاص`)
+const partyLabel = (n: number) => (n === 1 ? 'وحدي' : n === 2 ? 'شخصين' : `${n} أشخاص`)
 const tableLabel = (t: TableHold) => `طاولة ${t.party === 1 ? 'لشخص' : t.party === 2 ? 'لشخصين' : `لـ${t.party} أشخاص`}${t.seat !== SEAT_ANY ? ` · ${t.seat}` : ''}`
 const SEAT_ANY = 'أي مكان'
 // Seating choices follow what the café actually has.
@@ -1613,7 +1613,7 @@ const visitWallet = (v: Visit) => v.order?.wallet ?? v.table?.wallet
 const refundNote = (v: Visit) => {
   const what = v.table && v.order ? 'الحجز والطلب' : v.order ? 'الطلب' : v.table ? 'حجز الطاولة' : 'الزيارة'
   const paid = visitPaid(v)
-  return paid ? `نلغي ${what}، والمبلغ المدفوع ${sar(paid)} ما يُسترجع.` : `نلغي ${what}.`
+  return paid ? `سنلغي ${what}، والمبلغ المدفوع ${sar(paid)} غير قابل للاسترجاع.` : `سنلغي ${what}.`
 }
 
 // ---------- The café's thread for a visit ----------
@@ -1625,17 +1625,17 @@ const cafeThread = (v: Visit, now: number): CafeMessage[] => {
   const out: CafeMessage[] = []
   const first = Math.min(v.table?.bookedAt ?? Infinity, v.order?.paidAt ?? Infinity)
   const start = Number.isFinite(first) ? first : v.at - 60 * 60000
-  out.push({ from: 'them', at: start, text: `أهلًا فيك في ${v.cafe}! هنا تقدر تكلمنا عن زيارتك ${visitWhen(v.at, start)}.` })
-  if (v.table) out.push({ from: 'them', at: (v.table.bookedAt ?? start) + 1, text: `طاولتك محجوزة: ${tableLabel(v.table)}. نمسكها لك ${HOLD_LABEL} من ${clock(v.at)}.` })
-  if (v.order) out.push({ from: 'them', at: (v.order.paidAt ?? start) + 2, text: `استلمنا طلبك #${v.order.code} (${itemsLabel(linesCount(v.order.lines))}). بنجهزه على وقت وصولك.` })
+  out.push({ from: 'them', at: start, text: `أهلًا بك في ${v.cafe}! يمكنك مراسلتنا هنا بخصوص زيارتك ${visitWhen(v.at, start)}.` })
+  if (v.table) out.push({ from: 'them', at: (v.table.bookedAt ?? start) + 1, text: `طاولتك محجوزة: ${tableLabel(v.table)}. نحجزها لك ${HOLD_LABEL} من ${clock(v.at)}.` })
+  if (v.order) out.push({ from: 'them', at: (v.order.paidAt ?? start) + 2, text: `استلمنا طلبك #${v.order.code} (${itemsLabel(linesCount(v.order.lines))}). سنجهّزه في وقت وصولك.` })
   const prep = v.at - CAFE_PREP_MIN * 60000
-  if (v.order && now >= prep) out.push({ from: 'them', at: Math.max(prep, start + 3), text: 'بدأنا نجهز طلبك ☕' })
-  if (now >= v.at) out.push({ from: 'them', at: v.at, text: v.order ? `طلبك جاهز عند الكاشير. قول رقم الطلب #${v.order.code}.` : 'طاولتك جاهزة، حياك!' })
+  if (v.order && now >= prep) out.push({ from: 'them', at: Math.max(prep, start + 3), text: 'بدأنا تجهيز طلبك ☕' })
+  if (now >= v.at) out.push({ from: 'them', at: v.at, text: v.order ? `طلبك جاهز عند الكاشير. أخبرهم برقم الطلب #${v.order.code}.` : 'طاولتك جاهزة، حياك!' })
   return [...out, ...(v.chat ?? [])].sort((a, b) => a.at - b.at)
 }
 const cafeUnread = (v: Visit, now: number) => cafeThread(v, now).filter(m => m.from === 'them' && m.at > (v.chatSeen ?? 0)).length
-const CAFE_QUICK = ['أنا في الطريق', 'بتأخر شوي', 'وين الطاولة؟']
-const CAFE_REPLY = 'وصلتنا رسالتك، وبنبلغ الفريق. شكرًا لك!'
+const CAFE_QUICK = ['أنا في الطريق', 'سأتأخر قليلًا', 'أين الطاولة؟']
+const CAFE_REPLY = 'وصلتنا رسالتك، وسنبلغ الفريق. شكرًا لك!'
 
 function CafeChatScreen({ v, now, back, send, onVisit }: { v: Visit; now: number; back: () => void; send: (text: string) => void; onVisit: () => void }) {
   const [draft, setDraft] = useState('')
@@ -1669,7 +1669,7 @@ function CafeChatScreen({ v, now, back, send, onVisit }: { v: Visit; now: number
           </div>
         </div>
       ) : (
-        <div className="chat-compose chat-readonly"><span>انتهت الزيارة، وتقدر تقرا المحادثة بس.</span></div>
+        <div className="chat-compose chat-readonly"><span>انتهت الزيارة، ويمكنك قراءة المحادثة فقط.</span></div>
       )}
     </div>
   )
@@ -1707,7 +1707,7 @@ function Stepper({ qty, onChange, label }: { qty: number; onChange: (n: number) 
   if (!qty) return <button type="button" className="stepper-add" onClick={() => onChange(1)} aria-label={`أضف ${label}`}><Plus /></button>
   return (
     <span className="stepper">
-      <button type="button" onClick={() => onChange(qty - 1)} aria-label={`شيل ${label}`}><Minus /></button>
+      <button type="button" onClick={() => onChange(qty - 1)} aria-label={`أزل ${label}`}><Minus /></button>
       <b aria-live="polite">{qty}</b>
       <button type="button" onClick={() => onChange(qty + 1)} aria-label={`أضف ${label}`}><Plus /></button>
     </span>
@@ -1728,7 +1728,7 @@ function WalletPay({ wallet, total, merchant, onPaid, onCancel }: { wallet: Wall
         <div className="wallet-row"><CreditCard /><span><b dir="ltr">Visa •••• 4242</b><small>البطاقة في محفظتك</small></span></div>
         <div className="wallet-row"><Store /><span><b>{merchant}</b><small>عن طريق AroundMe</small></span></div>
         <div className="wallet-total"><span>المبلغ</span><b>{sar(total)}</b></div>
-        {stage === 'confirm' && <button type="button" className="wallet-confirm" onClick={() => setStage('paying')}>{wallet === 'apple' ? <ScanFace /> : <Smartphone />}ادفع الحين</button>}
+        {stage === 'confirm' && <button type="button" className="wallet-confirm" onClick={() => setStage('paying')}>{wallet === 'apple' ? <ScanFace /> : <Smartphone />}ادفع الآن</button>}
         {stage === 'paying' && <p className="wallet-state"><LoaderCircle className="spin" />جاري الدفع…</p>}
         {stage === 'paid' && <p className="wallet-state done"><CircleCheck />تم الدفع</p>}
       </section>
@@ -1775,7 +1775,7 @@ const suggestedStart = (now: number) => { const q = 15 * 60000; return Math.ceil
 const PLAN_STEPS = ['الزيارة', 'الطاولة', 'الطلب', 'الدفع']
 const ARRIVE_IN = [5, 10, 15, 20, 30, 45]
 
-// "أنا في الكوفي الحين": confirm the café, then what you want to get done today.
+// "أنا في الكافيه الآن": confirm the café, then what you want to get done today.
 function HereNowSheet({ cafes, initialCafe, close, next }: { cafes: Cafe[]; initialCafe?: string; close: () => void; next: (cafe: string, mode: VisitMode, tags: string[], note: string) => void }) {
   const open = cafes.filter(c => c.isOpen)
   const [cafe, setCafe] = useState(() => (open.some(c => c.name === initialCafe) ? initialCafe! : open[0]?.name ?? ''))
@@ -1789,7 +1789,7 @@ function HereNowSheet({ cafes, initialCafe, close, next }: { cafes: Cafe[]; init
     <BottomSheet onClose={close} tall>
       <div className="sheet-title plan-head">
         <span className="sheet-icon"><MapPin /></span>
-        <div><h2>أنا في الكوفي الحين</h2><p>أكّد الكافيه، ونعرض لك مين فيه الحين</p></div>
+        <div><h2>أنا في الكافيه الآن</h2><p>أكّد الكافيه، ونعرض لك من فيه الآن</p></div>
       </div>
       {open.length ? (
         <>
@@ -1806,12 +1806,12 @@ function HereNowSheet({ cafes, initialCafe, close, next }: { cafes: Cafe[]; init
                 {cafe === c.name && <Check />}
               </button>
             ))}
-            {shown.length === 0 && <p className="visit-empty">ما لقينا كافيه بهالاسم</p>}
+            {shown.length === 0 && <p className="visit-empty">لم نجد كافيه بهذا الاسم</p>}
           </div>
-          <label className="field-label">وش حاب تسوي اليوم؟</label>
-          <VisitModes label="وش حاب تسوي اليوم؟" mode={mode} setMode={setMode} tags={tags} setTags={setTags} note={note} setNote={setNote} />
+          <label className="field-label">ماذا تريد أن تفعل اليوم؟</label>
+          <VisitModes label="ماذا تريد أن تفعل اليوم؟" mode={mode} setMode={setMode} tags={tags} setTags={setTags} note={note} setNote={setNote} />
         </>
-      ) : <p className="visit-empty">ما فيه كافيهات مفتوحة حولك حاليًا</p>}
+      ) : <p className="visit-empty">لا توجد كافيهات مفتوحة حولك حاليًا</p>}
       <div className="sheet-footer">
         <PrimaryButton onClick={() => cafe && mode && next(cafe, mode, tags, note.trim())} disabled={!cafe || !mode || (mode === 'visit' && !tags.length)}>{mode === 'visit' ? 'افتح المنيو' : 'التالي'}</PrimaryButton>
       </div>
@@ -1821,7 +1821,7 @@ function HereNowSheet({ cafes, initialCafe, close, next }: { cafes: Cafe[]; init
 
 function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferred, existing, going: goingNow = false, here = false, purpose, close, save, onOpenVisit, onSeeCafe }: {
   cafes: Cafe[]; initialCafe: string; now: number; skills: string[]; need: string; wallet: WalletKind;
-  // "رايح للكوفي الآن": you pick when you'll arrive instead of a day and time, and there's no table step.
+  // "في طريقي إلى الكافيه": you pick when you'll arrive instead of a day and time, and there's no table step.
   going?: boolean; onSeeCafe?: (cafe: string, mode?: VisitMode) => void;
   // Already in the café: the sheet is just the menu and payment, and the order is made right away.
   here?: boolean;
@@ -1905,20 +1905,20 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
       <BottomSheet onClose={close} tall>
         <div className="plan-done">
           <span className="plan-done-icon"><CircleCheck /></span>
-          <h2>{here ? 'تم الدفع، وطلبك يجهز الحين' : going ? (saved.order ? 'تم الدفع، وطلبك يجهز لوصولك' : 'تمام، أنت في الطريق') : visitPaid(saved) > 0 ? 'تم الدفع وثبّتنا زيارتك' : 'ثبّتنا زيارتك'}</h2>
+          <h2>{here ? 'تم الدفع، وجارٍ تجهيز طلبك' : going ? (saved.order ? 'تم الدفع، وسيكون طلبك جاهزًا عند وصولك' : 'رائع، أنت في الطريق') : visitPaid(saved) > 0 ? 'تم الدفع وتأكدت زيارتك' : 'تأكدت زيارتك'}</h2>
           <p>{saved.cafe} · {visitWhen(saved.at, now)}</p>
-          {saved.order && <div className="order-code"><small>رقم طلبك</small><b dir="ltr">#{saved.order.code}</b><span>{here ? 'يجهز الحين. ما تدفع شي عند الكاونتر.' : 'يجهز وقت وصولك. ما تدفع شي هناك.'}</span></div>}
+          {saved.order && <div className="order-code"><small>رقم طلبك</small><b dir="ltr">#{saved.order.code}</b><span>{here ? 'جارٍ تجهيزه. لا شيء تدفعه عند الكاونتر.' : 'سيكون جاهزًا عند وصولك. لا شيء تدفعه هناك.'}</span></div>}
           <ul className="plan-done-list">
-            {saved.table && <li><Armchair />{tableLabel(saved.table)}<small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small></li>}
+            {saved.table && <li><Armchair />{tableLabel(saved.table)}<small>{`نحجزها لك ${HOLD_LABEL} من موعدك`}</small></li>}
             {saved.order && <li><Receipt />{`${itemsLabel(linesCount(saved.order.lines))} · ${sar(saved.order.total)}`}<small>{`مدفوع بـ ${WALLET_NAME[saved.order.wallet]}`}</small></li>}
             {!saved.order && saved.table?.wallet && <li><Receipt />{`رسوم الحجز · ${sar(saved.table.fee ?? TABLE_FEE)}`}<small>{`مدفوعة بـ ${WALLET_NAME[saved.table.wallet]}`}</small></li>}
-            {going && !here && <li><Navigation />{`توصل بعد ${timeLeft(saved.at, now)}`}<small>اللي في الكافيه يشوفون إنك جاي</small></li>}
-            {!going && !saved.table && !saved.order && <li><CalendarClock />بدون حجز طاولة أو طلب<small>تقدر تضيفهم من تفاصيل الزيارة</small></li>}
+            {going && !here && <li><Navigation />{`تصل بعد ${timeLeft(saved.at, now)}`}<small>يرى الموجودون في الكافيه أنك قادم</small></li>}
+            {!going && !saved.table && !saved.order && <li><CalendarClock />بدون حجز طاولة أو طلب<small>يمكنك إضافتهما من تفاصيل الزيارة</small></li>}
           </ul>
           {!here && (going && onSeeCafe
-            ? <button type="button" className="secondary-button" onClick={() => onSeeCafe(saved.cafe, saved.mode)}><UsersRound />شوف مين هناك</button>
+            ? <button type="button" className="secondary-button" onClick={() => onSeeCafe(saved.cafe, saved.mode)}><UsersRound />اعرض من هناك</button>
             : <a className="secondary-button" href={calendarHref(saved)} download="aroundme-visit.ics"><CalendarPlus />أضف للتقويم</a>)}
-          {(saved.table || saved.order) && <p className="plan-note"><MessageCircle />{`${saved.cafe} بيراسلك عن طلبك في الرسائل، وتقدر ترد عليهم.`}</p>}
+          {(saved.table || saved.order) && <p className="plan-note"><MessageCircle />{`${saved.cafe} سيراسلك بخصوص طلبك في الرسائل، ويمكنك الرد عليهم.`}</p>}
         </div>
         <div className="sheet-footer">
           <PrimaryButton onClick={close} icon={<Check />}>تم</PrimaryButton>
@@ -1935,8 +1935,8 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
           ? <button type="button" className="plan-back" onClick={() => setStep(prevStep(step - 1))} aria-label="رجوع"><ChevronRight /></button>
           : <span className="sheet-icon">{here ? <Receipt /> : going ? <Navigation /> : <CalendarPlus />}</span>}
         <div>
-          <h2>{step === 0 ? (going ? 'رايح للكوفي الآن' : 'زيارة جديدة') : step === 1 ? 'احجز طاولتك' : step === 2 ? (here ? 'اطلب الحين' : 'اطلب قبل توصل') : 'راجع وادفع'}</h2>
-          <p>{step === 0 ? (going ? 'اختر الكافيه ومتى توصل وهدف زيارتك' : 'اختر الكافيه والوقت وهدف زيارتك') : step === 1 ? `رسوم الحجز ${sar(TABLE_FEE)}، ونمسك طاولتك ${HOLD_LABEL}` : step === 2 ? (here ? 'تطلب وتدفع من جوالك، ونجهز طلبك الحين' : going ? 'اختياري، ويجهز طلبك وقت وصولك' : `اختياري، ويجهز طلبك ${visitWhen(at, now)}`) : here ? 'تدفع من جوالك، وما تدفع شي عند الكاونتر' : 'تدفع الحين، وما تدفع شي عند وصولك'}</p>
+          <h2>{step === 0 ? (going ? 'في طريقي إلى الكافيه' : 'زيارة جديدة') : step === 1 ? 'احجز طاولتك' : step === 2 ? (here ? 'اطلب الآن' : 'اطلب قبل وصولك') : 'راجع وادفع'}</h2>
+          <p>{step === 0 ? (going ? 'اختر الكافيه ووقت وصولك وهدف زيارتك' : 'اختر الكافيه والوقت وهدف زيارتك') : step === 1 ? `رسوم الحجز ${sar(TABLE_FEE)}، ونحجز طاولتك ${HOLD_LABEL}` : step === 2 ? (here ? 'اطلب وادفع من جوالك، ونبدأ تجهيز طلبك فورًا' : going ? 'اختياري، ويكون طلبك جاهزًا عند وصولك' : `اختياري، ويكون طلبك جاهزًا ${visitWhen(at, now)}`) : here ? 'ادفع من جوالك، ولا شيء تدفعه عند الكاونتر' : 'ادفع الآن، ولا شيء تدفعه عند وصولك'}</p>
         </div>
       </div>
       <ol className="plan-steps" aria-label="الخطوات">
@@ -1960,16 +1960,16 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
                     {cafe === c.name && <Check />}
                   </button>
                 ))}
-                {shown.length === 0 && <p className="visit-empty">ما لقينا كافيه بهالاسم</p>}
+                {shown.length === 0 && <p className="visit-empty">لم نجد كافيه بهذا الاسم</p>}
               </div>
             </>
-          ) : <p className="visit-empty">ما فيه كافيهات متاحة في مدينتك حاليًا</p>}
+          ) : <p className="visit-empty">لا توجد كافيهات متاحة في مدينتك حاليًا</p>}
 
           {going ? (
             <>
-              <label className="field-label">متى توصل؟</label>
+              <label className="field-label">متى تصل؟</label>
               <div className="chip-row">{ARRIVE_IN.map(m => <Chip key={m} active={arriveIn === m} onClick={() => setArriveIn(m)}>{mins(m)}</Chip>)}</div>
-              <p className={`visit-when ${closed ? 'is-past' : ''}`}>{closed && place ? `${place.name} مقفل هالوقت. يفتح ${hoursLine(place)}` : `توصل تقريبًا ${clock(at)}`}</p>
+              <p className={`visit-when ${closed ? 'is-past' : ''}`}>{closed && place ? `${place.name} مغلق في هذا الوقت. يفتح ${hoursLine(place)}` : `تصل تقريبًا ${clock(at)}`}</p>
             </>
           ) : (<>
           <label className="field-label">أي يوم؟</label>
@@ -1986,28 +1986,28 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
             <Wheel items={language === 'en' ? ['AM', 'PM'] : MERIDIEM} index={pm} onChange={setPm} label="صباحًا أو مساءً" />
           </div>
           <p className={`visit-when ${past || closed ? 'is-past' : ''}`}>
-            {past ? 'هالوقت راح، اختر وقت بعده' : closed && place ? `${place.name} مقفل هالوقت. يفتح ${hoursLine(place)}` : visitWhen(at, now)}
+            {past ? 'هذا الوقت مضى، اختر وقتًا لاحقًا' : closed && place ? `${place.name} مغلق في هذا الوقت. يفتح ${hoursLine(place)}` : visitWhen(at, now)}
           </p>
           </>)}
 
-          <label className="field-label">وش هدف زيارتك؟</label>
-          <VisitModes label="وش هدف زيارتك؟" mode={mode} setMode={setMode} tags={tags} setTags={setTags} note={workOn} setNote={setWorkOn} />
+          <label className="field-label">ما هدف زيارتك؟</label>
+          <VisitModes label="ما هدف زيارتك؟" mode={mode} setMode={setMode} tags={tags} setTags={setTags} note={workOn} setNote={setWorkOn} />
           {mode === 'seek' && (
             <>
-              <label className="field-label" htmlFor="visit-detail">وش تحتاج مساعدة فيه؟</label>
-              <input id="visit-detail" className="field" value={needWith} onChange={e => setNeedWith(e.target.value)} maxLength={120} placeholder="مثلاً: مراجعة تصميم تطبيقي" />
+              <label className="field-label" htmlFor="visit-detail">بماذا تحتاج المساعدة؟</label>
+              <input id="visit-detail" className="field" value={needWith} onChange={e => setNeedWith(e.target.value)} maxLength={120} placeholder="مثلًا: مراجعة تصميم تطبيقي" />
             </>
           )}
           {mode === 'help' && (
             <>
-              <label className="field-label" htmlFor="visit-detail">وش تقدر تساعد فيه؟</label>
-              <input id="visit-detail" className="field" value={helpWith} onChange={e => setHelpWith(e.target.value)} maxLength={120} placeholder="مثلاً: مراجعة كود React" />
+              <label className="field-label" htmlFor="visit-detail">بماذا يمكنك المساعدة؟</label>
+              <input id="visit-detail" className="field" value={helpWith} onChange={e => setHelpWith(e.target.value)} maxLength={120} placeholder="مثلًا: مراجعة كود React" />
             </>
           )}
           {mode !== 'visit' && (
             <>
-              <label className="field-label" htmlFor="visit-work">وش بتشتغل عليه هناك؟ <span className="field-optional">اختياري</span></label>
-              <input id="visit-work" className="field" value={workOn} onChange={e => setWorkOn(e.target.value)} maxLength={80} placeholder="مثلاً: أبني واجهة تطبيقي الجديد" />
+              <label className="field-label" htmlFor="visit-work">ماذا ستعمل هناك؟ <span className="field-optional">اختياري</span></label>
+              <input id="visit-work" className="field" value={workOn} onChange={e => setWorkOn(e.target.value)} maxLength={80} placeholder="مثلًا: أبني واجهة تطبيقي الجديد" />
             </>
           )}
         </>
@@ -2021,11 +2021,11 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
           </button>
           {bookTable && (
             <>
-              <label className="field-label">كم شخص؟</label>
+              <label className="field-label">كم شخصًا؟</label>
               <div className="chip-row">{[1, 2, 3, 4].map(n => <Chip key={n} active={party === n} onClick={() => setParty(n)}>{partyLabel(n)}</Chip>)}</div>
-              <label className="field-label">وين تحب تجلس؟</label>
+              <label className="field-label">أين تفضّل الجلوس؟</label>
               <div className="chip-row">{seatOptions(place).map(s => <Chip key={s} active={seat === s} onClick={() => setSeat(s)}>{s}</Chip>)}</div>
-              <p className="plan-note"><ShieldCheck />{existing?.table ? `طاولتك محجوزة، ونمسكها لك ${HOLD_LABEL} من موعدك.` : `رسوم الحجز ${sar(TABLE_FEE)} تدفعها مع طلبك، ونمسك طاولتك ${HOLD_LABEL} كاملة من موعدك. المبالغ المدفوعة ما تُسترجع عند الإلغاء.`}</p>
+              <p className="plan-note"><ShieldCheck />{existing?.table ? `طاولتك محجوزة، ونحجزها لك ${HOLD_LABEL} من موعدك.` : `رسوم الحجز ${sar(TABLE_FEE)} تدفعها مع طلبك، ونحجز طاولتك ${HOLD_LABEL} كاملة من موعدك. المبالغ المدفوعة لا تُسترجع عند الإلغاء.`}</p>
             </>
           )}
         </>
@@ -2048,7 +2048,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
           {items > 0 && (
             <>
               <label className="field-label" htmlFor="order-note">ملاحظة للكافيه <span className="field-optional">اختياري</span></label>
-              <input id="order-note" className="field" value={note} onChange={e => setNote(e.target.value)} maxLength={80} placeholder="مثلاً: حليب شوفان، بدون سكر" />
+              <input id="order-note" className="field" value={note} onChange={e => setNote(e.target.value)} maxLength={80} placeholder="مثلًا: حليب شوفان، بدون سكر" />
             </>
           )}
         </>
@@ -2062,7 +2062,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
               <span><b>{cafe}</b><small>{visitWhen(at, now)}</small></span>
               {!existing && !here && <button type="button" className="text-button" onClick={() => setStep(0)}>تعديل</button>}
             </div>
-            {!going && <div className="checkout-row"><Armchair /><span>{bookTable ? tableLabel({ party, seat }) : 'بدون حجز طاولة'}{fee > 0 && <small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small>}</span>{fee > 0 && <b className="checkout-fee">{sar(fee)}</b>}{!existing && <button type="button" className="text-button" onClick={() => setStep(1)}>تعديل</button>}</div>}
+            {!going && <div className="checkout-row"><Armchair /><span>{bookTable ? tableLabel({ party, seat }) : 'بدون حجز طاولة'}{fee > 0 && <small>{`نحجزها لك ${HOLD_LABEL} من موعدك`}</small>}</span>{fee > 0 && <b className="checkout-fee">{sar(fee)}</b>}{!existing && <button type="button" className="text-button" onClick={() => setStep(1)}>تعديل</button>}</div>}
             {items > 0 ? (
               <>
                 <ul className="checkout-lines">
@@ -2084,7 +2084,7 @@ function PlanVisitSheet({ cafes, initialCafe, now, skills, need, wallet: preferr
         {step === 2 && <PrimaryButton onClick={() => setStep(3)} disabled={here && !items} icon={items ? <Receipt /> : undefined}>{items ? `راجع الطلب · ${itemsLabel(items)} · ${sar(total)}` : here ? 'اختر من المنيو' : 'تابع بدون طلب'}</PrimaryButton>}
         {step === 3 && (due > 0
           ? <div className="wallet-buttons">{wallets.map(w => <button key={w} type="button" className={`wallet-button ${w}`} onClick={() => setPaying(w)}><WalletMark kind={w} /></button>)}</div>
-          : <PrimaryButton onClick={() => finish()} icon={going ? <Navigation /> : <CalendarClock />}>{going ? 'تمام، أنا في الطريق' : 'ثبّت الزيارة'}</PrimaryButton>)}
+          : <PrimaryButton onClick={() => finish()} icon={going ? <Navigation /> : <CalendarClock />}>{going ? 'حسنًا، أنا في الطريق' : 'ثبّت الزيارة'}</PrimaryButton>)}
       </div>
       {paying && <WalletPay wallet={paying} total={due} merchant={cafe} onCancel={() => setPaying(null)} onPaid={() => finish(paying)} />}
     </BottomSheet>
@@ -2100,17 +2100,17 @@ function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder, onChat }:
     <BottomSheet onClose={close} tall>
       <div className="visit-hero">
         <CafeThumb cafe={c} />
-        <div><small>{v.here ? <Receipt /> : v.going ? <Navigation /> : <CalendarClock />} {started ? 'زيارتك الحين' : v.going ? 'في طريقك' : 'زيارتك القادمة'}</small><h2>{v.cafe}</h2><p>{visitWhen(v.at, now)}{started ? '' : ` · ${v.going ? 'توصل' : 'تبدأ'} بعد ${timeLeft(v.at, now)}`}</p></div>
+        <div><small>{v.here ? <Receipt /> : v.going ? <Navigation /> : <CalendarClock />} {started ? 'زيارتك الآن' : v.going ? 'في طريقك' : 'زيارتك القادمة'}</small><h2>{v.cafe}</h2><p>{visitWhen(v.at, now)}{started ? '' : ` · ${v.going ? 'تصل' : 'تبدأ'} بعد ${timeLeft(v.at, now)}`}</p></div>
       </div>
       {v.order && (
         <div className="order-code">
           <small>رقم طلبك</small><b dir="ltr">#{v.order.code}</b>
-          <span>{started ? 'وريه الكاشير أو قول اسمك، طلبك جاهز ومدفوع' : 'يجهز وقت وصولك، وما تدفع شي هناك'}</span>
+          <span>{started ? 'اعرضه على الكاشير أو اذكر اسمك، طلبك جاهز ومدفوع' : 'سيكون جاهزًا عند وصولك، ولا شيء تدفعه هناك'}</span>
         </div>
       )}
       <ul className="visit-facts">
-        {v.going && !v.table ? null : v.table ? <li><Armchair /><span><b>{tableLabel(v.table)}</b><small>{`نمسكها لك ${HOLD_LABEL} من موعدك`}</small></span></li> : <li><Armchair /><span><b>بدون حجز طاولة</b></span></li>}
-        {visitPurpose(v) && <li><PurposeIcon mode={v.mode} /><span><b>{visitPurpose(v)}</b>{v.workOn && <small>{v.mode === 'visit' ? v.workOn : `بشتغل على: ${v.workOn}`}</small>}</span></li>}
+        {v.going && !v.table ? null : v.table ? <li><Armchair /><span><b>{tableLabel(v.table)}</b><small>{`نحجزها لك ${HOLD_LABEL} من موعدك`}</small></span></li> : <li><Armchair /><span><b>بدون حجز طاولة</b></span></li>}
+        {visitPurpose(v) && <li><PurposeIcon mode={v.mode} /><span><b>{visitPurpose(v)}</b>{v.workOn && <small>{v.mode === 'visit' ? v.workOn : `سأعمل على: ${v.workOn}`}</small>}</span></li>}
       </ul>
       {v.order ? (
         <div className="checkout-card">
@@ -2123,7 +2123,7 @@ function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder, onChat }:
         </div>
       ) : null}
       {!v.order && !!v.table?.fee && v.table.wallet && <div className="checkout-card"><div className="checkout-total"><span>رسوم الحجز مدفوعة<small>{WALLET_NAME[v.table.wallet]} · شامل الضريبة</small></span><b>{sar(v.table.fee)}</b></div></div>}
-      {!v.order && !started && <button type="button" className="secondary-button" onClick={onOrder}><Receipt />{v.table || v.going ? 'اطلب قبل توصل' : 'احجز طاولة أو اطلب قبل توصل'}</button>}
+      {!v.order && !started && <button type="button" className="secondary-button" onClick={onOrder}><Receipt />{v.table || v.going ? 'اطلب قبل وصولك' : 'احجز طاولة أو اطلب قبل وصولك'}</button>}
       {(v.table || v.order) && (() => { const t = cafeThread(v, now), last = t[t.length - 1], n = cafeUnread(v, now); return (
         <button type="button" className="cafe-thread-link" onClick={onChat}>
           <MessageCircle /><span><b>رسائل الكافيه</b><small>{last.text}</small></span>{n > 0 && <i aria-label="رسائل جديدة">{n}</i>}<ChevronLeft />
@@ -2137,7 +2137,7 @@ function VisitSheet({ visit: v, now, close, onCafe, onCancel, onOrder, onChat }:
         : (
           <div className="cancel-confirm" role="alert">
             <p>{refundNote(v)}</p>
-            <div><button type="button" className="secondary-button" onClick={() => setConfirming(false)}>لا، خلها</button><button type="button" className="danger-button" onClick={onCancel}>نعم، ألغِ</button></div>
+            <div><button type="button" className="secondary-button" onClick={() => setConfirming(false)}>لا، أبقِها</button><button type="button" className="danger-button" onClick={onCancel}>نعم، ألغِ</button></div>
           </div>
         )}
     </BottomSheet>
@@ -2166,23 +2166,23 @@ function ProfileSetupSheet({ close, next, editing = false, name, setName, job, s
         <span className="sheet-icon"><CircleUserRound /></span>
         <div>
           <h2>{editing ? 'تعديل الملف الشخصي' : 'عرّفنا عليك'}</h2>
-          <p>{editing ? 'اسمك ووظيفتك يظهرون للي توافق تتواصل معهم' : 'مرة وحدة بس، عشان يكون اللقاء واضح وآمن للطرفين'}</p>
+          <p>{editing ? 'يظهر اسمك ووظيفتك لمن توافق على التواصل معهم' : 'مرة واحدة فقط، ليكون اللقاء واضحًا وآمنًا للطرفين'}</p>
         </div>
       </div>
       <label className="photo-picker">
         <Avatar src={images.samer} size={86} name={name} online={false} />
         <span><Camera /> غيّر الصورة</span>
       </label>
-      <label className="field-label" htmlFor="me-name">وش اسمك؟</label>
+      <label className="field-label" htmlFor="me-name">ما اسمك؟</label>
       <input id="me-name" className="field" value={demoText(name)} onChange={e => setName(e.target.value)} />
-      <label className="field-label" htmlFor="me-job">وش تشتغل؟</label>
-      <input id="me-job" className="field" value={demoText(job)} onChange={e => setJob(e.target.value)} placeholder="مثلاً: مطور واجهات أمامية · الرياض" />
+      <label className="field-label" htmlFor="me-job">ما عملك؟</label>
+      <input id="me-job" className="field" value={demoText(job)} onChange={e => setJob(e.target.value)} placeholder="مثلًا: مطور واجهات أمامية · الرياض" />
       <label className="field-label">أنت</label>
       <div className="chip-row"><Chip active={gender === 'm'} onClick={() => setGender('m')}>رجل</Chip><Chip active={gender === 'f'} onClick={() => setGender('f')}>امرأة</Chip></div>
-      <label className="field-label">تفضّل تتواصل مع</label>
+      <label className="field-label">تفضّل التواصل مع</label>
       <div className="chip-row"><Chip active={pref === 'all'} onClick={() => setPref('all')}>الكل</Chip><Chip active={pref === 'same'} onClick={() => setPref('same')}>نفس الجنس فقط</Chip></div>
       <button className="settings-row sheet-toggle" onClick={() => setPrivateMode(!privateMode)} role="switch" aria-checked={privateMode}>
-        <span><ShieldCheck /><i><b>إخفاء هويتي قبل الموافقة</b><small>ما يظهر اسمك أو صورتك إلا بعد موافقة الطرفين</small></i></span>
+        <span><ShieldCheck /><i><b>إخفاء هويتي قبل الموافقة</b><small>لا يظهر اسمك أو صورتك إلا بعد موافقة الطرفين</small></i></span>
         <em className={privateMode ? 'on' : ''} />
       </button>
       <PrimaryButton onClick={next} disabled={name.trim().length < 2}>{editing ? 'حفظ التعديلات' : 'التالي'}</PrimaryButton>
@@ -2209,7 +2209,7 @@ function SkillsSheet({ close, initial, save }: { close: () => void; initial: str
     <BottomSheet onClose={close}>
       <div className="sheet-title">
         <span className="sheet-icon"><Sparkles /></span>
-        <div><h2>وش تقدر تساعد فيه؟</h2><p>اختر مهارة وحدة على الأقل</p></div>
+        <div><h2>بماذا يمكنك المساعدة؟</h2><p>اختر مهارة واحدة على الأقل</p></div>
       </div>
       <div className="search-field">
         <Search />
@@ -2235,7 +2235,7 @@ function RequestSheet({ target, privateMode, close, send }: { target: Target; pr
   const [commit, setCommit] = useState(target.kind === 'offer' ? target.need.minutes : 15)
   const [text, setText] = useState(target.kind === 'ask' ? target.need : '')
   const person = target.kind === 'ask' ? target.person : null
-  const who = person ? gx(person, 'بيشوف', 'بتشوف') : 'بيشوف'
+  const who = person ? gx(person, 'سيرى', 'سترى') : 'سيرى'
   return (
     <BottomSheet onClose={close}>
       <div className="request-person">
@@ -2247,11 +2247,11 @@ function RequestSheet({ target, privateMode, close, send }: { target: Target; pr
         <div className="summary-box"><small>الاحتياج · {target.need.topic}</small><p>{target.need.text}</p></div>
       ) : (
         <>
-          <label className="field-label" htmlFor="req-text">وش تحتاج بالضبط؟</label>
+          <label className="field-label" htmlFor="req-text">ماذا تحتاج بالضبط؟</label>
           <textarea id="req-text" className="help-typein-field" rows={3} value={text} onChange={e => setText(e.target.value)} maxLength={BUSINESS.MAX_NEED_TEXT_CHARS} />
         </>
       )}
-      <label className="field-label">{person ? `كم تحتاج من ${gx(person, 'وقته', 'وقتها')} تقريبًا؟` : 'كم تقدر تعطي من وقتك؟'}</label>
+      <label className="field-label">{person ? `كم تحتاج من ${gx(person, 'وقته', 'وقتها')} تقريبًا؟` : 'كم من وقتك يمكنك أن تمنح؟'}</label>
       <div className="chip-row duration-row">{DURATIONS.map(v => <Chip key={v} active={commit === v} onClick={() => setCommit(v)}>{mins(v)}</Chip>)}</div>
       <PrimaryButton onClick={() => send(commit, text.trim())} icon={<Send />} disabled={target.kind === 'ask' && text.trim().length < 3}>{person ? 'أرسل الطلب' : 'أرسل العرض'}</PrimaryButton>
     </BottomSheet>
@@ -2274,9 +2274,9 @@ function PendingSheet({ kind, name, image, declined, close, cancel, retry }: {
       <BottomSheet onClose={close}>
         <div className="success-symbol muted"><Clock3 /></div>
         <h2 className="center">{kind === 'offer' ? 'صاحب الاحتياج' : name} {COPY.declined}</h2>
-        <p className="center muted">ما تيسّر هالمرة. فيه أشخاص ثانيين حولك.</p>
-        <PrimaryButton onClick={retry}>شوف غيره حولك</PrimaryButton>
-        <button className="text-button" onClick={close}>تمام</button>
+        <p className="center muted">لم يتيسّر هذه المرة. يوجد أشخاص آخرون حولك.</p>
+        <PrimaryButton onClick={retry}>اعرض غيره حولك</PrimaryButton>
+        <button className="text-button" onClick={close}>حسنًا</button>
       </BottomSheet>
     )
   }
@@ -2284,13 +2284,13 @@ function PendingSheet({ kind, name, image, declined, close, cancel, retry }: {
     <BottomSheet onClose={close}>
       <div className="success-symbol"><Send /></div>
       <h2 className="center">أرسلنا {noun} {to}</h2>
-      <p className="center muted">نبلغك أول ما يرد. المحادثة تنفتح بس إذا وافق.</p>
+      <p className="center muted">سنبلغك فور رده. تُفتح المحادثة فقط إذا وافق.</p>
       <div className="pending-card">
         {kind === 'offer' ? <AnonAvatar size={48} /> : <Avatar src={image} size={48} name={name} online={false} />}
         <div><b>{COPY.pending}</b><small><Clock3 /> ينتهي خلال 7 دقائق</small></div>
         <span className="typing"><i /><i /><i /></span>
       </div>
-      <PrimaryButton onClick={close}>تمام</PrimaryButton>
+      <PrimaryButton onClick={close}>حسنًا</PrimaryButton>
       <button className="text-button danger" onClick={cancel}>{kind === 'ask' ? 'إلغاء الطلب' : 'إلغاء العرض'}</button>
     </BottomSheet>
   )
@@ -2306,9 +2306,9 @@ function MatchSheet({ c, myName, chat, later }: { c: Connection; myName: string;
         <Avatar src={c.image} size={115} name={c.name} online={false} />
       </div>
       <h1>اتفقت مع {first(c.name)} 🤝</h1>
-      <p>الحين تقدرون تتواصلون وتنسقون اللقاء في {c.cafe}.</p>
+      <p>يمكنكما الآن التواصل وتنسيق اللقاء في {c.cafe}.</p>
       <PrimaryButton onClick={chat} icon={<MessageCircle />}>{COPY.openChat}</PrimaryButton>
-      <button className="text-button" onClick={later}>بعدين</button>
+      <button className="text-button" onClick={later}>لاحقًا</button>
     </div>
   )
 }
@@ -2331,9 +2331,9 @@ function ReportSheet({ name, close, send }: { name: string; close: () => void; s
   return (
     <BottomSheet onClose={close}>
       <h2 className="center">بلّغ عن {first(name)}</h2>
-      <p className="center muted">بلاغك سري، وما نقول له مين بلّغ.</p>
+      <p className="center muted">بلاغك سري، ولن نخبره بمن أبلغ.</p>
       <div className="skill-grid">
-        {['تصرف غير لائق', 'حساب مزيّف', 'رسائل مزعجة', 'شي ثاني'].map(r => <Chip key={r} active={reason === r} onClick={() => setReason(r)}>{r}</Chip>)}
+        {['تصرف غير لائق', 'حساب مزيّف', 'رسائل مزعجة', 'شيء آخر'].map(r => <Chip key={r} active={reason === r} onClick={() => setReason(r)}>{r}</Chip>)}
       </div>
       <PrimaryButton onClick={send} disabled={!reason}>أرسل البلاغ</PrimaryButton>
     </BottomSheet>
@@ -2341,7 +2341,7 @@ function ReportSheet({ name, close, send }: { name: string; close: () => void; s
 }
 
 const replyTo = (text: string, seat: string) =>
-  text.includes('وين') ? `أنا ${seat}` : text.includes('بتأخر') ? 'ولا يهمك، أنتظرك' : text.includes('جاي') ? 'تمام، أنتظرك' : 'تمام 👍'
+  text.includes('أين') ? `أنا ${seat}` : text.includes('سأتأخر') ? 'لا بأس، أنتظرك' : text.includes('قادم') ? 'حسنًا، أنتظرك' : 'حسنًا 👍'
 
 const load = <T,>(key: string, fallback: T): T => {
   try { const v = localStorage.getItem(key); return v ? (JSON.parse(v) as T) : fallback } catch { return fallback }
@@ -2391,7 +2391,7 @@ export default function App() {
   const [openVisitId, setOpenVisitId] = useState<string | null>(null)
   const [orderFor, setOrderFor] = useState<string | null>(null)
   const [wallet, setWalletRaw] = useState<WalletKind>(() => load('around-wallet', deviceWallet()))
-  const setWallet = (w: WalletKind) => { setWalletRaw(w); store('around-wallet', w); say(`${WALLET_NAME[w]} صارت طريقة الدفع المفضلة`) }
+  const setWallet = (w: WalletKind) => { setWalletRaw(w); store('around-wallet', w); say(`${WALLET_NAME[w]} أصبحت طريقة الدفع المفضلة`) }
   const [target, setTarget] = useState<Target | null>(null)
   const [requests, setRequests] = useState<Record<string, 'pending' | 'declined'>>({})
   const [pending, setPending] = useState<{ id: string; kind: Target['kind'] } | null>(null)
@@ -2462,7 +2462,7 @@ export default function App() {
 
   const connect = (a: { personId: string; name: string; image: string; cafe: string; topic: string; minutes: number; seat: string; mine?: string; reply: string }) => {
     const id = `${a.personId}-${Date.now()}`
-    const messages: Message[] = [{ from: 'system', text: `اتفقتوا 🤝 · ${a.cafe} · ${a.topic}`, time: now() }]
+    const messages: Message[] = [{ from: 'system', text: `اتفقتما 🤝 · ${a.cafe} · ${a.topic}`, time: now() }]
     if (a.mine) messages.push({ from: 'me', text: a.mine, time: now() })
     setConnections(cs => [{ id, personId: a.personId, name: a.name, image: a.image, cafe: a.cafe, topic: a.topic, minutes: a.minutes, status: 'active', unread: 0, askMet: false, messages }, ...cs])
     seats.current[id] = a.seat
@@ -2493,11 +2493,11 @@ export default function App() {
       setPending(p => (p?.id === id ? null : p))
       if (t.kind === 'offer') {
         const n = t.need
-        connect({ personId: id, name: n.name, image: n.image, cafe: n.cafe, topic: n.topic, minutes, seat: n.seat, mine: `هلا، أقدر أساعدك في ${n.topic}`, reply: `هلا، شكرًا إنك وافقت تساعدني! أنا ${n.seat}` })
+        connect({ personId: id, name: n.name, image: n.image, cafe: n.cafe, topic: n.topic, minutes, seat: n.seat, mine: `مرحبًا، يمكنني مساعدتك في ${n.topic}`, reply: `مرحبًا، شكرًا لموافقتك على مساعدتي! أنا ${n.seat}` })
       } else {
         const p = t.person
-        const where = p.presence === 'now' ? `أنا ${p.seat}` : `أوصل ${p.time} وأكون ${p.seat}`
-        connect({ personId: id, name: p.name, image: p.image, cafe: p.cafe, minutes, seat: p.seat, topic: p.tag, mine: text.split(/\s+/).length <= 2 ? `أحتاج مساعدة في ${text}` : text, reply: `هلا! ${where}. تعال متى ما جهزت 👋` })
+        const where = p.presence === 'now' ? `أنا ${p.seat}` : `أصل ${p.time} وسأكون ${p.seat}`
+        connect({ personId: id, name: p.name, image: p.image, cafe: p.cafe, minutes, seat: p.seat, topic: p.tag, mine: text.split(/\s+/).length <= 2 ? `أحتاج مساعدة في ${text}` : text, reply: `مرحبًا! ${where}. تعال متى ما كنت جاهزًا 👋` })
       }
     }, 3500)
   }
@@ -2511,10 +2511,10 @@ export default function App() {
 
   const answerMet = (id: string, met: boolean) => {
     if (met) {
-      updateConn(id, c => ({ ...c, askMet: false, status: 'past', endedMet: true, messages: [...c.messages, { from: 'system', text: 'تقابلتوا. نتمنى إنه كان لقاء مفيد', time: now() }] }))
-      say('نتمنى إنه كان لقاء مفيد')
+      updateConn(id, c => ({ ...c, askMet: false, status: 'past', endedMet: true, messages: [...c.messages, { from: 'system', text: 'التقيتما. نتمنى أن يكون اللقاء مفيدًا', time: now() }] }))
+      say('نتمنى أن يكون اللقاء مفيدًا')
     } else {
-      updateConn(id, c => ({ ...c, askMet: false, messages: [...c.messages, { from: 'system', text: 'ما تقابلتوا بعد. كمّلوا التنسيق هنا', time: now() }] }))
+      updateConn(id, c => ({ ...c, askMet: false, messages: [...c.messages, { from: 'system', text: 'لم تلتقيا بعد. أكملا التنسيق هنا', time: now() }] }))
     }
   }
 
@@ -2550,7 +2550,7 @@ export default function App() {
   const toggleSave = (name: string) => {
     const next = savedCafes.includes(name) ? savedCafes.filter(n => n !== name) : [...savedCafes, name]
     setSavedCafes(next); store('around-saved', next)
-    say(next.includes(name) ? 'حفظنا الكافيه في حسابك' : 'شلنا الكافيه من المحفوظة')
+    say(next.includes(name) ? 'حفظنا الكافيه في حسابك' : 'أزلنا الكافيه من المحفوظات')
   }
 
   // An order placed while already in the café isn't a visit to come, so it only shows in Messages.
@@ -2559,7 +2559,7 @@ export default function App() {
   const [orderingHere, setOrderingHere] = useState(false)
   const planVisit = (cafe: string, going = false) => { setVisitCafe(cafe); setOrderFor(null); setGoingNow(going); setOrderingHere(false); setHereCafe(null); setSheet('planVisit') }
   const orderHere = (cafe: string) => { setVisitCafe(cafe); setOrderFor(null); setGoingNow(false); setOrderingHere(true); setSheet('planVisit') }
-  // The café picked in "أنا في الكوفي الحين"; the intent screen then shows who's there.
+  // The café picked in "أنا في الكافيه الآن"; the intent screen then shows who's there.
   const [hereCafe, setHereCafe] = useState<string | null>(null)
   const [herePurpose, setHerePurpose] = useState<{ mode: VisitMode; tags: string[]; note?: string } | null>(null)
   const openVisit = (id: string) => { setOpenVisitId(id); setSheet('visit') }
@@ -2584,7 +2584,7 @@ export default function App() {
     const next = visits.filter(x => x.id !== id)
     setVisits(next); store('around-visits', next)
     setSheet(null)
-    say(v && visitPaid(v) ? 'ألغينا الزيارة، والمبلغ المدفوع ما يُسترجع' : 'ألغينا الزيارة')
+    say(v && visitPaid(v) ? 'ألغينا الزيارة، والمبلغ المدفوع غير قابل للاسترجاع' : 'ألغينا الزيارة')
   }
   const visitOpen = visits.find(v => v.id === openVisitId)
   const orderVisit = visits.find(v => v.id === orderFor)
@@ -2839,7 +2839,7 @@ export default function App() {
         <ChatMenuSheet name={chat.name} close={() => setSheet(null)} end={() => endChat(false)} report={() => setSheet('report')} block={() => endChat(true)} />
       )}
       {sheet === 'report' && chat && (
-        <ReportSheet name={chat.name} close={() => setSheet(null)} send={() => { setSheet(null); say('وصلنا بلاغك، وبنراجعه بأسرع وقت') }} />
+        <ReportSheet name={chat.name} close={() => setSheet(null)} send={() => { setSheet(null); say('وصلنا بلاغك، وسنراجعه في أقرب وقت') }} />
       )}
 
       {previewPerson && (
