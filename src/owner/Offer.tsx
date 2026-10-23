@@ -4,7 +4,7 @@ import { BellRing, Check, Coffee, Gift, Lock, Percent, Send } from 'lucide-react
 import { Sheet, useT } from './Owner'
 
 // A come-back offer the café sends to a past visitor (or a pair who met there). It reaches them as an app
-// notification, «اعرض عرضك», which leads into scheduling a visit, so the café still never learns who they are.
+// notification, «شاهد العرض», which leads into scheduling a visit, so the café still never learns who they are.
 export type Offer = { kind: 'drink' | 'sweet' | 'off'; pct: number; days: number; note: string; used?: boolean }
 const PCTS = [10, 15, 20, 25, 50]
 const DAYS = [7, 14, 30]
@@ -66,7 +66,7 @@ export function OfferSheet({ about, pair = false, onSend, onClose }: { about: Re
       <label className="o-label" htmlFor="o-offer-note">{t('رسالة قصيرة (اختياري)', 'Short message (optional)')}</label>
       <input id="o-offer-note" className="o-field" value={draft.note} maxLength={80} onChange={e => setDraft(d => ({ ...d, note: e.target.value }))} placeholder={pair ? t('مثلًا: سعدنا بزيارتكما، ننتظركما مرة أخرى', 'e.g. Glad you met here, see you again') : t('مثلًا: سعدنا بزيارتك، ننتظرك مرة أخرى', 'e.g. Glad you came, see you again')} />
       <span className="o-label">{t('هكذا يصل', 'What they see')}</span>
-      <div className="o-offer-push"><BellRing /><span><b>{t('لديك عرض لزيارتك القادمة 🎁', 'An offer for your next visit 🎁')}</b><small>{t('من كافيهك · اعرض عرضك', 'From your café · View your offer')}</small></span></div>
+      <div className="o-offer-push"><BellRing /><span><b>{t('لديك عرض لزيارتك القادمة 🎁', 'An offer for your next visit 🎁')}</b><small>{t('من كافيهك · شاهد العرض', 'From your café · See the offer')}</small></span></div>
       <div className="o-offer-preview">
         <Gift />
         <span><b>{offerText(draft, pair)}</b><small>{draft.note.trim() || (pair ? t('شكرًا للقائكما عندنا، ننتظركما في الزيارة القادمة.', 'Thanks for meeting here. See you next time.') : t('شكرًا لزيارتك، ننتظرك في الزيارة القادمة.', 'Thanks for visiting. See you next time.'))}</small><em>{t(`صالح ${daysText(draft.days)} · يُطبَّق عند جدولة الزيارة والطلب من التطبيق`, `Valid ${daysText(draft.days)} · applied when they schedule a visit and order in the app`)}</em></span>

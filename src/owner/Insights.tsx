@@ -267,7 +267,7 @@ export default function Insights({ items }: { items: Item[] }) {
         <OfferSheet pair onSend={sendOffer} onClose={() => setOfferFor(null)}
           about={<p className="o-offer-for"><MessageCircleHeart /><span><b>{pick(MEETUPS[offerFor].topic)}</b><small>{t('اتفقا على اللقاء في كافيهك مرة أخرى', 'They agreed to meet at your café again')}</small></span></p>} />
       )}
-      {sentToast && <div className="o-toast" role="status"><Check />{t('أرسلنا العرض إليهما، وسيصلهما إشعار «اعرض عرضك»', 'Offer sent. They get a “View your offer” notification')}</div>}
+      {sentToast && <div className="o-toast" role="status"><Check />{t('أرسلنا العرض إليهما، وسيصلهما إشعار «شاهد العرض»', 'Offer sent. They get a “See the offer” notification')}</div>}
 
       {tomorrowTab && (
         <Sheet title={t('زيارات الغد', "Tomorrow's visits")} onClose={() => setTomorrowTab(null)}>

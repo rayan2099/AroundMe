@@ -805,7 +805,7 @@ function HomeScreen({ onTab, unread, onHereNow, onGoing, active, onChat, onMet, 
           <span className="home-visit-copy">
             <small>{`عرض من ${offer.cafe}`}</small>
             <b>{offerTitle(offer)}</b>
-            <em>{`${offerValid(offer)} · اعرض عرضك وجَدوِل زيارتك`}</em>
+            <em>{`${offerValid(offer)} · شاهد العرض وجَدوِل زيارتك`}</em>
           </span>
           <ChevronLeft />
         </button>
@@ -1605,7 +1605,7 @@ const menuItem = (id: string) => MENU.find(m => m.id === id)
 const sar = (n: number) => `${n} ر.س`
 const linesTotal = (lines: OrderLine[]) => lines.reduce((t, l) => t + (menuItem(l.id)?.price ?? 0) * l.qty, 0)
 const linesCount = (lines: OrderLine[]) => lines.reduce((t, l) => t + l.qty, 0)
-// A come-back offer from a café the customer visited. It arrives as a notification («اعرض عرضك»), and is applied
+// A come-back offer from a café the customer visited. It arrives as a notification («شاهد العرض»), and is applied
 // when they schedule their next visit there and order ahead.
 export type CafeOffer = { cafe: string; kind: 'drink' | 'sweet' | 'off'; pct: number; note: string; days: number; from: number }
 const SWEETS = ['cheesecake', 'cookie']
@@ -1851,7 +1851,7 @@ function OfferPush({ offer, onOpen, onClose }: { offer: CafeOffer; onOpen: () =>
     <div className="offer-push" role="alert">
       <button type="button" className="offer-push-main" onClick={onOpen}>
         <span className="offer-push-app"><Gift /></span>
-        <span><small>AroundMe · الآن</small><b>لديك عرض لزيارتك القادمة 🎁</b><em>{`من ${offer.cafe} · اعرض عرضك`}</em></span>
+        <span><small>AroundMe · الآن</small><b>لديك عرض لزيارتك القادمة 🎁</b><em>{`من ${offer.cafe} · شاهد العرض`}</em></span>
       </button>
       <button type="button" className="offer-push-x" onClick={onClose} aria-label="إغلاق"><X /></button>
     </div>
