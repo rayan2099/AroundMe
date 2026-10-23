@@ -5,7 +5,12 @@ import { Sheet, useT } from './Owner'
 
 // A come-back offer the café sends to a past visitor (or a pair who met there). It reaches them as an app
 // notification, «افتح هديتك», which leads into scheduling a visit, so the café still never learns who they are.
-export type Offer = { kind: 'drink' | 'sweet' | 'off'; pct: number; days: number; note: string; used?: boolean }
+export type Offer = {
+  kind: 'drink' | 'sweet' | 'off'; pct: number; days: number; note: string
+  // Tracking: when it went out, who it went to (never a name), and whether they came back with it.
+  sentAt?: number; src?: 'order' | 'booking' | 'meet'; about?: [string, string]; pair?: boolean
+  usedAt?: number; spent?: number; saved?: number
+}
 const PCTS = [10, 15, 20, 25, 50]
 const DAYS = [7, 14, 30]
 
@@ -24,10 +29,10 @@ export function OfferSent({ offer, pair = false }: { offer: Offer; pair?: boolea
   const { t } = useT()
   const { offerText, daysText } = useOfferText()
   return (
-    <div className={`o-offer-sent ${offer.used ? 'used' : ''}`}>
+    <div className={`o-offer-sent ${offer.usedAt ? 'used' : ''}`}>
       <Gift />
-      <span><b>{offerText(offer, pair)}</b><small>{offer.used ? t(pair ? 'استخدماه وعادا إلى الكافيه' : 'استخدمه وعاد إلى الكافيه', pair ? 'They used it and came back' : 'Used it and came back') : t(`أُرسل · صالح ${daysText(offer.days)} · لم يُستخدم بعد`, `Sent · valid ${daysText(offer.days)} · not used yet`)}</small></span>
-      {offer.used && <Check />}
+      <span><b>{offerText(offer, pair)}</b><small>{offer.usedAt ? t(pair ? 'استخدماه وعادا إلى الكافيه' : 'استخدمه وعاد إلى الكافيه', pair ? 'They used it and came back' : 'Used it and came back') : t(`أُرسل · صالح ${daysText(offer.days)} · لم يُستخدم بعد`, `Sent · valid ${daysText(offer.days)} · not used yet`)}</small></span>
+      {offer.usedAt && <Check />}
     </div>
   )
 }

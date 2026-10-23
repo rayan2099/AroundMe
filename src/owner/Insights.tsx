@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Armchair, CalendarClock, Check, CalendarDays, ChevronLeft, ChevronRight, Clock, HeartHandshake, Lightbulb, Lock, MessageCircleHeart, Repeat, ShoppingBag, Sparkles, TrendingUp, UserPlus, Wallet, Zap } from 'lucide-react'
 import { Sheet, useT } from './Owner'
 import { OfferButton, OfferSent, OfferSheet } from './Offer'
-import type { Offer } from './Offer'
+import type { Ops } from './Ops'
 import type { Item } from './data'
 
 type Period = 'day' | 'week' | 'month'
@@ -56,15 +56,10 @@ const TOMORROW: Visit[] = [
 
 const TOP = [['Spanish latte', 64], ['San Sebastián cheesecake', 41], ['Butter croissant', 33], ['Iced latte', 25]] as const
 
-export default function Insights({ items }: { items: Item[] }) {
+export default function Insights({ items, onMeetups }: { items: Item[]; onMeetups: () => void }) {
   const { t, tx, sar, lang } = useT()
   const [period, setPeriod] = useState<Period>('week')
   const [hover, setHover] = useState<number | null>(null)
-  const [meetupsOpen, setMeetupsOpen] = useState(false)
-  // Sample: the first pair already got a free drink and came back with it.
-  const [offers, setOffers] = useState<Record<number, Offer>>({ 0: { kind: 'drink', pct: 0, days: 14, note: '', used: true } })
-  const [offerFor, setOfferFor] = useState<number | null>(null)
-  const [sentToast, setSentToast] = useState(false)
   const [tomorrowTab, setTomorrowTab] = useState<'visits' | 'orders' | 'tables' | null>(null)
   const pick = (x: T2) => (lang === 'ar' ? x[0] : x[1])
   const Fwd = lang === 'ar' ? ChevronLeft : ChevronRight
@@ -93,7 +88,6 @@ export default function Insights({ items }: { items: Item[] }) {
   const parts = PARTS.map(([label, end], i) => ({ label, visits: TOMORROW.filter(v => v.at[0] < end && v.at[0] >= (i ? PARTS[i - 1][1] : 0)) })).filter(g => g.visits.length)
   const orderText = (o: [string, number][]) => o.map(([en, q]) => `${q > 1 ? `${q}× ` : ''}${itemName(en)}`).join(t('، ', ', '))
   const kindLabel = (k: Visit['kind']) => k === 'visit' ? t('زيارة فقط', 'Just visiting') : k === 'need' ? t('يحتاج مساعدة', 'Needs help') : t('يستطيع المساعدة', 'Can help')
-  const sendOffer = (draft: Offer) => { if (offerFor == null) return; setOffers(o => ({ ...o, [offerFor]: draft })); setOfferFor(null); setSentToast(true); setTimeout(() => setSentToast(false), 2600) }
   const an = (x: string) => `${/^[aeiou]/i.test(x) ? 'An' : 'A'} ${x.toLowerCase()}`
   const k = SCALE[period]
   const n = (x: number) => Math.max(1, Math.round(x * k))
@@ -142,7 +136,7 @@ export default function Insights({ items }: { items: Item[] }) {
         <span><em><TrendingUp />{GROWTH[period]}%</em>{t(`من ${fmt(visits)} زيارة · ${fmt(orders)} طلب`, `from ${fmt(visits)} visits · ${fmt(orders)} orders`)}</span>
       </div>
 
-      <button type="button" className="o-meetups" onClick={() => setMeetupsOpen(true)}>
+      <button type="button" className="o-meetups" onClick={onMeetups}>
         <span className="o-meetups-icon"><HeartHandshake /></span>
         <div>
           <b>{t(`${fmt(n(WEEK.meetups))} لقاءً تم في كافيهك`, `${fmt(n(WEEK.meetups))} meetups happened at your café`)}</b>
@@ -236,39 +230,6 @@ export default function Insights({ items }: { items: Item[] }) {
         </section>
       )}
 
-      {meetupsOpen && offerFor == null && (
-        <Sheet title={t('لقاءات في كافيهك', 'Meetups at your café')} onClose={() => setMeetupsOpen(false)}>
-          <p className="o-range"><CalendarDays />{range}</p>
-          <div className="o-meet-stats">
-            <div><b>{fmt(n(WEEK.meetups))}</b><small>{t('لقاء', 'meetups')}</small></div>
-            <div><b>{t('21 د', '21 min')}</b><small>{t('متوسط اللقاء', 'average length')}</small></div>
-            <div><b>91%</b><small>{t('أكدوا اللقاء', 'said they met')}</small></div>
-          </div>
-          <p className="o-note"><Lock />{t('لا نعرض الأسماء ولا الصور. يظهر لك نوع المساعدة ووقتها ومكانها فقط.', 'No names or photos. You only see the kind of help, when and where.')}</p>
-          <ul className="o-meet-list">
-            {MEETUPS.filter(m => period !== 'day' || m.when[0] === 0).map((m, i) => (
-              <li key={i}>
-                <div className="o-meet-top"><span>{meetWhen(m.when)} · {t(`${m.mins} دقيقة`, `${m.mins} min`)}</span><span>{pick(m.seat)}</span></div>
-                <b>{pick(m.topic)}</b>
-                <p>{t(`${pick(m.helper)} ${m.f ? 'ساعدت' : 'ساعد'} ${pick(m.helped)}`, `${an(pick(m.helper))} helped ${an(pick(m.helped)).toLowerCase()}`)}</p>
-                <div className="o-meet-tags">
-                  {m.tags.map(tag => <span key={tag[1]}>{pick(tag)}</span>)}
-                  <span className="o-meet-order">{t(`${m.ordered === 1 ? 'طلب واحد' : m.ordered === 2 ? 'طلبين' : `${m.ordered} طلبات`}`, `${m.ordered} order${m.ordered === 1 ? '' : 's'}`)}</span>
-                  {m.again && <span className="o-meet-again"><MessageCircleHeart />{t('اتفقوا على اللقاء هنا مرة أخرى', 'Plan to meet here again')}</span>}
-                </div>
-                {m.again && (offers[i] ? <OfferSent offer={offers[i]} pair /> : <OfferButton pair onClick={() => setOfferFor(i)} />)}
-              </li>
-            ))}
-          </ul>
-        </Sheet>
-      )}
-
-      {offerFor != null && (
-        <OfferSheet pair onSend={sendOffer} onClose={() => setOfferFor(null)}
-          about={<p className="o-offer-for"><MessageCircleHeart /><span><b>{pick(MEETUPS[offerFor].topic)}</b><small>{t('اتفقا على اللقاء في كافيهك مرة أخرى', 'They agreed to meet at your café again')}</small></span></p>} />
-      )}
-      {sentToast && <div className="o-toast" role="status"><Check />{t('أرسلنا العرض إليهما، وسيصلهما إشعار «افتح هديتك»', 'Offer sent. They get a “Open your gift” notification')}</div>}
-
       {tomorrowTab && (
         <Sheet title={t('زيارات الغد', "Tomorrow's visits")} onClose={() => setTomorrowTab(null)}>
           <p className="o-range"><CalendarDays />{`${tomorrow.toLocaleDateString(loc, { weekday: 'long' })} ${dayMonth(tomorrow)}`}</p>
@@ -344,6 +305,55 @@ export default function Insights({ items }: { items: Item[] }) {
       )}
 
       <p className="o-fine">{t('أرقام تجريبية توضح شكل لوحتك بعد أسابيعك الأولى على AroundMe', 'Sample numbers showing how your dashboard looks after your first weeks on AroundMe')}</p>
+    </div>
+  )
+}
+
+// Meetups at the café, as their own dashboard section: what kind of help happened, and a come-back offer for pairs who plan to meet here again.
+export function Meetups({ ops, notify }: { ops: Ops; notify: (s: string) => void }) {
+  const { t, lang } = useT()
+  const [offerFor, setOfferFor] = useState<number | null>(null)
+  const pick = (x: T2) => (lang === 'ar' ? x[0] : x[1])
+  const loc = lang === 'ar' ? 'ar-u-ca-gregory-nu-latn' : 'en-US'
+  const dayMonth = (d: Date) => d.toLocaleDateString(loc, { day: 'numeric', month: 'long' })
+  const daysAgo = (n: number) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n); return d }
+  const clock = (h: number, m: number) => lang === 'ar' ? `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'ص' : 'م'}` : `${h % 12 || 12}:${String(m).padStart(2, '0')}${h < 12 ? 'am' : 'pm'}`
+  const meetWhen = ([ago, h, m]: [number, number, number]) => {
+    const d = daysAgo(ago)
+    const day = ago === 0 ? t('اليوم', 'Today') : ago === 1 ? t('أمس', 'Yesterday') : d.toLocaleDateString(loc, { weekday: 'long' })
+    return `${day} ${dayMonth(d)} · ${clock(h, m)}`
+  }
+  const an = (x: string) => `${/^[aeiou]/i.test(x) ? 'An' : 'A'} ${x.toLowerCase()}`
+  const again = MEETUPS.filter(m => m.again).length
+  return (
+    <div className="o-meetups-page">
+      <p className="o-range"><CalendarDays />{`${dayMonth(daysAgo(6))} – ${dayMonth(daysAgo(0))}`}</p>
+      <div className="o-meet-stats">
+        <div><b>{WEEK.meetups}</b><small>{t('لقاء هذا الأسبوع', 'meetups this week')}</small></div>
+        <div><b>{t('21 د', '21 min')}</b><small>{t('متوسط اللقاء', 'average length')}</small></div>
+        <div><b>{again}</b><small>{t('سيلتقون هنا مجددًا', 'meeting here again')}</small></div>
+      </div>
+      <p className="o-note"><Lock />{t('لا نعرض الأسماء ولا الصور. يظهر لك نوع المساعدة ووقتها ومكانها فقط.', 'No names or photos. You only see the kind of help, when and where.')}</p>
+      <ul className="o-meet-list">
+        {MEETUPS.map((m, i) => (
+          <li key={i}>
+            <div className="o-meet-top"><span>{meetWhen(m.when)} · {t(`${m.mins} دقيقة`, `${m.mins} min`)}</span><span>{pick(m.seat)}</span></div>
+            <b>{pick(m.topic)}</b>
+            <p>{t(`${pick(m.helper)} ${m.f ? 'ساعدت' : 'ساعد'} ${pick(m.helped)}`, `${an(pick(m.helper))} helped ${an(pick(m.helped)).toLowerCase()}`)}</p>
+            <div className="o-meet-tags">
+              {m.tags.map(tag => <span key={tag[1]}>{pick(tag)}</span>)}
+              <span className="o-meet-order">{t(`${m.ordered === 1 ? 'طلب واحد' : m.ordered === 2 ? 'طلبين' : `${m.ordered} طلبات`}`, `${m.ordered} order${m.ordered === 1 ? '' : 's'}`)}</span>
+              {m.again && <span className="o-meet-again"><MessageCircleHeart />{t('اتفقوا على اللقاء هنا مرة أخرى', 'Plan to meet here again')}</span>}
+            </div>
+            {m.again && (ops.offers[`M${i}`] ? <OfferSent offer={ops.offers[`M${i}`]} pair /> : <OfferButton pair onClick={() => setOfferFor(i)} />)}
+          </li>
+        ))}
+      </ul>
+      {offerFor != null && (
+        <OfferSheet pair onClose={() => setOfferFor(null)}
+          onSend={o => { ops.setOffers(x => ({ ...x, [`M${offerFor}`]: { ...o, sentAt: Date.now(), src: 'meet', about: MEETUPS[offerFor].topic, pair: true } })); setOfferFor(null); notify(t('أرسلنا العرض إليهما، وسيصلهما إشعار «افتح هديتك»', 'Offer sent. They get an “Open your gift” notification')) }}
+          about={<p className="o-offer-for"><MessageCircleHeart /><span><b>{pick(MEETUPS[offerFor].topic)}</b><small>{t('اتفقا على اللقاء في كافيهك مرة أخرى', 'They agreed to meet at your café again')}</small></span></p>} />
+      )}
     </div>
   )
 }

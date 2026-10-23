@@ -88,12 +88,32 @@ export function useOps() {
     { code: 'A25', unread: false, msgs: [{ from: 'them', text: 'شكرًا، كان التشيز كيك رائعًا', at: ago(10) }, { from: 'me', text: 'بالعافية، سعدنا بزيارتكم 🤍', at: ago(9) }] },
   ])
   // Come-back offers sent to past visitors, keyed by their order code (or booking code when they didn't order).
-  const [offers, setOffers] = useState<Record<string, Offer>>(() => ({ A23: { kind: 'off', pct: 15, days: 14, note: '' } }))
+  // Sample history from the last three weeks, so the Offers section has returns to track.
+  const [offers, setOffers] = useState<Record<string, Offer>>(() => {
+    const d = (n: number) => boot - n * 86_400_000
+    const o = (code: string, ppl: number): T2 => [`طلب ${hash(code)} · ${ppl === 1 ? 'شخص' : ppl === 2 ? 'شخصين' : `${ppl} أشخاص`}`, `Order ${hash(code)} · ${ppl} ${ppl === 1 ? 'person' : 'people'}`]
+    const b = (code: string, tag: T2): T2 => [`حجز ${hash(code)} · ${tag[0]}`, `Booking ${hash(code)} · ${tag[1]}`]
+    return {
+      A23: { kind: 'off', pct: 15, days: 14, note: '', sentAt: ago(40), src: 'order', about: o('A23', 2) },
+      M0: { kind: 'drink', pct: 0, days: 14, note: '', sentAt: d(6), usedAt: d(2), spent: 58, saved: 42, src: 'meet', pair: true, about: ['تطبيقها يتوقف عند صفحة الدفع', 'Her app froze on the payment page'] },
+      H9: { kind: 'drink', pct: 0, days: 14, note: '', sentAt: d(2), usedAt: ago(95), spent: 38, saved: 19, src: 'order', about: o('A19', 1) },
+      H7: { kind: 'drink', pct: 0, days: 30, note: '', sentAt: d(3), src: 'booking', about: b('B09', ['عمل', 'Work']) },
+      H6: { kind: 'sweet', pct: 0, days: 14, note: '', sentAt: d(5), usedAt: d(3), spent: 97, saved: 22, src: 'order', about: o('A11', 3) },
+      H3: { kind: 'sweet', pct: 0, days: 14, note: '', sentAt: d(8), src: 'order', about: o('A14', 1) },
+      H5: { kind: 'off', pct: 25, days: 14, note: '', sentAt: d(9), usedAt: d(4), spent: 88, saved: 22, src: 'meet', pair: true, about: ['مراجعة سيرة ذاتية', 'Reviewing a CV'] },
+      H2: { kind: 'off', pct: 20, days: 14, note: '', sentAt: d(10), usedAt: d(6), spent: 146, saved: 29, src: 'booking', about: b('B05', ['اجتماع', 'Meeting']) },
+      H1: { kind: 'drink', pct: 0, days: 14, note: '', sentAt: d(12), usedAt: d(9), spent: 64, saved: 21, src: 'order', about: o('A09', 2) },
+      H4: { kind: 'drink', pct: 0, days: 7, note: '', sentAt: d(15), src: 'order', about: o('A03', 1) },
+      H8: { kind: 'off', pct: 10, days: 7, note: '', sentAt: d(20), src: 'order', about: o('A06', 1) },
+    }
+  })
+  // Send a come-back offer automatically after someone's first visit.
+  const [autoOffer, setAutoOffer] = useState(false)
   const [paused, setPaused] = useState<number | 'manual' | null>(null)
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id) }, [])
   useEffect(() => { if (typeof paused === 'number' && now >= paused) setPaused(null) }, [now, paused])
-  return { orders, setOrders, tables, setTables, bookings, setBookings, threads, setThreads, offers, setOffers, paused, setPaused, now }
+  return { orders, setOrders, tables, setTables, bookings, setBookings, threads, setThreads, offers, setOffers, autoOffer, setAutoOffer, paused, setPaused, now }
 }
 export type Ops = ReturnType<typeof useOps>
 
@@ -113,10 +133,10 @@ function useFmt() {
 const total = (o: Order) => o.lines.filter(([en]) => !o.refunded?.includes(en)).reduce((s, [en, q]) => s + (PRICE[en] ?? 15) * q, 0)
 
 /* ---------- Orders ---------- */
-export function Orders({ ops, items, notify, openThread }: { ops: Ops; items: Item[]; notify: (s: string) => void; openThread: (code: string) => void }) {
+export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { ops: Ops; items: Item[]; notify: (s: string) => void; openThread: (code: string) => void; startTab?: Status }) {
   const { t, tx, sar, clock, mins, dur, pick, people } = useFmt()
   const { orders, setOrders, now, paused, setPaused } = ops
-  const [tab, setTab] = useState<Status>('new')
+  const [tab, setTab] = useState<Status>(startTab)
   const [issue, setIssue] = useState<Order | null>(null)
   const [offerFor, setOfferFor] = useState<Order | null>(null)
   const [pauseOpen, setPauseOpen] = useState(false)
@@ -251,7 +271,7 @@ export function Orders({ ops, items, notify, openThread }: { ops: Ops; items: It
       )}
 
       {offerFor && (
-        <OfferSheet onClose={() => setOfferFor(null)} onSend={offer => { ops.setOffers(x => ({ ...x, [offerFor.code]: offer })); setOfferFor(null); notify(t('أرسلنا العرض، وسيصله إشعار «افتح هديتك»', 'Offer sent. They get a “Open your gift” notification')) }}
+        <OfferSheet onClose={() => setOfferFor(null)} onSend={offer => { ops.setOffers(x => ({ ...x, [offerFor.code]: { ...offer, sentAt: Date.now(), src: 'order', about: [`طلب ${hash(offerFor.code)} · ${people(offerFor.ppl)}`, `Order ${hash(offerFor.code)} · ${offerFor.ppl} ${offerFor.ppl === 1 ? 'person' : 'people'}`] } })); setOfferFor(null); notify(t('أرسلنا العرض، وسيصله إشعار «افتح هديتك»', 'Offer sent. They get an “Open your gift” notification')) }}
           about={<p className="o-offer-for"><ShoppingBag /><span><b>{t(`طلب ${hash(offerFor.code)} · ${people(offerFor.ppl)}`, `Order ${hash(offerFor.code)} · ${people(offerFor.ppl)}`)}</b><small>{offerFor.lines.map(([en, q]) => `${q}× ${name(en)}`).join(t('، ', ', '))}</small></span></p>} />
       )}
 
@@ -347,7 +367,7 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
 
       {tab === 'bookings' && renderBookings()}
       {offerBooking && (
-        <OfferSheet onClose={() => setOfferBooking(null)} onSend={offer => { ops.setOffers(x => ({ ...x, [offerBooking.order ?? offerBooking.code]: offer })); setOfferBooking(null); notify(t('أرسلنا العرض، وسيصلهم إشعار «افتح هديتك»', 'Offer sent. They get a “Open your gift” notification')) }}
+        <OfferSheet onClose={() => setOfferBooking(null)} onSend={offer => { ops.setOffers(x => ({ ...x, [offerBooking.order ?? offerBooking.code]: { ...offer, sentAt: Date.now(), src: 'booking', about: [`حجز ${hash(offerBooking.code)} · ${pick(offerBooking.tag)}`, `Booking ${hash(offerBooking.code)} · ${offerBooking.tag[1]}`] } })); setOfferBooking(null); notify(t('أرسلنا العرض، وسيصلهم إشعار «افتح هديتك»', 'Offer sent. They get an “Open your gift” notification')) }}
           about={<p className="o-offer-for"><Armchair /><span><b>{t(`حجز ${hash(offerBooking.code)} · ${people(offerBooking.ppl)}`, `Booking ${hash(offerBooking.code)} · ${people(offerBooking.ppl)}`)}</b><small>{`${tName(offerBooking.table)} · ${pick(offerBooking.tag)}`}</small></span></p>} />
       )}
 

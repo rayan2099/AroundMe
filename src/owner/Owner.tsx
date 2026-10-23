@@ -3,9 +3,10 @@ import type { ReactNode } from 'react'
 import {
   Armchair, ArrowDown, ArrowUp, BadgeCheck, ClipboardList, Menu as MenuIcon, MessageCircle, ChartColumn, CakeSlice, Camera, Check, ChevronLeft, ChevronRight, CircleAlert, Coffee, Cookie, Croissant,
   CupSoda, Eye, FileText, GlassWater, ImagePlus, Languages, Leaf, Link2, MapPin, PenLine, Plus, Salad, Sandwich, ScanLine,
-  Search, Sparkles, Star, Store, Trash2, Upload, Utensils, X,
+  Search, Sparkles, Star, Store, Trash2, Upload, Utensils, X, Gift, HeartHandshake,
 } from 'lucide-react'
-import Insights from './Insights'
+import Insights, { Meetups } from './Insights'
+import Offers from './Offers'
 import { Messages, Orders, Tables, useOps } from './Ops'
 import { PLACES, PLATFORMS, SUGGESTED, importedMenu, scannedMenu } from './data'
 import type { Category, IconKey, Item, Place, Text } from './data'
@@ -668,9 +669,10 @@ function CustomerMenu({ place, cats, items }: { place: Place; cats: Category[]; 
 }
 
 /* ---------- After publishing: the café's dashboard ---------- */
-type View = 'orders' | 'tables' | 'messages' | 'insights' | 'menu'
+type View = 'orders' | 'tables' | 'messages' | 'offers' | 'meetups' | 'insights' | 'menu'
 const NAV: [View, typeof Coffee, string, string][] = [
   ['orders', ClipboardList, 'الطلبات', 'Orders'], ['tables', Armchair, 'الطاولات', 'Tables'], ['messages', MessageCircle, 'الرسائل', 'Messages'],
+  ['offers', Gift, 'العروض', 'Offers'], ['meetups', HeartHandshake, 'اللقاءات', 'Meetups'],
   ['insights', ChartColumn, 'الأداء', 'Performance'], ['menu', Utensils, 'المنيو', 'Menu'],
 ]
 function Live(props: MenuProps & { place: Place }) {
@@ -681,6 +683,7 @@ function Live(props: MenuProps & { place: Place }) {
   const [view, setViewRaw] = useState<View>('orders')
   const [thread, setThread] = useState<string | null>(null)
   const ops = useOps()
+  const [ordersTab, setOrdersTab] = useState<'new' | 'done'>('new')
   const setView = (v: View) => { setViewRaw(v); document.querySelector('.o-body')?.scrollTo(0, 0) }
   const openThread = (code: string) => { setView('messages'); setThread(code) }
   const ed = useMenuEditor(props)
@@ -689,7 +692,9 @@ function Live(props: MenuProps & { place: Place }) {
   const newOrders = ops.orders.filter(o => o.status === 'new').length
   const unread = ops.threads.filter(x => x.unread).length
   const lateTables = ops.bookings.filter(b => b.state === 'upcoming' && ops.now > b.at).length + ops.tables.filter(x => x.seatedAt && x.limit && ops.now - x.seatedAt > x.limit * 60_000).length
-  const badges: Record<View, number> = { orders: newOrders, tables: lateTables, messages: unread, insights: 0, menu: soldOut }
+  // Offers: people who came back with one in the last day.
+  const returned = Object.values(ops.offers).filter(o => o.usedAt && ops.now - o.usedAt < 86_400_000).length
+  const badges: Record<View, number> = { orders: newOrders, tables: lateTables, messages: unread, offers: returned, meetups: 0, insights: 0, menu: soldOut }
   const totalBadge = newOrders + unread + lateTables
   const [drawer, setDrawer] = useState(false)
   const toggle = (i: Item) => {
@@ -719,10 +724,12 @@ function Live(props: MenuProps & { place: Place }) {
             </span>
           </div>
         </div>
-        {view === 'orders' && <Orders ops={ops} items={items} notify={notify} openThread={openThread} />}
+        {view === 'orders' && <Orders key={ordersTab} startTab={ordersTab} ops={ops} items={items} notify={notify} openThread={openThread} />}
         {view === 'tables' && <Tables ops={ops} notify={notify} openThread={openThread} />}
         {view === 'messages' && <Messages ops={ops} open={thread} setOpen={setThread} />}
-        {view === 'insights' && <Insights items={items} />}
+        {view === 'offers' && <Offers ops={ops} onSend={() => { setOrdersTab('done'); setView('orders') }} />}
+        {view === 'meetups' && <Meetups ops={ops} notify={notify} />}
+        {view === 'insights' && <Insights items={items} onMeetups={() => setView('meetups')} />}
         {view === 'menu' && <>
         <div className="o-stats">
           <div><b>{items.length}</b><small>{t('صنف', 'items')}</small></div>
@@ -755,8 +762,8 @@ function Live(props: MenuProps & { place: Place }) {
           {NAV.map(([id, Icon, ar, en]) => {
             const badge = badges[id]
             return (
-              <button key={id} type="button" aria-current={view === id ? 'page' : undefined} className={view === id ? 'active' : ''} onClick={() => { setView(id); setDrawer(false) }}>
-                <Icon /><span>{t(ar, en)}</span>{badge > 0 && <i className={id === 'menu' || id === 'tables' ? 'warn' : ''}>{badge}</i>}
+              <button key={id} type="button" aria-current={view === id ? 'page' : undefined} className={view === id ? 'active' : ''} onClick={() => { if (id === 'orders') setOrdersTab('new'); setView(id); setDrawer(false) }}>
+                <Icon /><span>{t(ar, en)}</span>{badge > 0 && <i className={id === 'menu' || id === 'tables' ? 'warn' : id === 'offers' ? 'good' : ''}>{badge}</i>}
               </button>
             )
           })}

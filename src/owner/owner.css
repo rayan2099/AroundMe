@@ -781,3 +781,39 @@ button.o-meetups { width: 100%; text-align: start; }
 .o-offer-push b { display: block; font-size: 13.5px; }
 .o-offer-push small { font-size: 12px; color: var(--muted); }
 .o-offer-for > svg { width: 20px; flex: none; color: var(--orange); }
+/* Offers: who came back because of an offer */
+.o-offers, .o-meetups-page { display: flex; flex-direction: column; gap: 12px; }
+.o-offers .o-card, .o-offers .o-note, .o-meetups-page .o-note, .o-meetups-page .o-meet-list { margin: 0; }
+.o-offer-kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.o-offer-kpis div { padding: 14px; border-radius: 18px; background: #fff; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px; }
+.o-offer-kpis svg { width: 18px; color: var(--muted); margin-bottom: 4px; }
+.o-offer-kpis b { font-size: 22px; font-weight: 800; }
+.o-offer-kpis small { font-size: 12px; color: var(--muted); }
+.o-offer-kpis .good { background: #e3f4ea; border-color: transparent; }
+.o-offer-kpis .good svg, .o-offer-kpis .good b { color: #1f7a4a; }
+.o-offer-kinds-chart li { grid-template-columns: 1fr 44px; grid-template-areas: "name count" "bar sub"; }
+.o-offer-kinds-chart .o-top-name { display: inline-flex; align-items: center; gap: 6px; }
+.o-offer-kinds-chart .o-top-name svg { width: 15px; color: var(--orange); }
+.o-offer-kinds-chart .o-top-bar i { background: #e3a86b; }
+.o-offer-kinds-chart small { grid-area: sub; font-size: 11px; color: var(--muted); text-align: end; white-space: nowrap; }
+.o-offers .o-card-sub { margin: 12px 0 0; }
+.o-auto-offer { margin-top: 0; }
+.o-offer-filter .o-count { min-width: 20px; padding: 1px 6px; border-radius: 99px; background: rgba(0, 0, 0, 0.06); font-size: 11.5px; }
+.o-offer-filter .o-chip.active .o-count { background: rgba(255, 255, 255, 0.22); }
+.o-offer-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.o-offer-list li { display: flex; gap: 12px; padding: 14px; border-radius: 18px; background: #fff; border: 1px solid var(--border); }
+.o-offer-list li > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+.o-offer-list b { font-size: 14.5px; }
+.o-offer-list li > div > small { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
+.o-offer-list li > div > small svg { width: 13px; flex: none; }
+.o-offer-kind { width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; flex: none; background: #fff1dc; color: #a35f0c; }
+.o-offer-kind svg { width: 19px; }
+.st-back .o-offer-kind { background: #e3f4ea; color: #1f7a4a; }
+.st-expired .o-offer-kind { background: #f0efec; color: #8a857d; }
+.o-offer-status { display: inline-flex; align-items: center; gap: 5px; margin-top: 5px; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; }
+.o-offer-status svg { width: 13px; }
+.o-offer-status.s-back { background: #e3f4ea; color: #1f7a4a; }
+.o-offer-status.s-waiting { background: #fff1dc; color: #a35f0c; }
+.o-offer-status.s-expired { background: #f0efec; color: #6a665f; }
+.o-side nav i.good { background: #1f7a4a; }
+html.o-web .o-offer-kpis { grid-template-columns: repeat(4, 1fr); }
