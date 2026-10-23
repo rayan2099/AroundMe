@@ -691,7 +691,10 @@ function Live(props: MenuProps & { place: Place }) {
           <PlaceLogo place={place} big />
           <div>
             <b>{tx(place.name)}</b>
-            <span className="o-live-badge"><i />{t('المنيو منشور', 'Menu is live')}</span>
+            <span className="o-live-row">
+              <span className="o-live-badge"><i />{t('المنيو منشور', 'Menu is live')}</span>
+              <button type="button" className="o-live-view" onClick={() => setPreview(true)}><Eye />{t('شوفه كعميل', 'Customer view')}</button>
+            </span>
           </div>
         </div>
         <div className="o-stats">
@@ -699,14 +702,11 @@ function Live(props: MenuProps & { place: Place }) {
           <div><b>{cats.length}</b><small>{t('أقسام', 'sections')}</small></div>
           <div className={soldOut ? 'warn' : ''}><b>{soldOut}</b><small>{t('نفد', 'sold out')}</small></div>
         </div>
-        <div className="o-label-row">
-          <label className="o-label">{t('المنيو', 'Menu')}</label>
-          <span className="o-label-actions">
-            <button type="button" className="o-text-btn o-inline" onClick={() => setPreview(true)}><Eye />{t('شوفه كعميل', 'View as customer')}</button>
-            <button type="button" className="o-text-btn o-inline" onClick={ed.openCats}><PenLine />{t('الأقسام', 'Sections')}</button>
-          </span>
+        <label className="o-label">{t('المنيو', 'Menu')}</label>
+        <div className="o-tabs-with-edit">
+          <MenuTabs cats={cats} current={cur} onPick={setCur} extra={<span className="o-tabs-end" />} />
+          <button type="button" className="o-tabs-edit" onClick={ed.openCats} aria-label={t('عدّل الأقسام', 'Edit sections')}><PenLine /></button>
         </div>
-        <MenuTabs cats={cats} current={cur} onPick={setCur} />
         <p className="o-fine start">{t('اضغط على المفتاح لما يخلص صنف، واضغط على الصنف عشان تعدّله.', 'Flip the switch when something runs out. Tap an item to edit it.')}</p>
         <ul className="o-items">
           {items.filter(i => i.cat === cur).map(i => (

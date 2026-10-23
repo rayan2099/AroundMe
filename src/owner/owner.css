@@ -181,7 +181,6 @@ svg { flex: none; }
 .o-label-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .o-label-row .o-label { margin-bottom: 8px; }
 .o-label-row .o-text-btn { margin-top: 12px; }
-.o-label-actions { display: inline-flex; gap: 14px; }
 .o-field { width: 100%; height: 50px; border: 1px solid var(--border); border-radius: 14px; background: #fff; padding: 0 14px; font-size: 15px; outline: 0; }
 .o-field:focus { border-color: var(--green); }
 .o-field.warn, .o-price.warn { border-color: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
@@ -344,6 +343,17 @@ svg { flex: none; }
 
 /* Live */
 .o-live-card { display: flex; align-items: center; gap: 14px; margin-top: 6px; padding: 16px; border-radius: 20px; background: linear-gradient(160deg, #e8f0ec, #f6efe8); }
+.o-live-card > div { flex: 1; min-width: 0; }
+.o-live-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.o-live-row .o-live-badge { margin-top: 0; }
+.o-live-view { flex: none; display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 0 10px; border-radius: 99px; background: var(--green); color: #fff; font-size: 12px; font-weight: 700; }
+.o-live-view svg { width: 14px; }
+/* Live menu: tabs scroll, and the edit-sections button stays put at the row's end */
+.o-tabs-with-edit { display: flex; align-items: center; gap: 8px; }
+.o-tabs-with-edit .o-tab-chips { flex: 1; min-width: 0; margin-inline-end: 0; padding-inline-end: 0; }
+.o-tabs-end { flex: none; width: 4px; }
+.o-tabs-edit { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--green-soft); color: var(--green); display: grid; place-items: center; }
+.o-tabs-edit svg { width: 17px; }
 .o-live-card b { display: block; font-size: 18px; font-weight: 800; }
 .o-live-badge { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 4px 10px; border-radius: 99px; background: #fff; color: var(--green-dark); font-size: 12px; font-weight: 700; }
 .o-live-badge i { width: 7px; height: 7px; border-radius: 50%; background: #2fa36b; box-shadow: 0 0 0 3px rgba(47, 163, 107, 0.2); }
