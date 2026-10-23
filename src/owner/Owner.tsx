@@ -727,7 +727,7 @@ function Live(props: MenuProps & { place: Place }) {
         {view === 'orders' && <Orders key={ordersTab} startTab={ordersTab} ops={ops} items={items} notify={notify} openThread={openThread} />}
         {view === 'tables' && <Tables ops={ops} notify={notify} openThread={openThread} />}
         {view === 'messages' && <Messages ops={ops} open={thread} setOpen={setThread} />}
-        {view === 'offers' && <Offers ops={ops} onSend={() => { setOrdersTab('done'); setView('orders') }} />}
+        {view === 'offers' && <Offers ops={ops} notify={notify} />}
         {view === 'meetups' && <Meetups ops={ops} notify={notify} />}
         {view === 'insights' && <Insights items={items} onMeetups={() => setView('meetups')} />}
         {view === 'menu' && <>
