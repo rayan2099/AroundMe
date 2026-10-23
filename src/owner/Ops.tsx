@@ -361,6 +361,10 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
 
       {tab === 'floor' && (
         <>
+          <div className="o-floor-head">
+            <span><b>{nTables(tables.length)}</b><small>{t(`في ${areas.length === 1 ? 'موقع واحد' : areas.length === 2 ? 'موقعين' : `${areas.length} مواقع`}`, `in ${areas.length} location${areas.length === 1 ? '' : 's'}`)}</small></span>
+            <button type="button" className="o-offer-new-btn" onClick={() => setEditing('new')}><Plus />{t('أضف طاولة', 'Add a table')}</button>
+          </div>
           <div className="o-ops-stats">
             <div><b>{counts.free}</b><small>{t('شاغرة', 'free')}</small></div>
             <div><b>{counts.seated}</b><small>{t('مشغولة', 'seated')}</small></div>
@@ -386,7 +390,6 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
               </div>
             </section>
           ))}
-          <button type="button" className="o-dashed" onClick={() => setEditing('new')}><Plus />{t('أضف طاولة', 'Add a table')}</button>
           <p className="o-note"><Timer />{t('لكل طاولة وقت جلسة. يبدأ العدّاد عند إجلاس العملاء، وننبهك عند انتهاء وقتهم.', "Each table has a sitting time. The timer starts when you seat people, and we let you know when it runs out.")}</p>
         </>
       )}

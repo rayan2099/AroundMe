@@ -836,3 +836,7 @@ html.o-web .o-offer-kpis { grid-template-columns: repeat(4, 1fr); }
 .o-offer-pick b { display: block; font-size: 14px; }
 .o-offer-pick small { font-size: 12px; color: var(--muted); }
 .o-offer-pick button > svg { width: 17px; color: var(--muted); flex: none; }
+.o-floor-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 14px 0 12px; }
+.o-floor-head span { display: flex; align-items: baseline; gap: 6px; }
+.o-floor-head b { font-size: 16px; font-weight: 800; }
+.o-floor-head small { font-size: 13px; color: var(--muted); }
