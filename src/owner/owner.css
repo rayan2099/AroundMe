@@ -385,7 +385,7 @@ svg { flex: none; }
 .o-meetups-icon { width: 44px; height: 44px; border-radius: 14px; background: #fff; color: var(--orange); display: grid; place-items: center; flex: none; }
 .o-meetups-icon svg { width: 22px; }
 .o-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.o-tile { padding: 14px; border-radius: 18px; background: #fff; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 1px; }
+.o-tile { padding: 16px 18px; border-radius: 18px; background: #fff; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 1px; }
 .o-tile-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
 .o-tile-icon { width: 34px; height: 34px; border-radius: 11px; background: var(--green-soft); color: var(--green); display: grid; place-items: center; flex: none; }
 .o-tile-icon svg { width: 16px; }
@@ -495,6 +495,7 @@ button.o-meetups { width: 100%; text-align: start; }
   html.o-web .o-hero-stat b { font-size: 40px; }
   html.o-web .o-tiles { grid-column: 1 / -1; grid-template-columns: repeat(3, 1fr); gap: 14px; }
   html.o-web .o-card { padding: 20px; }
+  html.o-web .o-tile { padding: 20px 24px; }
   html.o-web .o-insights > .o-fine { grid-column: 1 / -1; }
   html.o-web .o-customers { grid-column: 1 / -1; }
   html.o-web .o-customers .o-people { max-width: 560px; }
