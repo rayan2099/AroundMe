@@ -586,8 +586,16 @@ button.o-meetups { width: 100%; text-align: start; }
 .o-code { font-size: 18px; font-weight: 800; letter-spacing: 0.02em; direction: ltr; }
 .o-kind-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-size: 11.5px; font-weight: 600; background: #f0efec; color: #4a4743; }
 .o-kind-tag svg { width: 13px; }
-.o-kind-tag.k-pre { background: var(--orange-soft); color: var(--orange); }
 .o-kind-tag.k-seat { background: var(--green-soft); color: var(--green-dark); }
+.o-kind-tag.k-pickup { background: #eaf1fb; color: #2f5f9e; }
+.o-kind-tag.k-pre { background: #f3edfb; color: #6b47a8; }
+.o-presence { display: inline-flex; align-items: center; gap: 7px; margin-top: 10px; padding: 6px 12px; border-radius: 99px; font-size: 12.5px; font-weight: 700; }
+.o-presence svg { width: 14px; }
+.o-presence.p-here { background: #e3f4ea; color: #1f7a4a; }
+.o-presence.p-here i { width: 8px; height: 8px; border-radius: 50%; background: #2fa36b; animation: o-pulse 1.8s infinite; }
+.o-presence.p-way { background: #fff1dc; color: #a35f0c; }
+.o-presence.p-home { background: #f3edfb; color: #6b47a8; }
+.o-presence.p-gone { background: #f0efec; color: #6a665f; }
 .o-order-time { margin-inline-start: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
 .o-order-time svg { width: 14px; }
 .o-order.slow .o-order-time { color: var(--warn); }

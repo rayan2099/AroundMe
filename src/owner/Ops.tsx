@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Armchair, BellRing, Check, ChefHat, CircleAlert, Clock, HandPlatter, MessageCircle, Pause, PenLine, Play, Plus, Send, ShoppingBag, Timer, Users } from 'lucide-react'
+import { Armchair, BellRing, Check, ChefHat, CircleAlert, Clock, HandPlatter, MessageCircle, House, Navigation, Pause, PenLine, Play, Plus, Send, ShoppingBag, Timer, Users } from 'lucide-react'
 import { Sheet, useT } from './Owner'
 import type { Item } from './data'
 
@@ -23,6 +23,9 @@ export type Order = {
   doneAt?: number
   refunded?: string[]
   late?: boolean
+  // Where the customer is right now: in the café, on the way (with an arrival time), or not left yet.
+  where?: 'here' | 'way' | 'home'
+  eta?: number
 }
 export type Booking = { code: string; at: number; table: string; ppl: number; tag: T2; state: 'upcoming' | 'arrived' | 'noshow' | 'left'; order?: string }
 // A table as staff set it up: a name, where it is, how many seats, and how long a sitting lasts (0 = no limit).
@@ -47,16 +50,16 @@ export function useOps() {
   const [boot] = useState(() => Date.now())
   const ago = (m: number) => boot - m * min
   const [orders, setOrders] = useState<Order[]>(() => [
-    { code: 'A31', kind: 'seat', placed: ago(1), seat: SEATS[0], ppl: 2, lines: [['Spanish latte', 1], ['Iced latte', 1], ['San Sebastián cheesecake', 1]], pay: 'apple', status: 'new' },
-    { code: 'A30', kind: 'pickup', placed: ago(3), ppl: 1, lines: [['Flat white', 1], ['Butter croissant', 1]], note: 'حليب شوفان من فضلكم', pay: 'google', status: 'new' },
-    { code: 'A28', kind: 'seat', placed: ago(7), started: ago(5), seat: SEATS[2], ppl: 1, lines: [['V60', 1], ['Cookie', 1]], pay: 'apple', status: 'prep' },
-    { code: 'A27', kind: 'pre', placed: ago(140), due: ago(-4), started: ago(12), ppl: 3, lines: [['Latte', 2], ['Cortado', 1]], pay: 'apple', status: 'prep' },
-    { code: 'A26', kind: 'pickup', placed: ago(11), started: ago(9), readyAt: ago(2), ppl: 1, lines: [['Iced Spanish latte', 1]], pay: 'apple', status: 'ready' },
+    { code: 'A31', kind: 'seat', where: 'here', placed: ago(1), seat: SEATS[0], ppl: 2, lines: [['Spanish latte', 1], ['Iced latte', 1], ['San Sebastián cheesecake', 1]], pay: 'apple', status: 'new' },
+    { code: 'A30', kind: 'pickup', where: 'way', eta: ago(-6), placed: ago(3), ppl: 1, lines: [['Flat white', 1], ['Butter croissant', 1]], note: 'حليب شوفان من فضلكم', pay: 'google', status: 'new' },
+    { code: 'A28', kind: 'seat', where: 'here', placed: ago(7), started: ago(5), seat: SEATS[2], ppl: 1, lines: [['V60', 1], ['Cookie', 1]], pay: 'apple', status: 'prep' },
+    { code: 'A27', kind: 'pre', where: 'way', eta: ago(-4), placed: ago(140), due: ago(-4), started: ago(12), ppl: 3, lines: [['Latte', 2], ['Cortado', 1]], pay: 'apple', status: 'prep' },
+    { code: 'A26', kind: 'pickup', where: 'here', placed: ago(11), started: ago(9), readyAt: ago(2), ppl: 1, lines: [['Iced Spanish latte', 1]], pay: 'apple', status: 'ready' },
     { code: 'A25', kind: 'seat', placed: ago(24), started: ago(22), readyAt: ago(14), doneAt: ago(13), seat: SEATS[1], ppl: 4, lines: [['Spanish latte', 3], ['Honey cake', 2]], pay: 'google', status: 'done' },
     { code: 'A24', kind: 'pickup', placed: ago(38), started: ago(37), readyAt: ago(30), doneAt: ago(27), ppl: 1, lines: [['Cold brew', 1]], pay: 'apple', status: 'done' },
     { code: 'A23', kind: 'pre', placed: ago(300), due: ago(52), started: ago(60), readyAt: ago(53), doneAt: ago(50), ppl: 2, lines: [['Matcha latte', 1], ['Zaatar croissant', 2]], pay: 'apple', status: 'done' },
-    { code: 'A33', kind: 'pre', placed: ago(90), due: ago(-35), ppl: 2, lines: [['Spanish latte', 2], ['Lotus cheesecake', 1]], note: 'سنجلس في الخارج', pay: 'apple', status: 'scheduled' },
-    { code: 'A34', kind: 'pre', placed: ago(55), due: ago(-70), ppl: 1, lines: [['Cortado', 1], ['Chocolate croissant', 1]], pay: 'google', status: 'scheduled' },
+    { code: 'A33', kind: 'pre', where: 'home', placed: ago(90), due: ago(-35), ppl: 2, lines: [['Spanish latte', 2], ['Lotus cheesecake', 1]], note: 'سنجلس في الخارج', pay: 'apple', status: 'scheduled' },
+    { code: 'A34', kind: 'pre', where: 'home', placed: ago(55), due: ago(-70), ppl: 1, lines: [['Cortado', 1], ['Chocolate croissant', 1]], pay: 'google', status: 'scheduled' },
   ])
   const [tables, setTables] = useState<Table[]>(() => [
     { id: 'w1', name: ['نافذة 1', 'Window 1'], area: AREAS[0], seats: 2, limit: 60, bookable: true, seatedAt: ago(48), ppl: 2 },
@@ -120,7 +123,7 @@ export function Orders({ ops, items, notify, openThread }: { ops: Ops; items: It
   useEffect(() => {
     const id = setTimeout(() => {
       if (paused) return
-      setOrders(l => l.some(o => o.code === 'A32') ? l : [{ code: 'A32', kind: 'seat', placed: Date.now(), seat: SEATS[3], ppl: 2, lines: [['Iced Spanish latte', 2], ['Brownie', 1]], pay: 'apple', status: 'new' }, ...l])
+      setOrders(l => l.some(o => o.code === 'A32') ? l : [{ code: 'A32', kind: 'seat', where: 'here', placed: Date.now(), seat: SEATS[3], ppl: 2, lines: [['Iced Spanish latte', 2], ['Brownie', 1]], pay: 'apple', status: 'new' }, ...l])
       notify(t(`طلب جديد ${hash('A32')} من الجلسات الخارجية`, `New order ${hash('A32')} from outdoor seating`))
     }, 9000)
     return () => clearTimeout(id)
@@ -192,6 +195,14 @@ export function Orders({ ops, items, notify, openThread }: { ops: Ops; items: It
                     : t(`قبل ${dur(waited)}`, `${dur(waited)} ago`)}
                 </span>
               </div>
+              {(() => {
+                const at = o.status === 'done' ? 'gone' : o.where === 'way' && o.eta && now >= o.eta ? 'here' : o.where ?? 'here'
+                const label = at === 'gone' ? t('استلم طلبه', 'Picked up')
+                  : at === 'here' ? (o.status === 'ready' && o.kind !== 'seat' ? t('في الكافيه الآن · ينتظر عند الكاونتر', 'In the café · waiting at the counter') : t('في الكافيه الآن', 'In the café now'))
+                  : at === 'way' ? (o.eta! - now < min ? t('يصل الآن', 'Arriving now') : t(`في الطريق · يصل خلال ${dur(mins(o.eta! - now))}`, `On the way · arrives in ${dur(mins(o.eta! - now))}`))
+                  : t(`لم يتحرك بعد · موعده ${clock(o.due ?? now)}`, `Not on the way yet · due ${clock(o.due ?? now)}`)
+                return <span className={`o-presence p-${at}`}>{at === 'here' ? <i /> : at === 'way' ? <Navigation /> : at === 'home' ? <House /> : <Check />}{label}</span>
+              })()}
               <p className="o-order-who"><Users />{people(o.ppl)}{o.seat && <> · {pick(o.seat)}</>}{o.kind === 'pre' && o.due && o.status !== 'scheduled' && o.status !== 'done' && <> · {t(`يصل ${clock(o.due)}`, `arrives ${clock(o.due)}`)}</>}</p>
               <ul className="o-lines">
                 {o.lines.map(([en, q]) => <li key={en} className={o.refunded?.includes(en) ? 'gone' : ''}><b>{q}×</b>{name(en)}{o.refunded?.includes(en) && <small>{t('نفد · أُعيد مبلغه', 'Out · refunded')}</small>}</li>)}
