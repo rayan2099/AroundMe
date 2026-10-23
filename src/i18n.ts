@@ -39,7 +39,7 @@ const EN: [string, string][] = [
   ['طريقة الدفع المفضلة', 'Preferred payment method'], ['استخدمها كطريقة مفضلة', 'Make it your preferred method'], ['أصناف', 'items'], ['صنفين', '2 items'], ['أضف', 'Add'], ['شيل', 'Remove'],
   ['جَدوِل زيارتك القادمة', 'Schedule your next visit'],
   ['أطلب وأجلس على راحتي', 'Order and settle in'], ['اختر سبب زيارتك', 'Pick what it is for'], ['واحد أو أكثر', 'one or more'], ['افتح المنيو', 'Open the menu'], ['بس زيارة', 'Just visiting'], ['مثلاً: عندي اجتماع أونلاين ساعة', 'e.g. I have an hour-long online meeting'], ['ملاحظة', 'Note'],
-  ['أقابل أصحاب', 'Meeting friends'], ['أطلب وأمشي', 'Grab and go'], ['مذاكرة', 'Studying'], ['اجتماع', 'Meeting'], ['أرتاح', 'Relaxing'], ['قراءة', 'Reading'], ['شغل', 'Work'],
+  ['أقابل أصحاب', 'Meeting friends'], ['أطلب وأمشي', 'Grab and go'], ['مذاكرة', 'Studying'], ['اجتماع', 'Meeting'], ['أروّق', 'Chilling'], ['أرتاح', 'Relaxing'], ['قراءة', 'Reading'], ['شغل', 'Work'],
   ['اختر الكافيه والوقت وهدف زيارتك', 'Pick the coffee shop, the time, and what the visit is for'], ['وش هدف زيارتك؟', 'What is the visit for?'], ['جَدوِل زيارتك هنا', 'Schedule your visit here'],
   ['هالوقت راح، اختر وقت بعده', 'That time has passed, pick a later one'], ['ما لقينا كافيه بهالاسم', 'No coffee shop by that name'],
   ['وش تحتاج مساعدة فيه؟', 'What do you need help with?'], ['مثلاً: مراجعة تصميم تطبيقي', 'e.g. Reviewing my app design'], ['وش بتشتغل عليه هناك؟', 'What will you work on there?'], ['اختياري', 'optional'],

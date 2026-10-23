@@ -17,7 +17,7 @@ export type Tab = 'home' | 'map' | 'people' | 'inbox' | 'account'
 export type ActionMode = 'seek' | 'help'
 // A visit's purpose: needing help, offering help, or just visiting (to order, work, study…), with tags saying why.
 export type VisitMode = ActionMode | 'visit'
-const VISIT_TAGS = ['شغل', 'مذاكرة', 'اجتماع', 'أقابل أصحاب', 'أرتاح', 'قراءة', 'أطلب وأمشي']
+const VISIT_TAGS = ['شغل', 'مذاكرة', 'اجتماع', 'أقابل أصحاب', 'أروّق', 'قراءة', 'أطلب وأمشي']
 export type PresenceFilter = 'all' | 'now' | 'today'
 export type Presence = 'now' | 'today'
 export type Gender = 'm' | 'f'
