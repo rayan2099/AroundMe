@@ -2,7 +2,9 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { Armchair, Check, ChevronLeft, ChevronRight, CircleAlert, Clock, Copy, LayoutGrid, MessageCircle, Pause, PenLine, Plus, Receipt, Timer, Trash2, TrendingUp } from 'lucide-react'
 import { PlaceLogo, Sheet, useT } from './Owner'
-import { weekFor } from './Insights'
+import { measure } from './Insights'
+import { RangePicker, presetRange, useRangeText } from './Range'
+import type { Range } from './Range'
 import { attention, emptyBranch, nextPrefix, opsStats } from './Ops'
 import type { Branch, Branches as BranchStore, Ops } from './Ops'
 import type { Item, Place } from './data'
@@ -116,7 +118,9 @@ export function Overview({ B, open }: { B: BranchStore; open: (id: string, view:
   const lowerWins = metric === 'prep'
   const ranked = rows.map(r => ({ ...r, v: cmpVal(r, metric) })).sort((a, b) => (lowerWins ? (a.v || 1e9) - (b.v || 1e9) : b.v - a.v))
   const maxV = Math.max(1, ...ranked.map(r => r.v))
-  const week = rows.map(({ b }) => ({ b, rev: Math.round(weekFor(b.scale).revenue * b.scale) }))
+  const [range, setRange] = useState<Range>(() => presetRange('week'))
+  const { rangeName } = useRangeText()
+  const week = rows.map(({ b }) => ({ b, rev: measure('revenue', b.scale, range) }))
   const weekTot = week.reduce((a, w) => a + w.rev, 0)
   const fastest = [...rows].filter(r => r.s.avgPrep > 0).sort((a, b) => a.s.avgPrep - b.s.avgPrep)[0]
 
@@ -167,9 +171,13 @@ export function Overview({ B, open }: { B: BranchStore; open: (id: string, view:
             <li key={b.id} className={v && v === ranked[0].v ? 'lead' : ''}><span className="o-top-name">{branchName(b)}</span><span className="o-top-bar"><i style={{ width: `${(lowerWins ? (v ? Math.min(...ranked.filter(r => r.v).map(r => r.v)) / v : 0) : v / maxV) * 100}%` }} /></span><b>{cur[3](v)}</b></li>
           ))}
         </ul>
-        <p className="o-card-sub o-ov-week">{t(`هذا الأسبوع: ${sar(fmt(weekTot))} من كل الفروع`, `This week: ${sar(fmt(weekTot))} across all branches`)}</p>
+        <div className="o-ov-week">
+          <h4 className="o-sub-h">{t('المبيعات حسب الفرع', 'Sales by branch')}</h4>
+          <RangePicker compact value={range} onChange={setRange} />
+        </div>
+        <p className="o-card-sub">{t(`${rangeName(range)}: ${sar(fmt(weekTot))} من كل الفروع`, `${rangeName(range)}: ${sar(fmt(weekTot))} across all branches`)}</p>
         <ul className="o-ov-share">
-          {week.map(({ b, rev }) => <li key={b.id}><span>{branchName(b)}</span><b>{sar(fmt(rev))}</b><small>{Math.round((rev / weekTot) * 100)}%</small></li>)}
+          {week.map(({ b, rev }) => <li key={b.id}><span>{branchName(b)}</span><b>{sar(fmt(rev))}</b><small>{weekTot ? Math.round((rev / weekTot) * 100) : 0}%</small></li>)}
         </ul>
         {fastest && rows.length > 1 && <p className="o-note"><TrendingUp />{t(`${branchName(fastest.b)} الأسرع تحضيرًا اليوم (${fastest.s.avgPrep} د). شارك طريقتهم مع باقي الفروع.`, `${branchName(fastest.b)} is the fastest today (${fastest.s.avgPrep} min). Share how they do it with the other branches.`)}</p>}
       </section>

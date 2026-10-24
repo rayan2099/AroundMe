@@ -5,6 +5,8 @@ import { OfferSheet, useOfferText } from './Offer'
 import { MEETUPS } from './Insights'
 import type { Offer } from './Offer'
 import type { Ops } from './Ops'
+import { RangePicker, inRange, presetRange } from './Range'
+import type { Range } from './Range'
 
 // Come-back offers the café has sent, and who came back because of one. Visitors stay anonymous: an order,
 // booking or meetup, never a name.
@@ -19,9 +21,10 @@ export default function Offers({ ops, notify }: { ops: Ops; notify: (s: string) 
   const [filter, setFilter] = useState<Status | 'all'>('all')
   const [picking, setPicking] = useState(false)
   const [target, setTarget] = useState<Target | null>(null)
+  const [range, setRange] = useState<Range>(() => presetRange('d30'))
   const { offers, now } = ops
   const status = (o: Offer): Status => (o.usedAt ? 'back' : now > (o.sentAt ?? now) + o.days * DAY ? 'expired' : 'waiting')
-  const list = Object.entries(offers).filter(([, o]) => o.sentAt).sort((a, b) => (b[1].usedAt ?? b[1].sentAt!) - (a[1].usedAt ?? a[1].sentAt!))
+  const list = Object.entries(offers).filter(([, o]) => o.sentAt && inRange(range, o.sentAt)).sort((a, b) => (b[1].usedAt ?? b[1].sentAt!) - (a[1].usedAt ?? a[1].sentAt!))
   const back = list.filter(([, o]) => status(o) === 'back')
   const decided = list.filter(([, o]) => status(o) !== 'waiting').length
   const rate = decided ? Math.round((back.length / decided) * 100) : 0
@@ -71,6 +74,7 @@ export default function Offers({ ops, notify }: { ops: Ops; notify: (s: string) 
         </div>
         <button type="button" className="o-offer-new-btn" disabled={!targets.length} onClick={() => setPicking(true)}><Plus />{t('عرض جديد', 'New offer')}</button>
       </div>
+      <RangePicker value={range} onChange={setRange} label={t('العروض المُرسلة في', 'Offers sent in')} />
       <div className="o-offer-kpis">
         <div><Gift /><b>{list.length}</b><small>{t('عرض أُرسل', 'offers sent')}</small></div>
         <div className="good"><Repeat /><b>{back.length}</b><small>{t(`عادوا بسببها · ${rate}%`, `came back · ${rate}%`)}</small></div>

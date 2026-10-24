@@ -995,3 +995,40 @@ html.o-web .o-ov-metrics { grid-template-columns: repeat(2, 1fr); }
   html.o-web .o-meet-head { flex-direction: row; align-items: center; justify-content: space-between; }
   html.o-web .o-meet-list { display: grid; grid-template-columns: repeat(2, 1fr); align-items: start; }
 }
+
+/* Period picker and calendar */
+.o-range-btn { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 8px 14px; border-radius: 14px; background: #fff; border: 1px solid var(--border); color: var(--text); text-align: start; cursor: pointer; }
+.o-range-btn > svg:first-child { width: 18px; color: var(--green); flex: none; }
+.o-range-btn > svg:last-child { width: 16px; color: var(--muted); flex: none; }
+.o-range-btn span { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.o-range-btn b { font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.o-range-btn small { font-size: 11.5px; color: var(--muted); }
+.o-range-btn.compact { min-height: 40px; padding: 6px 12px; border-radius: 99px; width: auto; }
+.o-range-btn.compact b { font-size: 12.5px; }
+.o-range-presets { margin-bottom: 14px; }
+.o-cal { border: 1px solid var(--border); border-radius: 16px; padding: 12px; }
+.o-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.o-cal-head b { font-size: 14px; }
+.o-cal-head button { width: 36px; height: 36px; border-radius: 10px; background: #f0efec; display: grid; place-items: center; }
+.o-cal-head button:disabled { opacity: 0.35; }
+.o-cal-head svg { width: 16px; }
+.o-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 4px; }
+.o-cal-wd { font-size: 10.5px; color: var(--muted); text-align: center; padding: 4px 0; font-weight: 600; }
+.o-cal-day { height: 38px; font-size: 13px; font-weight: 600; color: var(--text); background: none; border-radius: 0; position: relative; }
+.o-cal-day:disabled { color: #c9c4bc; }
+.o-cal-day.in { background: var(--green-soft); }
+.o-cal-day.start, .o-cal-day.end { background: var(--green); color: #fff; border-radius: 10px; }
+.o-cal-day.start:not(.end) { border-start-end-radius: 0; border-end-end-radius: 0; }
+.o-cal-day.end:not(.start) { border-start-start-radius: 0; border-end-start-radius: 0; }
+.o-cal-day.today:not(.start):not(.end)::after { content: ''; position: absolute; bottom: 5px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--green); }
+.o-range-sel { margin: 10px 0 0; font-size: 12.5px; font-weight: 600; color: var(--muted); text-align: center; }
+.o-ov-week { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; }
+.o-ov-week .o-sub-h { margin: 0; }
+.o-builder-spans > div { display: flex; flex-direction: column; min-width: 0; }
+.o-builder-spans .o-range-btn.compact { width: 100%; border-radius: 12px; }
+.o-meet-stats em.down { background: #fbeeec; color: #b5483a; }
+.o-cmp-list em.flat { background: #f0efec; color: var(--muted); }
+@media (min-width: 900px) {
+  html.o-web .o-insights > .o-range-btn { grid-column: 1 / -1; max-width: 420px; }
+  html.o-web .o-meetups-page > .o-range-btn, html.o-web .o-offers > .o-range-btn { max-width: 420px; }
+}
