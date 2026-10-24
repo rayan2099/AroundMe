@@ -50,10 +50,36 @@ const SEATS: T2[] = [['عند النافذة', 'By the window'], ['الطاول�
 const min = 60_000
 // Order and booking codes are Latin; isolate them so «#A30» doesn't flip to «A30#» inside Arabic text.
 const hash = (code: string) => `\u2066#${code}\u2069`
-export function useOps() {
-  const [boot] = useState(() => Date.now())
+// A café can run several branches from one dashboard. Each branch has its own orders, tables, bookings,
+// messages, offers and order intake; the menu is shared (see Owner.tsx), with sold-out kept per branch.
+// `scale` sizes the sample weekly numbers on the Performance page for this branch.
+export type Branch = { id: string; area: T2; hours: [number, number]; prefix: [string, string]; meetups: number[]; scale: number }
+export type BranchData = {
+  orders: Order[]; tables: Table[]; bookings: Booking[]; threads: Thread[]; offers: Record<string, Offer>
+  autoOffer: boolean; paused: number | 'manual' | null; nextCode: number
+}
+export const BRANCHES: Branch[] = [
+  { id: 'b1', area: ['العليا', 'Olaya'], hours: [6, 24], prefix: ['A', 'B'], meetups: [0, 1, 2, 3, 4, 5], scale: 1 },
+  { id: 'b2', area: ['الملقا', 'Al Malqa'], hours: [6, 25], prefix: ['M', 'N'], meetups: [1, 2, 4], scale: 1.3 },
+  { id: 'b3', area: ['الياسمين', 'Al Yasmin'], hours: [7, 23], prefix: ['Y', 'Z'], meetups: [0, 3], scale: 0.55 },
+]
+// Order and booking codes start with the branch's letters, so a code is never ambiguous across branches.
+export const nextPrefix = (taken: Branch[]): [string, string] => {
+  const used = new Set(taken.flatMap(b => b.prefix))
+  const pairs: [string, string][] = [['A', 'B'], ['M', 'N'], ['Y', 'Z'], ['C', 'D'], ['E', 'F'], ['G', 'H'], ['J', 'K'], ['P', 'Q'], ['R', 'S'], ['T', 'U']]
+  return pairs.find(([o, b]) => !used.has(o) && !used.has(b)) ?? ['X', 'W']
+}
+export const emptyBranch = (): BranchData => ({ orders: [], tables: [], bookings: [], threads: [], offers: {}, autoOffer: false, paused: null, nextCode: 1 })
+
+// Sample shift for the main branch; the other sample branches are derived from it (busier, or quieter) with their own codes.
+function seedMain(boot: number): BranchData {
   const ago = (m: number) => boot - m * min
-  const [orders, setOrders] = useState<Order[]>(() => [
+  const d = (n: number) => boot - n * 86_400_000
+  const o = (code: string, ppl: number): T2 => [`طلب ${hash(code)} · ${ppl === 1 ? 'شخص' : ppl === 2 ? 'شخصين' : `${ppl} أشخاص`}`, `Order ${hash(code)} · ${ppl} ${ppl === 1 ? 'person' : 'people'}`]
+  const b = (code: string, tag: T2): T2 => [`حجز ${hash(code)} · ${tag[0]}`, `Booking ${hash(code)} · ${tag[1]}`]
+  void d; void o; void b
+  return {
+    orders: [
     { code: 'A31', kind: 'seat', where: 'here', placed: ago(1), seat: SEATS[0], ppl: 2, lines: [['Spanish latte', 1], ['Iced latte', 1], ['San Sebastián cheesecake', 1]], pay: 'apple', status: 'new' },
     { code: 'A30', kind: 'pickup', where: 'way', eta: ago(-6), placed: ago(3), ppl: 1, lines: [['Flat white', 1], ['Butter croissant', 1]], note: 'حليب شوفان من فضلكم', pay: 'google', status: 'new' },
     { code: 'A28', kind: 'seat', where: 'here', placed: ago(7), started: ago(5), seat: SEATS[2], ppl: 1, lines: [['V60', 1], ['Cookie', 1]], pay: 'apple', status: 'prep', offer: { id: 'H9', saved: 22 } },
@@ -64,8 +90,8 @@ export function useOps() {
     { code: 'A23', kind: 'pre', placed: ago(300), due: ago(52), started: ago(60), readyAt: ago(53), doneAt: ago(50), ppl: 2, lines: [['Matcha latte', 1], ['Zaatar croissant', 2]], pay: 'apple', status: 'done' },
     { code: 'A33', kind: 'pre', where: 'home', placed: ago(90), due: ago(-35), ppl: 2, lines: [['Spanish latte', 2], ['Lotus cheesecake', 1]], note: 'سنجلس في الخارج', pay: 'apple', status: 'scheduled' },
     { code: 'A34', kind: 'pre', where: 'home', placed: ago(55), due: ago(-70), ppl: 1, lines: [['Cortado', 1], ['Chocolate croissant', 1]], pay: 'google', status: 'scheduled' },
-  ])
-  const [tables, setTables] = useState<Table[]>(() => [
+],
+    tables: [
     { id: 'w1', name: ['نافذة 1', 'Window 1'], area: AREAS[0], seats: 2, limit: 60, bookable: true, seatedAt: ago(48), ppl: 2 },
     { id: 'w2', name: ['نافذة 2', 'Window 2'], area: AREAS[0], seats: 2, limit: 60, bookable: true },
     { id: 'long', name: ['الطاولة الطويلة', 'Long table'], area: AREAS[1], seats: 8, limit: 90, bookable: true },
@@ -74,28 +100,22 @@ export function useOps() {
     { id: 'q2', name: ['هادئة 2', 'Quiet 2'], area: AREAS[2], seats: 2, limit: 120, bookable: true },
     { id: 'o1', name: ['خارجية 1', 'Outside 1'], area: AREAS[3], seats: 4, limit: 60, bookable: true, seatedAt: ago(65), ppl: 3 },
     { id: 'o2', name: ['خارجية 2', 'Outside 2'], area: AREAS[3], seats: 2, limit: 60, bookable: true },
-  ])
-  const [bookings, setBookings] = useState<Booking[]>(() => [
+],
+    bookings: [
     { code: 'B12', at: ago(50), table: 'long', ppl: 4, tag: ['لقاء أصدقاء', 'Meeting friends'], state: 'left', order: 'A25' },
     { code: 'B13', at: ago(20), table: 'q1', ppl: 1, tag: ['مذاكرة', 'Studying'], state: 'arrived', order: 'A28' },
     { code: 'B14', at: ago(10), table: 'o2', ppl: 2, tag: ['عمل', 'Work'], state: 'upcoming' },
     { code: 'B15', at: ago(-4), table: 'long', ppl: 3, tag: ['اجتماع', 'Meeting'], state: 'upcoming', order: 'A27' },
     { code: 'B16', at: ago(-35), table: 'o1', ppl: 2, tag: ['استرخاء', 'Chilling'], state: 'upcoming', order: 'A33' },
     { code: 'B17', at: ago(-95), table: 'w2', ppl: 2, tag: ['عمل', 'Work'], state: 'upcoming' },
-  ])
-  const [threads, setThreads] = useState<Thread[]>(() => [
+],
+    threads: [
     { code: 'A30', unread: true, msgs: [{ from: 'them', text: 'السلام عليكم، هل يمكن تحضير الفلات وايت بحليب الشوفان؟', at: ago(2) }] },
     { code: 'B14', unread: true, msgs: [{ from: 'them', text: 'سأتأخر نحو عشر دقائق، أرجو ألا تُعطى طاولتي لأحد 🙏', at: ago(6) }] },
     { code: 'A27', unread: false, msgs: [{ from: 'them', text: 'سنصل بعد قليل، جهّزوه من فضلكم', at: ago(15) }, { from: 'me', text: 'أهلًا بكم، طلبكم قيد التحضير', at: ago(12) }] },
     { code: 'A25', unread: false, msgs: [{ from: 'them', text: 'شكرًا، كان التشيز كيك رائعًا', at: ago(10) }, { from: 'me', text: 'بالعافية، سعدنا بزيارتكم 🤍', at: ago(9) }] },
-  ])
-  // Come-back offers sent to past visitors, keyed by their order code (or booking code when they didn't order).
-  // Sample history from the last three weeks, so the Offers section has returns to track.
-  const [offers, setOffers] = useState<Record<string, Offer>>(() => {
-    const d = (n: number) => boot - n * 86_400_000
-    const o = (code: string, ppl: number): T2 => [`طلب ${hash(code)} · ${ppl === 1 ? 'شخص' : ppl === 2 ? 'شخصين' : `${ppl} أشخاص`}`, `Order ${hash(code)} · ${ppl} ${ppl === 1 ? 'person' : 'people'}`]
-    const b = (code: string, tag: T2): T2 => [`حجز ${hash(code)} · ${tag[0]}`, `Booking ${hash(code)} · ${tag[1]}`]
-    return {
+],
+    offers: {
       A23: { kind: 'off', pct: 15, days: 14, note: '', sentAt: ago(40), src: 'order', about: o('A23', 2) },
       M0: { kind: 'drink', pct: 0, days: 14, note: '', sentAt: d(6), usedAt: d(2), spent: 58, saved: 42, order: 'A12', src: 'meet', pair: true, about: ['تطبيقها يتوقف عند صفحة الدفع', 'Her app froze on the payment page'] },
       H9: { kind: 'drink', pct: 0, days: 14, note: '', sentAt: d(2), usedAt: ago(7), spent: 9, saved: 22, order: 'A28', src: 'order', about: o('A19', 1) },
@@ -107,35 +127,120 @@ export function useOps() {
       H1: { kind: 'drink', pct: 0, days: 14, note: '', sentAt: d(12), usedAt: d(9), spent: 0, saved: 21, order: 'A01', src: 'order', about: o('A09', 2) },
       H4: { kind: 'drink', pct: 0, days: 7, note: '', sentAt: d(15), src: 'order', about: o('A03', 1) },
       H8: { kind: 'off', pct: 10, days: 7, note: '', sentAt: d(20), src: 'order', about: o('A06', 1) },
-    }
-  })
+    },
+    autoOffer: false, paused: null, nextCode: 35,
+  }
+}
+const recode = (data: BranchData, [op, bp]: [string, string]): BranchData => {
+  const c = (x: string) => x.replace(/^A(?=\d)/, op).replace(/^B(?=\d)/, bp)
+  const txt = (t: T2): T2 => [t[0].replace(/#A(?=\d)/g, `#${op}`).replace(/#B(?=\d)/g, `#${bp}`), t[1].replace(/#A(?=\d)/g, `#${op}`).replace(/#B(?=\d)/g, `#${bp}`)]
+  return {
+    ...data,
+    orders: data.orders.map(x => ({ ...x, code: c(x.code) })),
+    tables: data.tables.map(x => ({ ...x, booking: x.booking && c(x.booking) })),
+    bookings: data.bookings.map(x => ({ ...x, code: c(x.code), order: x.order && c(x.order) })),
+    threads: data.threads.map(x => ({ ...x, code: c(x.code) })),
+    offers: Object.fromEntries(Object.entries(data.offers).map(([k, v]) => [c(k), { ...v, order: v.order && c(v.order), about: v.about && txt(v.about) }])),
+  }
+}
+export function seedBranches(boot: number): Record<string, BranchData> {
+  const main = seedMain(boot)
+  const ago = (m: number) => boot - m * min
+  // Al Malqa: the busiest branch, with a table over its time and a message waiting.
+  const malqa: BranchData = {
+    ...main,
+    orders: [
+      ...main.orders,
+      { code: 'A29', kind: 'pickup', where: 'here', placed: ago(9), ppl: 2, lines: [['Latte', 2], ['Brownie', 2]], pay: 'google', status: 'new' },
+      { code: 'A22', kind: 'seat', placed: ago(70), started: ago(68), readyAt: ago(57), doneAt: ago(55), seat: SEATS[0], ppl: 3, lines: [['Iced latte', 3], ['San Sebastián cheesecake', 1]], pay: 'apple', status: 'done' },
+    ],
+    tables: main.tables.map(x => (x.id === 'w2' ? { ...x, seatedAt: ago(75), ppl: 2 } : x)),
+    threads: [{ code: 'A29', unread: true, msgs: [{ from: 'them', text: 'هل يمكن أن يكون اللاتيه خاليًا من السكر؟', at: ago(12) }] }, ...main.threads],
+    offers: Object.fromEntries(Object.entries(main.offers).filter(([k]) => ['H2', 'H5', 'H7', 'H4'].includes(k))),
+  }
+  // Al Yasmin: a smaller, quieter branch.
+  const yasmin: BranchData = {
+    ...main,
+    orders: main.orders.filter(x => ['A30', 'A26', 'A24', 'A34'].includes(x.code)),
+    tables: main.tables.filter(x => ['w1', 'w2', 'in1', 'q2', 'o2'].includes(x.id)).map(x => (x.id === 'w1' ? { ...x, seatedAt: ago(20) } : x)),
+    bookings: main.bookings.filter(x => x.code === 'B17'),
+    threads: main.threads.filter(x => x.code === 'A30').map(x => ({ ...x, unread: false })),
+    offers: Object.fromEntries(Object.entries(main.offers).filter(([k]) => ['H1', 'H8'].includes(k))),
+  }
+  return { b1: main, b2: recode(malqa, BRANCHES[1].prefix), b3: recode(yasmin, BRANCHES[2].prefix) }
+}
+
+// One branch's slice, with setters that only touch that branch. Every section takes this, whichever branch is open.
+type SetAll = (f: (a: Record<string, BranchData>) => Record<string, BranchData>) => void
+type Upd<T> = T | ((x: T) => T)
+export function branchOps(branch: Branch, data: BranchData, setAll: SetAll, now: number) {
+  const id = branch.id
+  const up = <K extends keyof BranchData>(k: K) => (v: Upd<BranchData[K]>) =>
+    setAll(a => (a[id] ? { ...a, [id]: { ...a[id], [k]: typeof v === 'function' ? (v as (x: BranchData[K]) => BranchData[K])(a[id][k]) : v } } : a))
+  const setOrders = up('orders'), setOffers = up('offers')
   // Prototype: a little after an offer goes out, the customer comes back with it, which shows up as a new paid
   // order carrying the offer. Paying with it in the app is the only thing that marks an offer as used.
-  const [nextCode, setNextCode] = useState(35)
-  const sendOffer = (id: string, offer: Offer, onBack: (code: string) => void) => {
-    setOffers(x => ({ ...x, [id]: offer }))
-    const code = `A${nextCode}`
-    setNextCode(n => n + 1)
+  const sendOffer = (key: string, offer: Offer, onBack: (code: string) => void) => {
+    setOffers(x => ({ ...x, [key]: offer }))
+    const code = `${branch.prefix[0]}${data.nextCode}`
+    up('nextCode')(n => n + 1)
     setTimeout(() => {
       const ppl = offer.pair ? 2 : 1
       // A single free drink is usually just claimed on its own, at no charge; the rest come with a paid order.
       const lines: [string, number][] = offer.kind === 'drink' && !offer.pair ? [['Spanish latte', 1]] : offer.kind === 'drink' ? [['Spanish latte', ppl], ['Butter croissant', 1]] : offer.kind === 'sweet' ? [['Flat white', ppl], ['San Sebastián cheesecake', ppl]] : [['Latte', ppl + 1], ['Honey cake', 1]]
       const full = lines.reduce((s, [en, q]) => s + (PRICE[en] ?? 15) * q, 0)
       const saved = offer.kind === 'drink' ? PRICE['Spanish latte'] * ppl : offer.kind === 'sweet' ? PRICE['San Sebastián cheesecake'] * ppl : Math.round((full * offer.pct) / 100)
-      setOrders(l => [{ code, kind: 'pre', where: 'way', eta: Date.now() + 12 * min, placed: Date.now(), due: Date.now() + 12 * min, ppl, lines, pay: 'apple', status: 'new', offer: { id, saved } }, ...l])
-      setOffers(x => ({ ...x, [id]: { ...x[id], usedAt: Date.now(), spent: full - saved, saved, order: code } }))
+      setOrders(l => [{ code, kind: 'pre', where: 'way', eta: Date.now() + 12 * min, placed: Date.now(), due: Date.now() + 12 * min, ppl, lines, pay: 'apple', status: 'new', offer: { id: key, saved } }, ...l])
+      setOffers(x => ({ ...x, [key]: { ...x[key], usedAt: Date.now(), spent: full - saved, saved, order: code } }))
       onBack(code)
     }, 15_000)
   }
-  // Send a come-back offer automatically after someone's first visit.
-  const [autoOffer, setAutoOffer] = useState(false)
-  const [paused, setPaused] = useState<number | 'manual' | null>(null)
+  return {
+    branch, ...data, now,
+    setOrders, setTables: up('tables'), setBookings: up('bookings'), setThreads: up('threads'), setOffers,
+    setAutoOffer: up('autoOffer'), setPaused: up('paused'), sendOffer,
+    newCode: () => { const c = `${branch.prefix[0]}${data.nextCode}`; up('nextCode')(n => n + 1); return c },
+  }
+}
+export type Ops = ReturnType<typeof branchOps>
+
+export function useBranches() {
+  const [boot] = useState(() => Date.now())
+  const [branches, setBranches] = useState<Branch[]>(BRANCHES)
+  const [all, setAll] = useState<Record<string, BranchData>>(() => seedBranches(boot))
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id) }, [])
-  useEffect(() => { if (typeof paused === 'number' && now >= paused) setPaused(null) }, [now, paused])
-  return { orders, setOrders, tables, setTables, bookings, setBookings, threads, setThreads, offers, setOffers, sendOffer, autoOffer, setAutoOffer, paused, setPaused, now }
+  // A timed pause ends on its own, in whichever branch it was set.
+  useEffect(() => {
+    if (Object.values(all).some(d => typeof d.paused === 'number' && now >= d.paused))
+      setAll(a => Object.fromEntries(Object.entries(a).map(([k, d]) => [k, typeof d.paused === 'number' && now >= d.paused ? { ...d, paused: null } : d])))
+  }, [now, all])
+  const ops = (id: string) => { const b = branches.find(x => x.id === id)!; return branchOps(b, all[id] ?? emptyBranch(), setAll, now) }
+  return { branches, setBranches, all, setAll, ops, now }
 }
-export type Ops = ReturnType<typeof useOps>
+export type Branches = ReturnType<typeof useBranches>
+
+// The same numbers wherever they appear: the branch's own sections and the all-branches overview.
+export function opsStats(o: Ops) {
+  const done = o.orders.filter(x => x.status === 'done')
+  return {
+    newOrders: o.orders.filter(x => x.status === 'new').length,
+    inPrep: o.orders.filter(x => x.status === 'prep').length,
+    ready: o.orders.filter(x => x.status === 'ready').length,
+    ordersToday: o.orders.filter(x => x.status !== 'scheduled').length,
+    sales: done.reduce((s, x) => s + total(x), 0),
+    avgPrep: done.length ? Math.round(done.reduce((s, x) => s + ((x.readyAt ?? 0) - (x.started ?? 0)), 0) / done.length / min) : 0,
+    unread: o.threads.filter(x => x.unread).length,
+    seated: o.tables.filter(x => x.seatedAt).length,
+    tables: o.tables.length,
+    overTime: o.tables.filter(x => x.seatedAt && x.limit && o.now - x.seatedAt > x.limit * min).length,
+    lateBookings: o.bookings.filter(b => b.state === 'upcoming' && o.now > b.at).length,
+    waitingLong: o.orders.filter(x => x.status === 'new' && o.now - x.placed > 5 * min).length,
+    returned: Object.values(o.offers).filter(x => x.usedAt && o.now - x.usedAt < 86_400_000).length,
+  }
+}
+// What the badge on a branch counts, everywhere it appears: new orders, unread messages, and tables that need action.
+export const attention = (s: ReturnType<typeof opsStats>) => s.newOrders + s.unread + s.lateBookings + s.overTime
 
 function useFmt() {
   const { t, lang, tx, sar } = useT()
@@ -152,7 +257,7 @@ function useFmt() {
   return { t, lang, tx, sar, clock, mins, dur, pick, people, backNote }
 }
 
-const total = (o: Order) => o.lines.filter(([en]) => !o.refunded?.includes(en)).reduce((s, [en, q]) => s + (PRICE[en] ?? 15) * q, 0) - (o.offer?.saved ?? 0)
+export const total = (o: Order) => o.lines.filter(([en]) => !o.refunded?.includes(en)).reduce((s, [en, q]) => s + (PRICE[en] ?? 15) * q, 0) - (o.offer?.saved ?? 0)
 
 /* ---------- Orders ---------- */
 export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { ops: Ops; items: Item[]; notify: (s: string) => void; openThread: (code: string) => void; startTab?: Status }) {
@@ -168,15 +273,6 @@ export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { o
   const count = (s: Status) => orders.filter(o => o.status === s).length
   const set = (code: string, patch: Partial<Order>) => setOrders(l => l.map(o => (o.code === code ? { ...o, ...patch } : o)))
 
-  // A new order lands a little after the owner opens the board, the way it would on a real shift.
-  useEffect(() => {
-    const id = setTimeout(() => {
-      if (paused) return
-      setOrders(l => l.some(o => o.code === 'A32') ? l : [{ code: 'A32', kind: 'seat', where: 'here', placed: Date.now(), seat: SEATS[3], ppl: 2, lines: [['Iced Spanish latte', 2], ['Brownie', 1]], pay: 'apple', status: 'new' }, ...l])
-      notify(t(`طلب جديد ${hash('A32')} من الجلسات الخارجية`, `New order ${hash('A32')} from outdoor seating`))
-    }, 9000)
-    return () => clearTimeout(id)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const advance = (o: Order) => {
     if (o.status === 'scheduled' || o.status === 'new') { set(o.code, { status: 'prep', started: Date.now() }); notify(t(`بدأ تحضير ${hash(o.code)}، ووصل العميل إشعار`, `Started ${hash(o.code)}. The customer was notified`)) }
@@ -190,8 +286,7 @@ export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { o
     : [o.kind === 'seat' ? t('تم التسليم للطاولة', 'Served to the table') : t('تم تسليم الطلب', 'Handed over'), <HandPlatter key="i" />] as const
 
   const shown = orders.filter(o => o.status === tab).sort((a, b) => tab === 'done' ? (b.doneAt ?? 0) - (a.doneAt ?? 0) : tab === 'scheduled' ? (a.due ?? 0) - (b.due ?? 0) : a.placed - b.placed)
-  const doneToday = orders.filter(o => o.status === 'done')
-  const avgPrep = doneToday.length ? Math.round(doneToday.reduce((s, o) => s + ((o.readyAt ?? 0) - (o.started ?? 0)), 0) / doneToday.length / min) : 0
+  const stats = opsStats(ops)
   const TABS: [Status, string][] = [['new', t('جديد', 'New')], ['prep', t('تحضير', 'Preparing')], ['ready', t('جاهز', 'Ready')], ['scheduled', t('مجدولة', 'Scheduled')], ['done', t('تم التسليم', 'Handed over')]]
 
   return (
@@ -206,9 +301,9 @@ export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { o
       </div>
 
       <div className="o-ops-stats">
-        <div><b>{orders.filter(o => o.status !== 'scheduled').length}</b><small>{t('طلب اليوم', 'orders today')}</small></div>
-        <div><b>{t(`${avgPrep} د`, `${avgPrep} min`)}</b><small>{t('متوسط التحضير', 'avg prep')}</small></div>
-        <div><b>{sar(doneToday.reduce((s, o) => s + total(o), 0))}</b><small>{t('مبيعات اليوم', 'sales today')}</small></div>
+        <div><b>{stats.ordersToday}</b><small>{t('طلب اليوم', 'orders today')}</small></div>
+        <div><b>{t(`${stats.avgPrep} د`, `${stats.avgPrep} min`)}</b><small>{t('متوسط التحضير', 'avg prep')}</small></div>
+        <div><b>{sar(stats.sales)}</b><small>{t('مبيعات اليوم', 'sales today')}</small></div>
       </div>
 
       <div className="o-status-tabs" role="tablist">

@@ -10,7 +10,7 @@ type Period = 'day' | 'week' | 'month'
 // Sample numbers for a café's first weeks on AroundMe. A week is the base; a day and a month are scaled from it.
 const SCALE: Record<Period, number> = { day: 1 / 7, week: 1, month: 4.3 }
 const GROWTH: Record<Period, number> = { day: 9, week: 18, month: 24 }
-const WEEK = { revenue: 12840, visits: 214, newShare: 0.38, returnRate: 42, orders: 163, avgOrder: 41, counterAvg: 29, bookings: 57, fee: 5, meetups: 46, stayMin: 108, lostTries: 23 }
+export const WEEK = { revenue: 12840, visits: 214, newShare: 0.38, returnRate: 42, orders: 163, avgOrder: 41, counterAvg: 29, bookings: 57, fee: 5, meetups: 46, stayMin: 108, lostTries: 23 }
 // AroundMe visits by hour, 7am to 11pm. The early afternoon is usually quiet; planned visits fill it.
 const HOURS = [6, 14, 16, 11, 8, 7, 12, 15, 16, 13, 10, 14, 20, 22, 18, 8, 4]
 const FIRST_HOUR = 7
@@ -56,7 +56,7 @@ const TOMORROW: Visit[] = [
 
 const TOP = [['Spanish latte', 64], ['San Sebastián cheesecake', 41], ['Butter croissant', 33], ['Iced latte', 25]] as const
 
-export default function Insights({ items, onMeetups }: { items: Item[]; onMeetups: () => void }) {
+export default function Insights({ items, onMeetups, scale = 1 }: { items: Item[]; onMeetups: () => void; scale?: number }) {
   const { t, tx, sar, lang } = useT()
   const [period, setPeriod] = useState<Period>('week')
   const [hover, setHover] = useState<number | null>(null)
@@ -89,7 +89,7 @@ export default function Insights({ items, onMeetups }: { items: Item[]; onMeetup
   const orderText = (o: [string, number][]) => o.map(([en, q]) => `${q > 1 ? `${q}× ` : ''}${itemName(en)}`).join(t('، ', ', '))
   const kindLabel = (k: Visit['kind']) => k === 'visit' ? t('زيارة فقط', 'Just visiting') : k === 'need' ? t('يحتاج مساعدة', 'Needs help') : t('يستطيع المساعدة', 'Can help')
   const an = (x: string) => `${/^[aeiou]/i.test(x) ? 'An' : 'A'} ${x.toLowerCase()}`
-  const k = SCALE[period]
+  const k = SCALE[period] * scale
   const n = (x: number) => Math.max(1, Math.round(x * k))
   const fmt = (x: number) => x.toLocaleString('en-US')
   const money = (x: number) => sar(fmt(Math.round(x * k)))
@@ -324,18 +324,19 @@ export function Meetups({ ops, notify }: { ops: Ops; notify: (s: string) => void
     return `${day} ${dayMonth(d)} · ${clock(h, m)}`
   }
   const an = (x: string) => `${/^[aeiou]/i.test(x) ? 'An' : 'A'} ${x.toLowerCase()}`
-  const again = MEETUPS.filter(m => m.again).length
+  const mine = MEETUPS.map((m, i) => ({ m, i })).filter(({ i }) => ops.branch.meetups.includes(i))
+  const again = mine.filter(({ m }) => m.again).length
   return (
     <div className="o-meetups-page">
       <p className="o-range"><CalendarDays />{`${dayMonth(daysAgo(6))} – ${dayMonth(daysAgo(0))}`}</p>
       <div className="o-meet-stats">
-        <div><b>{WEEK.meetups}</b><small>{t('لقاء هذا الأسبوع', 'meetups this week')}</small></div>
+        <div><b>{Math.round(WEEK.meetups * ops.branch.scale)}</b><small>{t('لقاء هذا الأسبوع', 'meetups this week')}</small></div>
         <div><b>{t('21 د', '21 min')}</b><small>{t('متوسط اللقاء', 'average length')}</small></div>
         <div><b>{again}</b><small>{t('سيلتقون هنا مجددًا', 'meeting here again')}</small></div>
       </div>
       <p className="o-note"><Lock />{t('لا نعرض الأسماء ولا الصور. يظهر لك نوع المساعدة ووقتها ومكانها فقط.', 'No names or photos. You only see the kind of help, when and where.')}</p>
       <ul className="o-meet-list">
-        {MEETUPS.map((m, i) => (
+        {mine.map(({ m, i }) => (
           <li key={i}>
             <div className="o-meet-top"><span>{meetWhen(m.when)} · {t(`${m.mins} دقيقة`, `${m.mins} min`)}</span><span>{pick(m.seat)}</span></div>
             <b>{pick(m.topic)}</b>

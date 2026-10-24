@@ -52,7 +52,7 @@ export default function Offers({ ops, notify }: { ops: Ops; notify: (s: string) 
   const targets: Target[] = [
     ...ops.orders.filter(o => o.status === 'done' && !offers[o.code]).map(o => ({ id: o.code, src: 'order' as const, about: [`طلب ${hash(o.code)} · ${people(o.ppl)[0]}`, `Order ${hash(o.code)} · ${people(o.ppl)[1]}`] as [string, string], sub: [`سُلّم اليوم · ${itemsAr(o.lines.reduce((s, l) => s + l[1], 0))}`, `Handed over today · ${o.lines.reduce((s, l) => s + l[1], 0)} items`] as [string, string] })),
     ...ops.bookings.filter(b => b.state === 'left' && !offers[b.order ?? b.code]).map(b => ({ id: b.order ?? b.code, src: 'booking' as const, about: [`حجز ${hash(b.code)} · ${b.tag[0]}`, `Booking ${hash(b.code)} · ${b.tag[1]}`] as [string, string], sub: [`${people(b.ppl)[0]} · ${tableName(b.table)?.[0] ?? ''} · غادروا اليوم`, `${people(b.ppl)[1]} · ${tableName(b.table)?.[1] ?? ''} · left today`] as [string, string] })),
-    ...MEETUPS.map((m, i) => ({ m, i })).filter(({ m, i }) => m.again && !offers[`M${i}`]).map(({ m, i }) => ({ id: `M${i}`, src: 'meet' as const, pair: true, about: m.topic, sub: ['اتفقا على اللقاء هنا مرة أخرى', 'Plan to meet here again'] as [string, string] })),
+    ...MEETUPS.map((m, i) => ({ m, i })).filter(({ m, i }) => ops.branch.meetups.includes(i) && m.again && !offers[`M${i}`]).map(({ m, i }) => ({ id: `M${i}`, src: 'meet' as const, pair: true, about: m.topic, sub: ['اتفقا على اللقاء هنا مرة أخرى', 'Plan to meet here again'] as [string, string] })),
   ]
   const groups: [Offer['src'], string][] = [['order', t('طلبات سُلّمت اليوم', 'Orders handed over today')], ['booking', t('حجوزات انتهت', 'Finished bookings')], ['meet', t('لقاءات', 'Meetups')]]
   const send = (x: Target, o: Offer) => {

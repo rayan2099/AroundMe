@@ -3,11 +3,14 @@ import type { ReactNode } from 'react'
 import {
   Armchair, ArrowDown, ArrowUp, BadgeCheck, ClipboardList, Menu as MenuIcon, MessageCircle, ChartColumn, CakeSlice, Camera, Check, ChevronLeft, ChevronRight, CircleAlert, Coffee, Cookie, Croissant,
   CupSoda, Eye, FileText, GlassWater, ImagePlus, Languages, Leaf, Link2, MapPin, PenLine, Plus, Salad, Sandwich, ScanLine,
-  Search, Sparkles, Star, Store, Trash2, Upload, Utensils, X, Gift, HeartHandshake,
+  Search, Sparkles, Star, Store, Trash2, Upload, Utensils, X, Gift, HeartHandshake, LayoutGrid, Building2, ChevronDown,
 } from 'lucide-react'
 import Insights, { Meetups } from './Insights'
 import Offers from './Offers'
-import { Messages, Orders, Tables, useOps } from './Ops'
+import { Messages, Orders, Tables, attention, opsStats, useBranches } from './Ops'
+import type { Order } from './Ops'
+import { BranchPick, BranchSwitcher, BranchesAdmin, Overview, useBranchText } from './Branches'
+import type { BranchView } from './Branches'
 import { PLACES, PLATFORMS, SUGGESTED, importedMenu, scannedMenu } from './data'
 import type { Category, IconKey, Item, Place, Text } from './data'
 
@@ -230,7 +233,7 @@ function FindCafe({ selected, onPick }: { selected: Place | null; onPick: (p: Pl
   )
 }
 
-function PlaceLogo({ place, big }: { place: Place; big?: boolean }) {
+export function PlaceLogo({ place, big }: { place: Place; big?: boolean }) {
   const { tx } = useT()
   return place.logo
     ? <img className={`o-place-logo ${big ? 'big' : ''}`} src={place.logo} alt="" />
@@ -669,68 +672,136 @@ function CustomerMenu({ place, cats, items }: { place: Place; cats: Category[]; 
 }
 
 /* ---------- After publishing: the café's dashboard ---------- */
-type View = 'orders' | 'tables' | 'messages' | 'offers' | 'meetups' | 'insights' | 'menu'
+type View = 'overview' | 'orders' | 'tables' | 'messages' | 'offers' | 'meetups' | 'insights' | 'menu' | 'branches'
 const NAV: [View, typeof Coffee, string, string][] = [
+  ['overview', LayoutGrid, 'نظرة عامة', 'Overview'],
   ['orders', ClipboardList, 'الطلبات', 'Orders'], ['tables', Armchair, 'الطاولات', 'Tables'], ['messages', MessageCircle, 'الرسائل', 'Messages'],
   ['offers', Gift, 'العروض', 'Offers'], ['meetups', HeartHandshake, 'اللقاءات', 'Meetups'],
-  ['insights', ChartColumn, 'الأداء', 'Performance'], ['menu', Utensils, 'المنيو', 'Menu'],
+  ['insights', ChartColumn, 'الأداء', 'Performance'], ['menu', Utensils, 'المنيو', 'Menu'], ['branches', Building2, 'الفروع', 'Branches'],
 ]
+// Sections that always belong to one branch; with «كل الفروع» selected they ask which branch first.
+const PER_BRANCH: View[] = ['orders', 'tables', 'messages', 'offers', 'meetups', 'insights']
+// Sections that only make sense across all branches.
+const ALL_ONLY: View[] = ['overview', 'branches']
 function Live(props: MenuProps & { place: Place }) {
   const { cats, items, setItems, notify, place } = props
   const { t, tx } = useT()
+  const { branchName } = useBranchText()
   const [cur, setCur] = useState(cats[0]?.id ?? '')
   const [preview, setPreview] = useState(false)
-  const [view, setViewRaw] = useState<View>('orders')
+  const B = useBranches()
+  const multi = B.branches.length > 1
+  const [branchRaw, setBranchRaw] = useState<string>('all')
+  // A removed branch, or a single-branch café, falls back to a real branch.
+  const branch = branchRaw === 'all' ? (multi ? 'all' : B.branches[0].id) : B.branches.some(b => b.id === branchRaw) ? branchRaw : multi ? 'all' : B.branches[0].id
+  const isAll = branch === 'all'
+  const [view, setViewRaw] = useState<View>('overview')
+  const shownView: View = !isAll && ALL_ONLY.includes(view) ? 'orders' : isAll || view !== 'overview' ? view : 'orders'
   const [thread, setThread] = useState<string | null>(null)
-  const ops = useOps()
+  const [switcher, setSwitcher] = useState(false)
+  const [sideSwitch, setSideSwitch] = useState(false)
+  const ops = isAll ? null : B.ops(branch)
   const [ordersTab, setOrdersTab] = useState<'new' | 'done'>('new')
   const setView = (v: View) => { setViewRaw(v); document.querySelector('.o-body')?.scrollTo(0, 0) }
+  const setBranch = (id: string) => { setBranchRaw(id); setSwitcher(false); setThread(null); if (id === 'all' && !ALL_ONLY.includes(view) && !PER_BRANCH.includes(view) && view !== 'menu') setView('overview'); document.querySelector('.o-body')?.scrollTo(0, 0) }
+  const openIn = (id: string, v: View) => { setBranchRaw(id); setThread(null); setSwitcher(false); setView(v) }
   const openThread = (code: string) => { setView('messages'); setThread(code) }
-  const ed = useMenuEditor(props)
+
+  // Sold-out is per branch: the menu is shared, so each branch keeps its own list of items that ran out.
+  const [soldBy, setSoldBy] = useState<Record<string, string[]>>(() => ({ [B.branches[0].id]: items.filter(i => i.soldOut).map(i => i.id) }))
+  const soldIn = (id: string) => B.branches.filter(b => soldBy[b.id]?.includes(id))
+  const branchItems = (bid: string) => items.map(i => ({ ...i, soldOut: !!soldBy[bid]?.includes(i.id) }))
+  // In «كل الفروع» an item shows as sold out only when it's out everywhere; switching it applies to every branch.
+  const viewItems = isAll ? items.map(i => ({ ...i, soldOut: B.branches.every(b => soldBy[b.id]?.includes(i.id)) })) : branchItems(branch)
+  const setSold = (id: string, out: boolean, where: string[]) => setSoldBy(m => {
+    const next = { ...m }
+    where.forEach(b => { const l = next[b] ?? []; next[b] = out ? (l.includes(id) ? l : [...l, id]) : l.filter(x => x !== id) })
+    return next
+  })
+  // Item edits are shared; the sold-out switch inside an item applies to the open branch (or every branch).
+  const setViewItems = (f: (i: Item[]) => Item[]) => {
+    const next = f(viewItems)
+    next.forEach(i => { const was = viewItems.find(x => x.id === i.id); if (!was || was.soldOut !== i.soldOut) setSold(i.id, i.soldOut, isAll ? B.branches.map(b => b.id) : [branch]) })
+    setItems(() => next.map(i => ({ ...i, soldOut: false })))
+  }
+  const ed = useMenuEditor({ ...props, items: viewItems, setItems: setViewItems })
   useEffect(() => { if (!cats.some(c => c.id === cur)) setCur(cats[0]?.id ?? '') }, [cats, cur])
-  const soldOut = items.filter(i => i.soldOut).length
-  const newOrders = ops.orders.filter(o => o.status === 'new').length
-  const unread = ops.threads.filter(x => x.unread).length
-  const lateTables = ops.bookings.filter(b => b.state === 'upcoming' && ops.now > b.at).length + ops.tables.filter(x => x.seatedAt && x.limit && ops.now - x.seatedAt > x.limit * 60_000).length
-  // Offers: people who came back with one in the last day.
-  const returned = Object.values(ops.offers).filter(o => o.usedAt && ops.now - o.usedAt < 86_400_000).length
-  const badges: Record<View, number> = { orders: newOrders, tables: lateTables, messages: unread, offers: returned, meetups: 0, insights: 0, menu: soldOut }
-  const totalBadge = newOrders + unread + lateTables
+
+  // Demo: new orders land in two branches a little after the dashboard opens, wherever the owner is looking.
+  useEffect(() => {
+    const land = (bid: string, code: string, order: Omit<Order, 'code' | 'placed'>, where: [string, string], ms: number) => setTimeout(() => {
+      const b = B.branches.find(x => x.id === bid)
+      if (!b) return
+      let added = false
+      B.setAll(a => {
+        const d = a[bid]
+        if (!d || d.paused || d.orders.some(o => o.code === code)) return a
+        added = true
+        return { ...a, [bid]: { ...d, orders: [{ ...order, code, placed: Date.now() }, ...d.orders] } }
+      })
+      setTimeout(() => { if (added) notify(t(`طلب جديد ⁦#${code}⁩ · ${branchName(b)} · ${where[0]}`, `New order #${code} · ${branchName(b)} · ${where[1]}`)) }, 0)
+    }, ms)
+    const a = land('b1', 'A32', { kind: 'seat', where: 'here', seat: ['الجلسات الخارجية', 'Outdoor seating'], ppl: 2, lines: [['Iced Spanish latte', 2], ['Brownie', 1]], pay: 'apple', status: 'new' }, ['الجلسات الخارجية', 'outdoor seating'], 9000)
+    const b = land('b2', 'M32', { kind: 'pickup', where: 'way', eta: Date.now() + 8 * 60_000, ppl: 1, lines: [['Flat white', 1], ['Zaatar croissant', 1]], pay: 'google', status: 'new' }, ['استلام', 'pickup'], 24000)
+    return () => { clearTimeout(a); clearTimeout(b) }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const statsOf = (bid: string) => opsStats(B.ops(bid))
+  const scope = isAll ? B.branches.map(b => b.id) : [branch]
+  const sum = (k: keyof ReturnType<typeof opsStats>) => scope.reduce((s, id) => s + statsOf(id)[k], 0)
+  const newOrders = sum('newOrders'), unread = sum('unread'), lateTables = sum('lateBookings') + sum('overTime')
+  const soldOut = isAll ? B.branches.reduce((s, b) => s + (soldBy[b.id]?.length ?? 0), 0) : viewItems.filter(i => i.soldOut).length
+  const badges: Record<View, number> = { overview: 0, orders: newOrders, tables: lateTables, messages: unread, offers: sum('returned'), meetups: 0, insights: 0, menu: soldOut, branches: 0 }
+  // Same count as the branch switcher: new orders, unread messages, and tables that need action.
+  const totalBadge = scope.reduce((s, id) => s + attention(statsOf(id)), 0)
+  const nav = NAV.filter(([id]) => multi || !ALL_ONLY.includes(id)).filter(([id]) => isAll || !ALL_ONLY.includes(id))
   const [drawer, setDrawer] = useState(false)
+  const current = isAll ? null : B.branches.find(b => b.id === branch)!
+  const placeHere: Place = current ? { ...place, area: { ar: current.area[0], en: current.area[1] } } : place
   const toggle = (i: Item) => {
-    setItems(l => l.map(x => (x.id === i.id ? { ...x, soldOut: !x.soldOut } : x)))
-    notify(i.soldOut ? t(`«${tx(i.name)}» متوفر مجددًا`, `“${tx(i.name)}” is available again`) : t(`«${tx(i.name)}» نفد، ولن يُطلب حتى تعيد تفعيله`, `“${tx(i.name)}” is sold out and can't be ordered until you turn it back on`))
+    const where = isAll ? B.branches.map(b => b.id) : [branch]
+    setSold(i.id, !i.soldOut, where)
+    const at = isAll ? t('في كل الفروع', 'in every branch') : t(`في ${branchName(current!)}`, `at ${branchName(current!)}`)
+    notify(i.soldOut ? t(`«${tx(i.name)}» متوفر مجددًا ${at}`, `“${tx(i.name)}” is available again ${at}`) : t(`«${tx(i.name)}» نفد ${at}، ولن يُطلب حتى تعيد تفعيله`, `“${tx(i.name)}” is sold out ${at} and can't be ordered until you turn it back on`))
   }
   if (preview) return (
     <>
       <div className="o-pad o-preview-bar"><button type="button" className="o-text-btn o-inline" onClick={() => setPreview(false)}><Chevron back />{t('رجوع للمنيو', 'Back to the menu')}</button></div>
-      <CustomerMenu place={place} cats={cats} items={items} />
+      <CustomerMenu place={placeHere} cats={cats} items={isAll ? branchItems(B.branches[0].id) : viewItems} />
     </>
   )
+  const title = t(...NAV.find(n => n[0] === shownView)!.slice(2) as [string, string])
   return (
     <>
       <div className="o-pad o-live">
         <div className="o-section-bar">
           <button type="button" className="o-icon-btn o-menu-btn" onClick={() => setDrawer(true)} aria-label={t('القائمة', 'Menu')}><MenuIcon />{totalBadge > 0 && <i>{totalBadge}</i>}</button>
-          <h2>{t(...NAV.find(n => n[0] === view)!.slice(2) as [string, string])}</h2>
+          <h2>{title}</h2>
+          {multi && <button type="button" className="o-branch-chip" onClick={() => setSwitcher(true)} aria-haspopup="listbox"><Building2 />{current ? branchName(current) : t('كل الفروع', 'All branches')}<ChevronDown /></button>}
         </div>
         <div className="o-live-card">
           <PlaceLogo place={place} big />
           <div>
-            <b>{tx(place.name)}</b>
+            <b>{tx(place.name)}{current && multi && <small className="o-live-branch">{branchName(current)}</small>}</b>
             <span className="o-live-row">
               <span className="o-live-badge"><i />{t('المنيو منشور', 'Menu is live')}</span>
               <button type="button" className="o-live-view" onClick={() => setPreview(true)}><Eye />{t('اعرضه كعميل', 'Customer view')}</button>
             </span>
           </div>
         </div>
-        {view === 'orders' && <Orders key={ordersTab} startTab={ordersTab} ops={ops} items={items} notify={notify} openThread={openThread} />}
-        {view === 'tables' && <Tables ops={ops} notify={notify} openThread={openThread} />}
-        {view === 'messages' && <Messages ops={ops} open={thread} setOpen={setThread} />}
-        {view === 'offers' && <Offers ops={ops} notify={notify} />}
-        {view === 'meetups' && <Meetups ops={ops} notify={notify} />}
-        {view === 'insights' && <Insights items={items} onMeetups={() => setView('meetups')} />}
-        {view === 'menu' && <>
+        {isAll && PER_BRANCH.includes(shownView) && <BranchPick B={B} view={shownView as BranchView} onPick={id => setBranch(id)} />}
+        {isAll && shownView === 'overview' && <Overview B={B} items={items} soldBy={soldBy} open={(id, v) => (v === 'menu' ? openIn(id, 'menu') : openIn(id, v))} />}
+        {isAll && shownView === 'branches' && <BranchesAdmin B={B} notify={notify} onOpen={id => openIn(id, 'orders')} />}
+        {ops && <>
+          {shownView === 'orders' && <Orders key={`${branch}-${ordersTab}`} startTab={ordersTab} ops={ops} items={viewItems} notify={notify} openThread={openThread} />}
+          {shownView === 'tables' && <Tables key={branch} ops={ops} notify={notify} openThread={openThread} />}
+          {shownView === 'messages' && <Messages key={branch} ops={ops} open={thread} setOpen={setThread} />}
+          {shownView === 'offers' && <Offers key={branch} ops={ops} notify={notify} />}
+          {shownView === 'meetups' && <Meetups key={branch} ops={ops} notify={notify} />}
+          {shownView === 'insights' && <Insights key={branch} items={viewItems} scale={ops.branch.scale} onMeetups={() => setView('meetups')} />}
+        </>}
+        {shownView === 'menu' && <>
+        {multi && <p className="o-note o-note-soft"><Building2 />{isAll ? t('تعديل الأصناف والأسعار يسري على كل الفروع. مفتاح «متوفر» هنا يغيّر الحالة في كل الفروع.', 'Edits to items and prices apply to every branch. The availability switch here changes every branch.') : t(`الأصناف والأسعار موحّدة. حالة «نفد» هنا تخص ${branchName(current!)} فقط.`, `Items and prices are shared. Sold-out here only affects ${branchName(current!)}.`)}</p>}
         <div className="o-stats">
           <div><b>{items.length}</b><small>{t('صنف', 'items')}</small></div>
           <div><b>{cats.length}</b><small>{t('أقسام', 'sections')}</small></div>
@@ -742,27 +813,37 @@ function Live(props: MenuProps & { place: Place }) {
         </div>
         <p className="o-fine start">{t('اضغط على المفتاح عند نفاد صنف، واضغط على الصنف لتعديله.', 'Flip the switch when something runs out. Tap an item to edit it.')}</p>
         <ul className="o-items">
-          {items.filter(i => i.cat === cur).map(i => (
-            <ItemRow key={i.id} item={i} cat={cats.find(c => c.id === i.cat)} onOpen={() => ed.edit(i)} trailing={
-              <button type="button" className="o-toggle" role="switch" aria-checked={!i.soldOut} aria-label={t(`${tx(i.name)} متوفر`, `${tx(i.name)} available`)} onClick={() => toggle(i)}>
-                <em className={!i.soldOut ? 'on' : ''} /><small>{i.soldOut ? t('نفد', 'Sold out') : t('متوفر', 'Available')}</small>
-              </button>
-            } />
-          ))}
+          {viewItems.filter(i => i.cat === cur).map(i => {
+            const partly = isAll && !i.soldOut ? soldIn(i.id) : []
+            return (
+              <ItemRow key={i.id} item={i} cat={cats.find(c => c.id === i.cat)} onOpen={() => ed.edit(i)} trailing={
+                <button type="button" className="o-toggle" role="switch" aria-checked={!i.soldOut} aria-label={t(`${tx(i.name)} متوفر`, `${tx(i.name)} available`)} onClick={() => toggle(i)}>
+                  <em className={!i.soldOut ? 'on' : ''} /><small className={partly.length ? 'o-partly' : ''}>{i.soldOut ? (isAll && multi ? t('نفد في الكل', 'Out everywhere') : t('نفد', 'Sold out')) : partly.length ? t(`نفد في ${partly.map(b => b.area[0]).join('، ')}`, `Out at ${partly.map(b => b.area[1]).join(', ')}`) : t('متوفر', 'Available')}</small>
+                </button>
+              } />
+            )
+          })}
         </ul>
         {cur && <button type="button" className="o-dashed" onClick={() => ed.add(cur)}><Plus />{t(`أضف صنف في ${tx(cats.find(c => c.id === cur)!.name)}`, `Add an item to ${tx(cats.find(c => c.id === cur)!.name)}`)}</button>}
         </>}
       </div>
       <aside className={`o-side ${drawer ? 'open' : ''}`} aria-label={t('أقسام اللوحة', 'Dashboard sections')}>
-        <div className="o-side-cafe">
-          <PlaceLogo place={place} />
-          <div><b>{tx(place.name)}</b><small>{t('لوحة الكافيه', 'Café dashboard')}</small></div>
-        </div>
+        {multi
+          ? <button type="button" className="o-side-cafe o-side-switch" onClick={() => setSideSwitch(s => !s)} aria-haspopup="listbox" aria-expanded={sideSwitch}>
+            <PlaceLogo place={place} />
+            <div><b>{tx(place.name)}</b><small>{current ? branchName(current) : t('كل الفروع', 'All branches')}</small></div>
+            <ChevronDown />
+          </button>
+          : <div className="o-side-cafe">
+            <PlaceLogo place={place} />
+            <div><b>{tx(place.name)}</b><small>{t('لوحة الكافيه', 'Café dashboard')}</small></div>
+          </div>}
+        {multi && sideSwitch && <div className="o-side-branches"><BranchSwitcher B={B} place={place} current={branch} onPick={id => { setBranch(id); setDrawer(false); setSideSwitch(false) }} /></div>}
         <nav>
-          {NAV.map(([id, Icon, ar, en]) => {
+          {nav.map(([id, Icon, ar, en]) => {
             const badge = badges[id]
             return (
-              <button key={id} type="button" aria-current={view === id ? 'page' : undefined} className={view === id ? 'active' : ''} onClick={() => { if (id === 'orders') setOrdersTab('new'); setView(id); setDrawer(false) }}>
+              <button key={id} type="button" aria-current={shownView === id ? 'page' : undefined} className={shownView === id ? 'active' : ''} onClick={() => { if (id === 'orders') setOrdersTab('new'); setView(id); setDrawer(false); setSwitcher(false) }}>
                 <Icon /><span>{t(ar, en)}</span>{badge > 0 && <i className={id === 'menu' || id === 'tables' ? 'warn' : id === 'offers' ? 'good' : ''}>{badge}</i>}
               </button>
             )
@@ -771,6 +852,7 @@ function Live(props: MenuProps & { place: Place }) {
         <button type="button" className="o-side-view" onClick={() => { setPreview(true); setDrawer(false) }}><Eye />{t('اعرض المنيو كعميل', 'See the menu as a customer')}</button>
       </aside>
       {drawer && <div className="o-side-scrim" onClick={() => setDrawer(false)} />}
+      {switcher && <Sheet title={t('اختر الفرع', 'Choose a branch')} onClose={() => setSwitcher(false)}><BranchSwitcher B={B} place={place} current={branch} onPick={setBranch} /></Sheet>}
       {ed.sheets}
     </>
   )
