@@ -45,7 +45,7 @@ export const MEETUPS: { helper: T2; f?: boolean; helped: T2; topic: T2; tags: T2
   { helper: ['مصور منتجات', 'Product photographer'], helped: ['صاحبة متجر عطور', 'Perfume shop owner'], topic: ['تصوير المنتجات بالجوال', 'Shooting products on a phone'], tags: [['تصوير', 'Photography']], when: [3, 13, 15], mins: 25, seat: ['عند النافذة', 'By the window'], ordered: 2 },
 ]
 // What the café's AroundMe customers say they can help with, and what they come needing help with (share of people).
-const SKILLS: [T2, number][] = [[['برمجة وتطبيقات', 'Coding and apps'], 31], [['تصميم', 'Design'], 22], [['تسويق', 'Marketing'], 17], [['مالية وExcel', 'Finance and Excel'], 12], [['كتابة وترجمة', 'Writing and translation'], 10], [['تصوير', 'Photography'], 8]]
+const SKILLS: [T2, number][] = [[['برمجة وتطبيقات', 'Coding and apps'], 31], [['تصميم', 'Design'], 22], [['تسويق', 'Marketing'], 17], [['المالية والجداول', 'Finance and Excel'], 12], [['كتابة وترجمة', 'Writing and translation'], 10], [['تصوير', 'Photography'], 8]]
 const NEEDS: [T2, number][] = [[['مراجعة فكرة مشروع', 'Startup idea feedback'], 28], [['حل مشكلة كود', 'Fixing code'], 24], [['تصميم عرض أو شعار', 'Deck or logo design'], 19], [['تسويق وإعلانات', 'Marketing and ads'], 15], [['مذاكرة وواجبات', 'Studying'], 14]]
 const PEOPLE: [T2, number][] = [[['موظفين', 'Employees'], 38], [['مستقلين', 'Freelancers'], 27], [['رواد أعمال', 'Founders'], 21], [['طلاب', 'Students'], 14]]
 
@@ -238,7 +238,7 @@ export default function Insights({ items, onMeetups, branch, peers = [] }: { ite
   const parts = PARTS.map(([label, end], i) => ({ label, visits: TOMORROW.filter(v => v.at[0] < end && v.at[0] >= (i ? PARTS[i - 1][1] : 0)) })).filter(g => g.visits.length)
   const orderText = (o: [string, number][]) => o.map(([en, q]) => `${q > 1 ? `${q}× ` : ''}${itemName(en)}`).join(t('، ', ', '))
   const kindLabel = (k: Visit['kind']) => k === 'visit' ? t('زيارة فقط', 'Just visiting') : k === 'need' ? t('يحتاج مساعدة', 'Needs help') : t('يستطيع المساعدة', 'Can help')
-  const an = (x: string) => `${/^[aeiou]/i.test(x) ? 'An' : 'A'} ${x.toLowerCase()}`
+  const an = (x: string) => `${/^[aeio]|^u(?!ni)/i.test(x) ? 'An' : 'A'} ${x.toLowerCase()}`
   const k = SCALE[period] * scale
   const n = (x: number) => Math.max(1, Math.round(x * k))
   const fmt = (x: number) => x.toLocaleString('en-US')
@@ -551,9 +551,17 @@ export default function Insights({ items, onMeetups, branch, peers = [] }: { ite
 }
 
 // Meetups at the café, as their own dashboard section: what kind of help happened, and a come-back offer for pairs who plan to meet here again.
+// Sample meetup patterns for a branch: what people meet about, when, where, and how meetup visitors compare with everyone else.
+const MEET_TOPICS: [T2, number][] = [[['برمجة وتطبيقات', 'Coding and apps'], 28], [['تصميم', 'Design'], 22], [['تسويق', 'Marketing'], 18], [['المالية والجداول', 'Finance and Excel'], 14], [['كتابة', 'Writing'], 10], [['تصوير', 'Photography'], 8]]
+const MEET_TIMES: [T2, number][] = [[['الصباح', 'Morning'], 12], [['الظهر', 'Midday'], 18], [['العصر', 'Afternoon'], 41], [['المساء', 'Evening'], 29]]
+const MEET_SEATS: [T2, number][] = [[['عند النافذة', 'By the window'], 34], [['منطقة الهدوء', 'Quiet area'], 26], [['الطاولة الطويلة', 'Long table'], 22], [['الجلسات الخارجية', 'Outdoor seating'], 18]]
+// Meetup visitors against everyone else: [meetup, others].
+const MEET_VS = { stay: [134, 96], orders: [2.1, 1.3], back: [61, 42] }
+
 export function Meetups({ ops, notify }: { ops: Ops; notify: (s: string) => void }) {
-  const { t, lang } = useT()
+  const { t, lang, sar } = useT()
   const [offerFor, setOfferFor] = useState<number | null>(null)
+  const [filter, setFilter] = useState<'all' | 'again' | 'todo'>('all')
   const pick = (x: T2) => (lang === 'ar' ? x[0] : x[1])
   const loc = lang === 'ar' ? 'ar-u-ca-gregory-nu-latn' : 'en-US'
   const dayMonth = (d: Date) => d.toLocaleDateString(loc, { day: 'numeric', month: 'long' })
@@ -564,27 +572,96 @@ export function Meetups({ ops, notify }: { ops: Ops; notify: (s: string) => void
     const day = ago === 0 ? t('اليوم', 'Today') : ago === 1 ? t('أمس', 'Yesterday') : d.toLocaleDateString(loc, { weekday: 'long' })
     return `${day} ${dayMonth(d)} · ${clock(h, m)}`
   }
-  const an = (x: string) => `${/^[aeiou]/i.test(x) ? 'An' : 'A'} ${x.toLowerCase()}`
+  const an = (x: string) => `${/^[aeio]|^u(?!ni)/i.test(x) ? 'An' : 'A'} ${x.toLowerCase()}`
   const mine = MEETUPS.map((m, i) => ({ m, i })).filter(({ i }) => ops.branch.meetups.includes(i))
-  const again = mine.filter(({ m }) => m.again).length
+  const again = mine.filter(({ m }) => m.again)
+  const todo = again.filter(({ i }) => !ops.offers[`M${i}`])
+  const shown = filter === 'again' ? again : filter === 'todo' ? todo : mine
+  const w = weekFor(ops.branch.scale)
+  const count = Math.round(w.meetups * ops.branch.scale)
+  const avgMins = mine.length ? Math.round(mine.reduce((a, { m }) => a + m.mins, 0) / mine.length) : 21
+  const perMeet = Math.round((mine.length ? mine.reduce((a, { m }) => a + m.ordered, 0) / mine.length : 2) * w.avgOrder)
+  const againRate = mine.length ? Math.round((again.length / mine.length) * 100) : 0
+  const tmr = { need: TOMORROW.filter(v => v.kind === 'need').length, help: TOMORROW.filter(v => v.kind === 'help').length }
+  const bars = (rows: [T2, number][], cls = '') => (
+    <ul className={`o-top-items ${cls}`}>
+      {rows.map(([l, v]) => <li key={l[1]}><span className="o-top-name">{pick(l)}</span><span className="o-top-bar"><i style={{ width: `${(v / Math.max(...rows.map(r => r[1]))) * 100}%` }} /></span><b>{v}%</b></li>)}
+    </ul>
+  )
+  const vs = (label: string, [a, b]: number[], show: (x: number) => string) => (
+    <div className="o-meet-vs-row">
+      <span>{label}</span>
+      <div><i className="me" style={{ width: `${(a / Math.max(a, b)) * 100}%` }} /><b>{show(a)}</b></div>
+      <div><i style={{ width: `${(b / Math.max(a, b)) * 100}%` }} /><b>{show(b)}</b></div>
+    </div>
+  )
   return (
     <div className="o-meetups-page">
       <p className="o-range"><CalendarDays />{`${dayMonth(daysAgo(6))} – ${dayMonth(daysAgo(0))}`}</p>
       <div className="o-meet-stats">
-        <div><b>{Math.round(WEEK.meetups * ops.branch.scale)}</b><small>{t('لقاء هذا الأسبوع', 'meetups this week')}</small></div>
-        <div><b>{t('21 د', '21 min')}</b><small>{t('متوسط اللقاء', 'average length')}</small></div>
-        <div><b>{again}</b><small>{t('سيلتقون هنا مجددًا', 'meeting here again')}</small></div>
+        <div><b>{count}</b><small>{t('لقاء هذا الأسبوع', 'meetups this week')}</small><em><TrendingUp />{CHANGE.meetups.week}%</em></div>
+        <div><b>{t(`${avgMins} د`, `${avgMins} min`)}</b><small>{t('متوسط اللقاء', 'average length')}</small></div>
+        <div><b>{againRate}%</b><small>{t('اتفقوا على لقاء جديد هنا', 'plan to meet here again')}</small></div>
+        <div><b>{sar(perMeet)}</b><small>{t('ينفقه كل لقاء في المتوسط', 'spent per meetup on average')}</small></div>
       </div>
       <p className="o-note"><Lock />{t('لا نعرض الأسماء ولا الصور. يظهر لك نوع المساعدة ووقتها ومكانها فقط.', 'No names or photos. You only see the kind of help, when and where.')}</p>
+
+      <div className="o-meet-grid">
+        <section className="o-card o-meet-vs">
+          <h3>{t('ماذا تضيف اللقاءات إلى كافيهك', 'What meetups add to your café')}</h3>
+          <p className="o-card-sub"><span className="o-meet-key me" />{t('من التقوا هنا', 'People who met here')}<span className="o-meet-key" />{t('باقي العملاء', 'Other customers')}</p>
+          {vs(t('مدة الجلسة', 'Time spent'), MEET_VS.stay, x => t(`${x} د`, `${x} min`))}
+          {vs(t('طلبات في الزيارة', 'Orders per visit'), MEET_VS.orders, x => x.toFixed(1))}
+          {vs(t('عادوا خلال أسبوعين', 'Back within two weeks'), MEET_VS.back, x => `${x}%`)}
+        </section>
+
+        <section className="o-card">
+          <h3>{t('عن ماذا يلتقون', 'What they meet about')}</h3>
+          <p className="o-card-sub">{t('نوع المساعدة في لقاءات هذا الأسبوع', 'The kind of help in this week’s meetups')}</p>
+          {bars(MEET_TOPICS)}
+        </section>
+
+        <section className="o-card">
+          <h3>{t('متى وأين يلتقون', 'When and where they meet')}</h3>
+          <h4 className="o-sub-h">{t('وقت اللقاء', 'Time of day')}</h4>
+          {bars(MEET_TIMES)}
+          <h4 className="o-sub-h">{t('المكان المفضّل', 'Favourite spot')}</h4>
+          {bars(MEET_SEATS, 'needs')}
+          <p className="o-note"><Lightbulb />{t(`أغلب اللقاءات ${pick(MEET_TIMES[2][0])} ${pick(MEET_SEATS[0][0])}. أبقِ هذه الطاولات متاحة للحجز في ذلك الوقت.`, `Most meetups happen in the ${pick(MEET_TIMES[2][0]).toLowerCase()}, ${pick(MEET_SEATS[0][0]).toLowerCase()}. Keep those tables open for booking then.`)}</p>
+        </section>
+
+        <section className="o-card o-meet-tmr">
+          <h3><CalendarClock />{t('غدًا في كافيهك', 'Tomorrow at your café')}</h3>
+          <div className="o-tomorrow-row">
+            <div><b>{tmr.need}</b><small>{t('يحتاجون مساعدة', 'need help')}</small></div>
+            <div><b>{tmr.help}</b><small>{t('يستطيعون المساعدة', 'can help')}</small></div>
+            <div><b>{again.length}</b><small>{t('لقاءات متكررة متوقعة', 'repeat meetups expected')}</small></div>
+          </div>
+          <p className="o-note"><Sparkles />{tmr.need > tmr.help ? t(`من يحتاجون المساعدة أكثر ممن يستطيعون بـ ${tmr.need - tmr.help}. عرض صغير لمن يساعد قد يحسم اختياره لكافيهك.`, `${tmr.need - tmr.help} more ${tmr.need - tmr.help === 1 ? 'person needs' : 'people need'} help than can help. A small perk for helpers could make them pick your café.`) : t('العدد متوازن بين من يحتاج المساعدة ومن يستطيعها.', 'Those who need help and those who can are evenly matched.')}</p>
+        </section>
+      </div>
+
+      <div className="o-meet-head">
+        <h3>{t('اللقاءات', 'Meetups')}</h3>
+        <div className="o-chips wrap">
+          {([['all', t(`الكل · ${mine.length}`, `All · ${mine.length}`)], ['again', t(`سيلتقون مجددًا · ${again.length}`, `Meeting again · ${again.length}`)], ['todo', t(`بلا عرض · ${todo.length}`, `No offer yet · ${todo.length}`)]] as const).map(([k, l]) => (
+            <button key={k} type="button" className={`o-chip ${filter === k ? 'active' : ''}`} onClick={() => setFilter(k)}>{l}</button>
+          ))}
+        </div>
+      </div>
+      {shown.length === 0 && <p className="o-empty">{filter === 'todo' ? t('أرسلت عرضًا لكل من اتفقوا على اللقاء مجددًا.', 'You sent an offer to everyone meeting again.') : t('لا توجد لقاءات هنا بعد.', 'No meetups here yet.')}</p>}
       <ul className="o-meet-list">
-        {mine.map(({ m, i }) => (
+        {shown.map(({ m, i }) => (
           <li key={i}>
-            <div className="o-meet-top"><span>{meetWhen(m.when)} · {t(`${m.mins} دقيقة`, `${m.mins} min`)}</span><span>{pick(m.seat)}</span></div>
+            <div className="o-meet-top"><span>{meetWhen(m.when)}</span><span>{pick(m.seat)}</span></div>
             <b>{pick(m.topic)}</b>
             <p>{t(`${pick(m.helper)} ${m.f ? 'ساعدت' : 'ساعد'} ${pick(m.helped)}`, `${an(pick(m.helper))} helped ${an(pick(m.helped)).toLowerCase()}`)}</p>
+            <div className="o-meet-facts">
+              <span><Clock />{t(`${m.mins} دقيقة`, `${m.mins} min`)}</span>
+              <span><ShoppingBag />{t(`${m.ordered === 1 ? 'طلب واحد' : m.ordered === 2 ? 'طلبان' : `${m.ordered} طلبات`} · ${sar(m.ordered * w.avgOrder)}`, `${m.ordered} order${m.ordered === 1 ? '' : 's'} · ${sar(m.ordered * w.avgOrder)}`)}</span>
+            </div>
             <div className="o-meet-tags">
               {m.tags.map(tag => <span key={tag[1]}>{pick(tag)}</span>)}
-              <span className="o-meet-order">{t(`${m.ordered === 1 ? 'طلب واحد' : m.ordered === 2 ? 'طلبين' : `${m.ordered} طلبات`}`, `${m.ordered} order${m.ordered === 1 ? '' : 's'}`)}</span>
               {m.again && <span className="o-meet-again"><MessageCircleHeart />{t('اتفقوا على اللقاء هنا مرة أخرى', 'Plan to meet here again')}</span>}
             </div>
             {m.again && (ops.offers[`M${i}`] ? <OfferSent offer={ops.offers[`M${i}`]} pair /> : <OfferButton pair onClick={() => setOfferFor(i)} />)}

@@ -964,3 +964,34 @@ html.o-web .o-ov-metrics { grid-template-columns: repeat(2, 1fr); }
 .o-builder-row .o-top-items li:not(.lead) .o-top-bar i { opacity: 0.45; }
 .o-builder-row .o-top-items li { grid-template-columns: 1fr 86px; }
 .o-builder-row header b small { font-weight: 500; color: var(--muted); font-size: 12px; }
+
+/* Meetups page */
+.o-meetups-page .o-meet-stats { grid-template-columns: repeat(2, 1fr); margin-top: 0; }
+.o-meet-stats div { position: relative; }
+.o-meet-stats em { position: absolute; top: 8px; inset-inline-end: 8px; display: inline-flex; align-items: center; gap: 2px; padding: 1px 6px; border-radius: 99px; background: var(--green-soft); color: var(--green); font-style: normal; font-size: 10.5px; font-weight: 700; }
+.o-meet-stats em svg { width: 11px; }
+.o-meet-grid { display: flex; flex-direction: column; gap: 12px; }
+.o-meet-grid .o-card { margin: 0; }
+.o-meet-vs .o-card-sub { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.o-meet-key { width: 10px; height: 10px; border-radius: 3px; background: #cfcbc4; display: inline-block; }
+.o-meet-key.me { background: var(--orange); }
+.o-meet-key:not(:first-child) { margin-inline-start: 8px; }
+.o-meet-vs-row { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 10px 0; border-top: 1px solid var(--border); }
+.o-meet-vs-row:first-of-type { border-top: 0; }
+.o-meet-vs-row > span { font-size: 13px; font-weight: 700; }
+.o-meet-vs-row div { display: grid; grid-template-columns: 1fr 58px; align-items: center; gap: 10px; }
+.o-meet-vs-row i { display: block; height: 8px; border-radius: 99px; background: #cfcbc4; }
+.o-meet-vs-row i.me { background: var(--orange); }
+.o-meet-vs-row b { font-size: 12.5px; font-weight: 800; text-align: end; }
+.o-meet-tmr .o-tomorrow-row div { padding: 10px; border-radius: 14px; background: #f7f6f3; text-align: center; }
+.o-meet-head { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.o-meet-head h3 { margin: 0; font-size: 16px; }
+.o-meet-facts { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; font-size: 12px; color: #4d4943; }
+.o-meet-facts span { display: inline-flex; align-items: center; gap: 4px; }
+.o-meet-facts svg { width: 13px; color: var(--muted); }
+@media (min-width: 900px) {
+  html.o-web .o-meetups-page .o-meet-stats { grid-template-columns: repeat(4, 1fr); }
+  html.o-web .o-meet-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; align-items: start; }
+  html.o-web .o-meet-head { flex-direction: row; align-items: center; justify-content: space-between; }
+  html.o-web .o-meet-list { display: grid; grid-template-columns: repeat(2, 1fr); align-items: start; }
+}
