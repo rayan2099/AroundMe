@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { Armchair, Check, ChevronLeft, ChevronRight, CircleAlert, Clock, Copy, LayoutGrid, MessageCircle, Pause, PenLine, Plus, Receipt, Timer, Trash2, TrendingUp } from 'lucide-react'
 import { PlaceLogo, Sheet, useT } from './Owner'
-import { WEEK } from './Insights'
+import { weekFor } from './Insights'
 import { attention, emptyBranch, nextPrefix, opsStats } from './Ops'
 import type { Branch, Branches as BranchStore, Ops } from './Ops'
 import type { Item, Place } from './data'
@@ -12,6 +12,7 @@ import type { Item, Place } from './data'
 // Orders, tables, messages, offers, meetups and performance always belong to one branch, so those sections
 // ask which branch first. Sold-out is per branch; the menu itself (items, prices, sections) is shared.
 type T2 = [string, string]
+type CmpKey = 'sales' | 'orders' | 'avgOrder' | 'prep' | 'seated' | 'returned'
 export type BranchView = 'orders' | 'tables' | 'messages' | 'offers' | 'meetups' | 'insights'
 
 export function useBranchText() {
@@ -96,8 +97,26 @@ export function Overview({ B, open }: { B: BranchStore; open: (id: string, view:
   const rows = B.branches.map(b => ({ b, o: B.ops(b.id), s: opsStats(B.ops(b.id)), d: B.all[b.id] }))
   const tot = rows.reduce((a, { s }) => ({ sales: a.sales + s.sales, orders: a.orders + s.ordersToday, active: a.active + s.newOrders + s.inPrep + s.ready, seated: a.seated + s.seated, tables: a.tables + s.tables, unread: a.unread + s.unread }), { sales: 0, orders: 0, active: 0, seated: 0, tables: 0, unread: 0 })
   const fmt = (x: number) => x.toLocaleString('en-US')
-  const maxSales = Math.max(1, ...rows.map(r => r.s.sales))
-  const week = rows.map(({ b }) => ({ b, rev: Math.round(WEEK.revenue * b.scale) }))
+  const [metric, setMetric] = useState<CmpKey>('sales')
+  // Today's numbers per branch, for the comparison bars. Prep time is the one where lower wins.
+  const cmpVal = (r: typeof rows[number], key: CmpKey) => {
+    const done = r.o.orders.filter(x => x.status === 'done').length
+    return key === 'sales' ? r.s.sales : key === 'orders' ? r.s.ordersToday : key === 'avgOrder' ? (done ? Math.round(r.s.sales / done) : 0)
+      : key === 'prep' ? r.s.avgPrep : key === 'seated' ? (r.s.tables ? Math.round((r.s.seated / r.s.tables) * 100) : 0) : r.s.returned
+  }
+  const CMP: [CmpKey, string, string, (x: number) => string][] = [
+    ['sales', t('المبيعات', 'Sales'), t('مبيعات اليوم من AroundMe', 'Sales today from AroundMe'), x => sar(fmt(x))],
+    ['orders', t('الطلبات', 'Orders'), t('عدد طلبات اليوم', 'Orders placed today'), fmt],
+    ['avgOrder', t('متوسط الطلب', 'Average order'), t('متوسط قيمة الطلب المُسلّم اليوم', 'Average value of orders delivered today'), x => sar(x)],
+    ['prep', t('سرعة التحضير', 'Prep speed'), t('متوسط دقائق التحضير اليوم، الأقل أفضل', 'Average prep minutes today, lower is better'), x => t(`${x} د`, `${x} min`)],
+    ['seated', t('إشغال الطاولات', 'Table use'), t('نسبة الطاولات المشغولة الآن', 'Share of tables seated now'), x => `${x}%`],
+    ['returned', t('عادوا بعروضك', 'Came back'), t('عملاء عادوا بعرض خلال آخر 24 ساعة', 'Customers who came back with an offer in the last 24 hours'), fmt],
+  ]
+  const cur = CMP.find(c => c[0] === metric)!
+  const lowerWins = metric === 'prep'
+  const ranked = rows.map(r => ({ ...r, v: cmpVal(r, metric) })).sort((a, b) => (lowerWins ? (a.v || 1e9) - (b.v || 1e9) : b.v - a.v))
+  const maxV = Math.max(1, ...ranked.map(r => r.v))
+  const week = rows.map(({ b }) => ({ b, rev: Math.round(weekFor(b.scale).revenue * b.scale) }))
   const weekTot = week.reduce((a, w) => a + w.rev, 0)
   const fastest = [...rows].filter(r => r.s.avgPrep > 0).sort((a, b) => a.s.avgPrep - b.s.avgPrep)[0]
 
@@ -139,10 +158,13 @@ export function Overview({ B, open }: { B: BranchStore; open: (id: string, view:
 
       <section className="o-card">
         <h3>{t('مقارنة الفروع', 'Branch comparison')}</h3>
-        <p className="o-card-sub">{t('مبيعات اليوم من AroundMe', 'Sales today from AroundMe')}</p>
+        <div className="o-chips wrap o-ov-metric" role="tablist" aria-label={t('المؤشر', 'Measure')}>
+          {CMP.map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={metric === key} className={`o-chip ${metric === key ? 'active' : ''}`} onClick={() => setMetric(key)}>{label}</button>)}
+        </div>
+        <p className="o-card-sub">{cur[2]}</p>
         <ul className="o-top-items o-ov-bars">
-          {[...rows].sort((a, b) => b.s.sales - a.s.sales).map(({ b, s }) => (
-            <li key={b.id}><span className="o-top-name">{branchName(b)}</span><span className="o-top-bar"><i style={{ width: `${(s.sales / maxSales) * 100}%` }} /></span><b>{sar(fmt(s.sales))}</b></li>
+          {ranked.map(({ b, v }) => (
+            <li key={b.id} className={v && v === ranked[0].v ? 'lead' : ''}><span className="o-top-name">{branchName(b)}</span><span className="o-top-bar"><i style={{ width: `${(lowerWins ? (v ? Math.min(...ranked.filter(r => r.v).map(r => r.v)) / v : 0) : v / maxV) * 100}%` }} /></span><b>{cur[3](v)}</b></li>
           ))}
         </ul>
         <p className="o-card-sub o-ov-week">{t(`هذا الأسبوع: ${sar(fmt(weekTot))} من كل الفروع`, `This week: ${sar(fmt(weekTot))} across all branches`)}</p>

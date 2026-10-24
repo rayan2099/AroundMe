@@ -798,7 +798,7 @@ function Live(props: MenuProps & { place: Place }) {
           {shownView === 'messages' && <Messages key={branch} ops={ops} open={thread} setOpen={setThread} />}
           {shownView === 'offers' && <Offers key={branch} ops={ops} notify={notify} />}
           {shownView === 'meetups' && <Meetups key={branch} ops={ops} notify={notify} />}
-          {shownView === 'insights' && <Insights key={branch} items={viewItems} scale={ops.branch.scale} onMeetups={() => setView('meetups')} />}
+          {shownView === 'insights' && <Insights key={branch} items={viewItems} branch={ops.branch} peers={B.branches} onMeetups={() => setView('meetups')} />}
         </>}
         {shownView === 'menu' && <>
         {multi && <p className="o-note o-note-soft"><Building2 />{isAll ? t('تعديل الأصناف والأسعار يسري على كل الفروع. مفتاح «متوفر» هنا يغيّر الحالة في كل الفروع.', 'Edits to items and prices apply to every branch. The availability switch here changes every branch.') : t(`الأصناف والأسعار موحّدة. حالة «نفد» هنا تخص ${branchName(current!)} فقط.`, `Items and prices are shared. Sold-out here only affects ${branchName(current!)}.`)}</p>}

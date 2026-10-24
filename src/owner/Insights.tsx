@@ -1,16 +1,34 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { Armchair, CalendarClock, Check, CalendarDays, ChevronLeft, ChevronRight, Clock, HeartHandshake, Lightbulb, Lock, MessageCircleHeart, Repeat, ShoppingBag, Sparkles, TrendingUp, UserPlus, Wallet, Zap } from 'lucide-react'
+import { ArrowDown, ArrowUp, Armchair, CalendarClock, Check, CalendarDays, ChevronLeft, ChevronRight, Clock, HeartHandshake, Lightbulb, Lock, MessageCircleHeart, Repeat, ShoppingBag, Sparkles, TrendingUp, UserPlus, Wallet, Zap } from 'lucide-react'
 import { Sheet, useT } from './Owner'
 import { OfferButton, OfferSent, OfferSheet } from './Offer'
-import type { Ops } from './Ops'
+import type { Branch, Ops } from './Ops'
 import type { Item } from './data'
 
 type Period = 'day' | 'week' | 'month'
 // Sample numbers for a café's first weeks on AroundMe. A week is the base; a day and a month are scaled from it.
 const SCALE: Record<Period, number> = { day: 1 / 7, week: 1, month: 4.3 }
-const GROWTH: Record<Period, number> = { day: 9, week: 18, month: 24 }
 export const WEEK = { revenue: 12840, visits: 214, newShare: 0.38, returnRate: 42, orders: 163, avgOrder: 41, counterAvg: 29, bookings: 57, fee: 5, meetups: 46, stayMin: 108, lostTries: 23 }
+// One branch's sample week, before scaling by the branch's size (volume follows size); habits differ a little (a busy branch sells
+// bigger orders and brings people back more, a small one keeps them longer), so branches can be compared fairly.
+export function weekFor(scale: number) {
+  const d = scale - 1
+  const avgOrder = Math.round(WEEK.avgOrder + d * 10)
+  return {
+    ...WEEK, avgOrder,
+    revenue: Math.round(WEEK.revenue * (avgOrder / WEEK.avgOrder)),
+    newShare: WEEK.newShare - d * 0.1, returnRate: Math.round(WEEK.returnRate + d * 12), stayMin: Math.round(WEEK.stayMin - d * 30),
+  }
+}
+// Change from the previous period (%; return rate in points). Lost orders and prep going down is good.
+type Metric = 'revenue' | 'visits' | 'orders' | 'avgOrder' | 'newCust' | 'returnRate' | 'bookings' | 'meetups' | 'stay' | 'lost'
+const CHANGE: Record<Metric, Record<Period, number>> = {
+  revenue: { day: 9, week: 18, month: 24 }, visits: { day: 6, week: 14, month: 21 }, orders: { day: 11, week: 16, month: 22 },
+  avgOrder: { day: -2, week: 3, month: 5 }, newCust: { day: 12, week: 9, month: 17 }, returnRate: { day: 3, week: 4, month: 6 },
+  bookings: { day: -8, week: 11, month: 19 }, meetups: { day: 25, week: 21, month: 32 }, stay: { day: -4, week: 2, month: -3 }, lost: { day: 40, week: -15, month: -28 },
+}
+const LOWER_IS_BETTER: Metric[] = ['lost']
 // AroundMe visits by hour, 7am to 11pm. The early afternoon is usually quiet; planned visits fill it.
 const HOURS = [6, 14, 16, 11, 8, 7, 12, 15, 16, 13, 10, 14, 20, 22, 18, 8, 4]
 const FIRST_HOUR = 7
@@ -56,7 +74,9 @@ const TOMORROW: Visit[] = [
 
 const TOP = [['Spanish latte', 64], ['San Sebastián cheesecake', 41], ['Butter croissant', 33], ['Iced latte', 25]] as const
 
-export default function Insights({ items, onMeetups, scale = 1 }: { items: Item[]; onMeetups: () => void; scale?: number }) {
+export default function Insights({ items, onMeetups, branch, peers = [] }: { items: Item[]; onMeetups: () => void; branch?: Branch; peers?: Branch[] }) {
+  const scale = branch?.scale ?? 1
+  const W = weekFor(scale)
   const { t, tx, sar, lang } = useT()
   const [period, setPeriod] = useState<Period>('week')
   const [hover, setHover] = useState<number | null>(null)
@@ -94,8 +114,8 @@ export default function Insights({ items, onMeetups, scale = 1 }: { items: Item[
   const fmt = (x: number) => x.toLocaleString('en-US')
   const money = (x: number) => sar(fmt(Math.round(x * k)))
 
-  const visits = n(WEEK.visits)
-  const orders = n(WEEK.orders)
+  const visits = n(W.visits)
+  const orders = n(W.orders)
   const savedMin = Math.round(orders * 3.3)
   const savedH = Math.round(savedMin / 60)
   const saved = savedMin < 120 ? t(`${savedMin} دقيقة`, `${savedMin} min`) : t(`${savedH} ${savedH <= 10 ? 'ساعات' : 'ساعة'}`, `${savedH} hours`)
@@ -106,18 +126,70 @@ export default function Insights({ items, onMeetups, scale = 1 }: { items: Item[
   const dir = lang === 'ar' ? 'rtl' : 'ltr'
 
   const lost = items.find(i => i.soldOut) ?? items.find(i => i.name.en === 'Lotus cheesecake') ?? items[0]
-  const lostTries = n(WEEK.lostTries)
+  const lostTries = n(W.lostTries)
   const top = TOP.map(([en, c], i) => ({ item: items.find(x => x.name.en === en) ?? items[i], c: n(c) })).filter(x => x.item)
   const topMax = Math.max(...top.map(x => x.c), 1)
 
   const tiles: [ReactNode, string, string, string][] = [
-    [<UserPlus />, fmt(n(WEEK.visits * WEEK.newShare)), t('عملاء جدد', 'New customers'), t('يزورونك لأول مرة عن طريق AroundMe', 'First visit ever, found you on AroundMe')],
-    [<Repeat />, `${WEEK.returnRate}%`, t('عادوا إليك', 'Came back'), t('زاروك مرة أخرى خلال أسبوعين', 'Visited again within two weeks')],
-    [<Wallet />, sar(WEEK.avgOrder), t('متوسط الطلب', 'Average order'), t(`أعلى بـ ${sar(WEEK.avgOrder - WEEK.counterAvg)} من الكاونتر`, `${sar(WEEK.avgOrder - WEEK.counterAvg)} more than at the counter`)],
+    [<UserPlus />, fmt(n(W.visits * W.newShare)), t('عملاء جدد', 'New customers'), t('يزورونك لأول مرة عن طريق AroundMe', 'First visit ever, found you on AroundMe')],
+    [<Repeat />, `${W.returnRate}%`, t('عادوا إليك', 'Came back'), t('زاروك مرة أخرى خلال أسبوعين', 'Visited again within two weeks')],
+    [<Wallet />, sar(W.avgOrder), t('متوسط الطلب', 'Average order'), t(`أعلى بـ ${sar(W.avgOrder - W.counterAvg)} من الكاونتر`, `${sar(W.avgOrder - W.counterAvg)} more than at the counter`)],
     [<Zap />, saved, t('وفّرنا على الكاشير', 'Saved at the counter'), t(`${fmt(orders)} طلب جاهز ومدفوع قبل وصولهم`, `${fmt(orders)} orders ready and paid before arrival`)],
-    [<Armchair />, fmt(n(WEEK.bookings)), t('طاولات محجوزة', 'Tables booked'), t(`${money(WEEK.bookings * WEEK.fee)} رسوم حجز لك`, `${money(WEEK.bookings * WEEK.fee)} in booking fees to you`)],
-    [<Clock />, `${Math.floor(WEEK.stayMin / 60)}:${String(WEEK.stayMin % 60).padStart(2, '0')}`, t('متوسط الجلسة', 'Average stay'), t(`ساعة و${WEEK.stayMin % 60} دقيقة، ويطلبون أكثر من مرة`, `${WEEK.stayMin} minutes, and they order more than once`)],
+    [<Armchair />, fmt(n(W.bookings)), t('طاولات محجوزة', 'Tables booked'), t(`${money(W.bookings * W.fee)} رسوم حجز لك`, `${money(W.bookings * W.fee)} in booking fees to you`)],
+    [<Clock />, `${Math.floor(W.stayMin / 60)}:${String(W.stayMin % 60).padStart(2, '0')}`, t('متوسط الجلسة', 'Average stay'), t(`ساعة و${W.stayMin % 60} دقيقة، ويطلبون أكثر من مرة`, `${W.stayMin} minutes, and they order more than once`)],
   ]
+
+  // Against the previous period: what it is now, what it was, and whether that's better.
+  const pct = (x: number) => `${Math.abs(x)}%`
+  const stayText = (m: number) => `${Math.floor(m / 60)}:${String(Math.round(m % 60)).padStart(2, '0')}`
+  const cmp: [Metric, string, number, (x: number) => string][] = [
+    ['revenue', t('الدخل', 'Revenue'), W.revenue * k, x => sar(fmt(Math.round(x)))],
+    ['visits', t('الزيارات', 'Visits'), visits, x => fmt(Math.round(x))],
+    ['orders', t('الطلبات', 'Orders'), orders, x => fmt(Math.round(x))],
+    ['avgOrder', t('متوسط الطلب', 'Average order'), W.avgOrder, x => sar(Math.round(x))],
+    ['newCust', t('عملاء جدد', 'New customers'), n(W.visits * W.newShare), x => fmt(Math.round(x))],
+    ['returnRate', t('نسبة العودة', 'Return rate'), W.returnRate, x => `${Math.round(x)}%`],
+    ['bookings', t('حجوزات الطاولات', 'Table bookings'), n(W.bookings), x => fmt(Math.round(x))],
+    ['meetups', t('اللقاءات', 'Meetups'), n(W.meetups), x => fmt(Math.round(x))],
+    ['stay', t('متوسط الجلسة', 'Average stay'), W.stayMin, stayText],
+    ['lost', t('طلبات فاتتك', 'Missed orders'), lostTries, x => fmt(Math.round(x))],
+  ]
+  const rows = cmp.map(([key, label, now, show]) => {
+    const c = CHANGE[key][period]
+    const before = key === 'returnRate' ? now - c : now / (1 + c / 100)
+    return { key, label, now: show(now), before: show(before), up: c > 0, good: LOWER_IS_BETTER.includes(key) ? c < 0 : c > 0, delta: key === 'returnRate' ? t(`${Math.abs(c)} نقاط`, `${Math.abs(c)} pts`) : pct(c), c: LOWER_IS_BETTER.includes(key) ? -c : c }
+  })
+  const better = rows.filter(r => r.good).length
+  const best = [...rows].filter(r => r.key !== 'returnRate').sort((a, b) => b.c - a.c)[0]
+  const worst = [...rows].filter(r => !r.good).sort((a, b) => a.c - b.c)[0]
+
+  // Against the other branches, same period. Higher is better in every row.
+  const peerCols = [...peers].sort((a, b) => (a.id === branch?.id ? -1 : b.id === branch?.id ? 1 : 0)).map(b => ({ b, w: weekFor(b.scale) }))
+  const per = (c: typeof peerCols[number], x: number) => Math.round(x * SCALE[period] * c.b.scale)
+  const peerDefs: [string, string, (c: typeof peerCols[number]) => number, (x: number) => string][] = [
+    ['revenue', t('الدخل', 'Revenue'), c => per(c, c.w.revenue), x => sar(fmt(x))],
+    ['orders', t('الطلبات', 'Orders'), c => per(c, WEEK.orders), fmt],
+    ['avgOrder', t('متوسط الطلب', 'Average order'), c => c.w.avgOrder, x => sar(x)],
+    ['newCust', t('عملاء جدد', 'New customers'), c => per(c, c.w.visits * c.w.newShare), fmt],
+    ['returnRate', t('نسبة العودة', 'Return rate'), c => c.w.returnRate, x => `${x}%`],
+    ['bookings', t('الحجوزات', 'Bookings'), c => per(c, WEEK.bookings), fmt],
+    ['meetups', t('اللقاءات', 'Meetups'), c => per(c, WEEK.meetups), fmt],
+    ['stay', t('متوسط الجلسة', 'Average stay'), c => c.w.stayMin, stayText],
+  ]
+  const peerRows = peerDefs.map(([key, label, get, show]) => {
+    const vals = peerCols.map(get)
+    return { key, label, vals, show, bestIdx: vals.indexOf(Math.max(...vals)) }
+  })
+  const branchName = branch ? t(`فرع ${branch.area[0]}`, `The ${branch.area[1]} branch`) : ''
+  const firsts = peerRows.filter(r => r.bestIdx === 0).length
+  const leaderIdx = peerCols.map((_, i) => peerRows.filter(r => r.bestIdx === i).length).reduce((m, c, i, a) => (c > a[m] ? i : m), 0)
+  const leads = peerRows.filter(r => r.bestIdx === leaderIdx).length
+  // One practical pointer: where this branch trails the leader on a habit (not size), and by how much.
+  const lag = peerRows.filter(r => ['avgOrder', 'returnRate'].includes(r.key) && r.bestIdx !== 0)
+    .map(r => ({ r, lead: peerCols[r.bestIdx].b })).at(0)
+  const gap = lag ? (lag.r.key === 'avgOrder'
+    ? t(`متوسط الطلب في فرع ${lag.lead.area[0]} أعلى بـ ${sar(lag.r.vals[lag.r.bestIdx] - lag.r.vals[0])}. جرّب اقتراح حلى مع القهوة كما يفعلون.`, `Orders at ${lag.lead.area[1]} average ${sar(lag.r.vals[lag.r.bestIdx] - lag.r.vals[0])} more. Try suggesting a dessert with coffee like they do.`)
+    : t(`فرع ${lag.lead.area[0]} يعيد ${lag.r.vals[lag.r.bestIdx] - lag.r.vals[0]} نقاط أكثر من عملائه. أرسل عروض العودة من صفحة العروض.`, `${lag.lead.area[1]} brings back ${lag.r.vals[lag.r.bestIdx] - lag.r.vals[0]} points more of its customers. Send come-back offers from the Offers page.`)) : null
 
   return (
     <div className="o-insights">
@@ -132,14 +204,14 @@ export default function Insights({ items, onMeetups, scale = 1 }: { items: Item[
 
       <div className="o-hero-stat">
         <small>{t('دخل جاءك من AroundMe', 'Revenue AroundMe brought you')}</small>
-        <b>{money(WEEK.revenue)}</b>
-        <span><em><TrendingUp />{GROWTH[period]}%</em>{t(`من ${fmt(visits)} زيارة · ${fmt(orders)} طلب`, `from ${fmt(visits)} visits · ${fmt(orders)} orders`)}</span>
+        <b>{money(W.revenue)}</b>
+        <span><em><TrendingUp />{CHANGE.revenue[period]}%</em>{t(`من ${fmt(visits)} زيارة · ${fmt(orders)} طلب`, `from ${fmt(visits)} visits · ${fmt(orders)} orders`)}</span>
       </div>
 
       <button type="button" className="o-meetups" onClick={onMeetups}>
         <span className="o-meetups-icon"><HeartHandshake /></span>
         <div>
-          <b>{t(`${fmt(n(WEEK.meetups))} لقاءً تم في كافيهك`, `${fmt(n(WEEK.meetups))} meetups happened at your café`)}</b>
+          <b>{t(`${fmt(n(W.meetups))} لقاءً تم في كافيهك`, `${fmt(n(W.meetups))} meetups happened at your café`)}</b>
           <small>{t('أشخاص ساعدوا بعضهم على طاولاتك. وهذا ما يجعلهم يختارونك دون غيرك.', 'People helped each other at your tables. This is why they pick you over the café next door.')}</small>
           <em>{t('عرض التفاصيل', 'See details')}<Fwd /></em>
         </div>
@@ -154,6 +226,43 @@ export default function Insights({ items, onMeetups, scale = 1 }: { items: Item[
           </div>
         ))}
       </div>
+
+      <section className="o-card o-compare">
+        <h3>{t(`مقارنة ${period === 'day' ? 'بالأمس' : period === 'week' ? 'بالأسبوع الماضي' : 'بالشهر الماضي'}`, `Compared with ${period === 'day' ? 'yesterday' : period === 'week' ? 'last week' : 'last month'}`)}</h3>
+        <p className="o-card-sub">{t(`تحسّن ${better} من ${rows.length} مؤشرات`, `${better} of ${rows.length} measures improved`)}</p>
+        <ul className="o-cmp-list">
+          {rows.map(r => (
+            <li key={r.key}>
+              <span className="o-cmp-name">{r.label}<small>{t(`كان \u2068${r.before}\u2069`, `was ${r.before}`)}</small></span>
+              <b>{r.now}</b>
+              <em className={r.good ? 'good' : 'bad'}>{r.up ? <ArrowUp /> : <ArrowDown />}{r.delta}</em>
+            </li>
+          ))}
+        </ul>
+        {best && <p className="o-note"><TrendingUp />{t(`أكبر تحسّن: ${best.label} (${best.delta}).${worst ? ` راقب ${worst.label}.` : ''}`, `Biggest gain: ${best.label} (${best.delta}).${worst ? ` Keep an eye on ${worst.label.toLowerCase()}.` : ''}`)}</p>}
+      </section>
+
+      {peers.length > 1 && branch && (
+        <section className="o-card o-compare">
+          <h3>{t('مقارنة بفروعك الأخرى', 'Compared with your other branches')}</h3>
+          <p className="o-card-sub">{t(`الأفضل في كل مؤشر بالأخضر · ${period === 'day' ? 'اليوم' : period === 'week' ? 'هذا الأسبوع' : 'هذا الشهر'}`, `Best in each row in green · ${period === 'day' ? 'today' : period === 'week' ? 'this week' : 'this month'}`)}</p>
+          <div className="o-cmp-table-wrap">
+            <table className="o-cmp-table">
+              <thead><tr><th />{peerCols.map(c => <th key={c.b.id} className={c.b.id === branch.id ? 'me' : ''}>{pick(c.b.area)}</th>)}</tr></thead>
+              <tbody>
+                {peerRows.map(r => (
+                  <tr key={r.key}>
+                    <th>{r.label}</th>
+                    {r.vals.map((v, i) => <td key={peerCols[i].b.id} className={`${peerCols[i].b.id === branch.id ? 'me' : ''} ${i === r.bestIdx ? 'best' : ''}`}>{r.show(v)}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="o-cmp-rank">{firsts ? t(`${branchName} الأول في ${firsts} من ${peerRows.length} مؤشرات`, `${branchName} leads in ${firsts} of ${peerRows.length} measures`) : t(`فرع ${peerCols[leaderIdx].b.area[0]} الأول في ${leads} من ${peerRows.length} مؤشرات`, `${peerCols[leaderIdx].b.area[1]} leads in ${leads} of ${peerRows.length} measures`)}</p>
+          {gap && <p className="o-note"><Lightbulb />{gap}</p>}
+        </section>
+      )}
 
       <section className="o-card o-customers">
         <h3>{t('من هم عملاؤك', 'Who your customers are')}</h3>
