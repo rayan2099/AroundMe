@@ -88,26 +88,14 @@ export function BranchPick({ B, view, onPick }: { B: BranchStore; view: BranchVi
   )
 }
 
-// «كل الفروع»: today across every branch, what needs attention and where, and how the branches compare.
-export function Overview({ B, items, soldBy, open }: { B: BranchStore; items: Item[]; soldBy: Record<string, string[]>; open: (id: string, view: BranchView | 'menu') => void }) {
+// «كل الفروع»: today across every branch, each branch at a glance, and how the branches compare.
+export function Overview({ B, open }: { B: BranchStore; open: (id: string, view: BranchView) => void }) {
   const { t, branchName, hoursText, openNow } = useBranchText()
   const { sar, tx, lang } = useT()
   const Fwd = lang === 'ar' ? ChevronLeft : ChevronRight
   const rows = B.branches.map(b => ({ b, o: B.ops(b.id), s: opsStats(B.ops(b.id)), d: B.all[b.id] }))
   const tot = rows.reduce((a, { s }) => ({ sales: a.sales + s.sales, orders: a.orders + s.ordersToday, active: a.active + s.newOrders + s.inPrep + s.ready, seated: a.seated + s.seated, tables: a.tables + s.tables, unread: a.unread + s.unread }), { sales: 0, orders: 0, active: 0, seated: 0, tables: 0, unread: 0 })
   const fmt = (x: number) => x.toLocaleString('en-US')
-  const alerts: { b: Branch; icon: ReactNode; text: string; view: BranchView | 'menu'; level: 'warn' | 'info' }[] = []
-  rows.forEach(({ b, s, d }) => {
-    if (d?.paused) alerts.push({ b, icon: <Pause />, text: t('الطلبات متوقفة مؤقتًا', 'Orders are paused'), view: 'orders', level: 'warn' })
-    if (s.waitingLong) alerts.push({ b, icon: <Receipt />, text: t(s.waitingLong === 1 ? 'طلب ينتظر القبول منذ أكثر من 5 دقائق' : `${s.waitingLong} طلبات تنتظر القبول منذ أكثر من 5 دقائق`, `${s.waitingLong} order${s.waitingLong === 1 ? '' : 's'} waiting over 5 min`), view: 'orders', level: 'warn' })
-    if (s.overTime) alerts.push({ b, icon: <Timer />, text: t(s.overTime === 1 ? 'طاولة تجاوزت وقت الجلسة' : `${s.overTime} طاولات تجاوزت وقت الجلسة`, `${s.overTime} table${s.overTime === 1 ? '' : 's'} over time`), view: 'tables', level: 'warn' })
-    if (s.lateBookings) alerts.push({ b, icon: <Armchair />, text: t(s.lateBookings === 1 ? 'حجز متأخر عن موعده' : `${s.lateBookings} حجوزات متأخرة`, `${s.lateBookings} late booking${s.lateBookings === 1 ? '' : 's'}`), view: 'tables', level: 'warn' })
-    if (s.unread) alerts.push({ b, icon: <MessageCircle />, text: t(s.unread === 1 ? 'رسالة لم تُقرأ' : `${s.unread} رسائل لم تُقرأ`, `${s.unread} unread message${s.unread === 1 ? '' : 's'}`), view: 'messages', level: 'info' })
-    const out = (soldBy[b.id] ?? []).map(id => items.find(i => i.id === id)).filter(Boolean) as Item[]
-    if (out.length) alerts.push({ b, icon: <CircleAlert />, text: t(`نفد: ${out.map(i => tx(i.name)).join('، ')}`, `Sold out: ${out.map(i => tx(i.name)).join(', ')}`), view: 'menu', level: 'info' })
-  })
-  // Things to act on first, then things to read.
-  alerts.sort((a, b) => (a.level === b.level ? 0 : a.level === 'warn' ? -1 : 1))
   const maxSales = Math.max(1, ...rows.map(r => r.s.sales))
   const week = rows.map(({ b }) => ({ b, rev: Math.round(WEEK.revenue * b.scale) }))
   const weekTot = week.reduce((a, w) => a + w.rev, 0)
@@ -122,20 +110,6 @@ export function Overview({ B, items, soldBy, open }: { B: BranchStore; items: It
         <div><b>{`${tot.seated}/${tot.tables}`}</b><small>{t('طاولات مشغولة', 'Tables seated')}</small></div>
       </div>
 
-      <section className="o-card">
-        <h3>{t('يحتاج انتباهك', 'Needs your attention')}{alerts.length > 0 && <span className="o-count">{alerts.length}</span>}</h3>
-        {alerts.length === 0
-          ? <p className="o-ov-calm"><Check />{t('كل الفروع تعمل بسلاسة الآن.', 'Every branch is running smoothly.')}</p>
-          : <ul className="o-ov-alerts">
-            {alerts.map((a, i) => (
-              <li key={i}><button type="button" className={a.level} onClick={() => open(a.b.id, a.view)}>
-                <span className="o-ov-alert-icon">{a.icon}</span>
-                <span><small>{branchName(a.b)}</small><b>{a.text}</b></span>
-                <Fwd />
-              </button></li>
-            ))}
-          </ul>}
-      </section>
 
       <div className="o-ov-branches">
         {rows.map(({ b, s, d }) => {

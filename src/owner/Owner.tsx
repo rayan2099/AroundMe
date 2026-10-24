@@ -790,7 +790,7 @@ function Live(props: MenuProps & { place: Place }) {
           </div>
         </div>
         {isAll && PER_BRANCH.includes(shownView) && <BranchPick B={B} view={shownView as BranchView} onPick={id => setBranch(id)} />}
-        {isAll && shownView === 'overview' && <Overview B={B} items={items} soldBy={soldBy} open={(id, v) => (v === 'menu' ? openIn(id, 'menu') : openIn(id, v))} />}
+        {isAll && shownView === 'overview' && <Overview B={B} open={(id, v) => openIn(id, v)} />}
         {isAll && shownView === 'branches' && <BranchesAdmin B={B} notify={notify} onOpen={id => openIn(id, 'orders')} />}
         {ops && <>
           {shownView === 'orders' && <Orders key={`${branch}-${ordersTab}`} startTab={ordersTab} ops={ops} items={viewItems} notify={notify} openThread={openThread} />}
