@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { ArrowDown, ArrowUp, Armchair, CalendarClock, Check, CalendarDays, ChevronLeft, ChevronRight, Clock, HeartHandshake, Lightbulb, Lock, MessageCircleHeart, Repeat, ShoppingBag, Sparkles, TrendingUp, UserPlus, Wallet, Zap } from 'lucide-react'
+import { ArrowDown, ArrowUp, Armchair, SlidersHorizontal, CalendarClock, Check, CalendarDays, ChevronLeft, ChevronRight, Clock, HeartHandshake, Lightbulb, Lock, MessageCircleHeart, Repeat, ShoppingBag, Sparkles, TrendingUp, UserPlus, Wallet, Zap } from 'lucide-react'
 import { Sheet, useT } from './Owner'
 import { OfferButton, OfferSent, OfferSheet } from './Offer'
 import type { Branch, Ops } from './Ops'
@@ -73,6 +73,136 @@ const TOMORROW: Visit[] = [
 ]
 
 const TOP = [['Spanish latte', 64], ['San Sebastián cheesecake', 41], ['Butter croissant', 33], ['Iced latte', 25]] as const
+
+// «قارن بنفسك»: the owner picks the measures and what to compare them across: two periods, or branches.
+const MEASURES: Metric[] = ['revenue', 'visits', 'orders', 'avgOrder', 'newCust', 'returnRate', 'bookings', 'meetups', 'stay', 'lost']
+// A measure for one branch over one period; `prev` is the period before it (yesterday, last week, last month).
+function measure(m: Metric, scale: number, period: Period, prev = false) {
+  const w = weekFor(scale), k = SCALE[period] * scale
+  const now = m === 'revenue' ? w.revenue * k : m === 'visits' ? w.visits * k : m === 'orders' ? w.orders * k : m === 'avgOrder' ? w.avgOrder
+    : m === 'newCust' ? w.visits * w.newShare * k : m === 'returnRate' ? w.returnRate : m === 'bookings' ? w.bookings * k : m === 'meetups' ? w.meetups * k
+    : m === 'stay' ? w.stayMin : w.lostTries * k
+  const c = CHANGE[m][period]
+  return Math.round(!prev ? now : m === 'returnRate' ? now - c : now / (1 + c / 100))
+}
+type Span = `${Period}${'' | '-prev'}`
+const SPANS: Span[] = ['day', 'day-prev', 'week', 'week-prev', 'month', 'month-prev']
+
+function CompareBuilder({ branch, peers }: { branch?: Branch; peers: Branch[] }) {
+  const { t, sar, lang } = useT()
+  const multi = peers.length > 1
+  const [mode, setMode] = useState<'time' | 'branches'>('time')
+  const [picked, setPicked] = useState<Metric[]>(['revenue', 'orders', 'returnRate'])
+  const [spans, setSpans] = useState<[Span, Span]>(['week', 'week-prev'])
+  const [span, setSpan] = useState<Span>('week')
+  const [shown, setShown] = useState<string[]>(() => peers.map(b => b.id))
+  const fmt = (x: number) => x.toLocaleString('en-US')
+  const label = (m: Metric) => ({
+    revenue: t('الدخل', 'Revenue'), visits: t('الزيارات', 'Visits'), orders: t('الطلبات', 'Orders'), avgOrder: t('متوسط الطلب', 'Average order'),
+    newCust: t('عملاء جدد', 'New customers'), returnRate: t('نسبة العودة', 'Return rate'), bookings: t('الحجوزات', 'Bookings'), meetups: t('اللقاءات', 'Meetups'),
+    stay: t('متوسط الجلسة', 'Average stay'), lost: t('طلبات فاتتك', 'Missed orders'),
+  })[m]
+  const show = (m: Metric, x: number) => m === 'revenue' || m === 'avgOrder' ? sar(fmt(x)) : m === 'returnRate' ? `${x}%` : m === 'stay' ? `${Math.floor(x / 60)}:${String(x % 60).padStart(2, '0')}` : fmt(x)
+  const spanLabel = (s: Span) => ({
+    day: t('اليوم', 'Today'), 'day-prev': t('أمس', 'Yesterday'), week: t('هذا الأسبوع', 'This week'), 'week-prev': t('الأسبوع الماضي', 'Last week'),
+    month: t('هذا الشهر', 'This month'), 'month-prev': t('الشهر الماضي', 'Last month'),
+  })[s]
+  const val = (m: Metric, b: Branch, s: Span) => measure(m, b.scale, s.split('-')[0] as Period, s.endsWith('-prev'))
+  const branchLabel = (b: Branch) => (lang === 'ar' ? b.area[0] : b.area[1])
+  const toggle = <X,>(list: X[], x: X) => (list.includes(x) ? (list.length > 1 ? list.filter(y => y !== x) : list) : [...list, x])
+  const daysOf = (s: Span) => (s.startsWith('day') ? 1 : s.startsWith('week') ? 7 : 30)
+  // A week against a month: totals are shown per day so the comparison stays fair. Averages and rates already are.
+  const uneven = (mode === 'time' || !multi) && daysOf(spans[0]) !== daysOf(spans[1])
+  const RATES: Metric[] = ['avgOrder', 'returnRate', 'stay']
+  const byBranch = mode === 'branches' && multi
+
+  // Columns: two periods for this branch, or the chosen branches over one period.
+  const cols = mode === 'time' || !multi
+    ? spans.map(s => ({ key: s, name: spanLabel(s), get: (m: Metric) => (!branch ? 0 : uneven && !RATES.includes(m) ? Math.round(val(m, branch, s) / daysOf(s)) : val(m, branch, s)) }))
+    : peers.filter(b => shown.includes(b.id)).map(b => ({ key: b.id, name: branchLabel(b), get: (m: Metric) => val(m, b, span) }))
+
+  return (
+    <section className="o-card o-builder">
+      <h3><SlidersHorizontal />{t('قارن بنفسك', 'Compare it yourself')}</h3>
+      <p className="o-card-sub">{t('اختر المؤشرات وما تريد مقارنته', 'Pick the measures and what to compare')}</p>
+
+      {multi && (
+        <div className="o-period o-builder-mode" role="tablist">
+          <button type="button" role="tab" aria-selected={mode === 'time'} className={mode === 'time' ? 'active' : ''} onClick={() => setMode('time')}>{t('فترتان', 'Two periods')}</button>
+          <button type="button" role="tab" aria-selected={mode === 'branches'} className={mode === 'branches' ? 'active' : ''} onClick={() => setMode('branches')}>{t('الفروع', 'Branches')}</button>
+        </div>
+      )}
+
+      <span className="o-label">{t('المؤشرات', 'Measures')}</span>
+      <div className="o-chips wrap">
+        {MEASURES.map(m => <button key={m} type="button" aria-pressed={picked.includes(m)} className={`o-chip ${picked.includes(m) ? 'active' : ''}`} onClick={() => setPicked(p => toggle(p, m))}>{picked.includes(m) && <Check />}{label(m)}</button>)}
+      </div>
+
+      {mode === 'time' || !multi ? (
+        <div className="o-builder-spans">
+          {([0, 1] as const).map(i => (
+            <label key={i}>
+              <span className="o-label">{i === 0 ? t('الفترة الأولى', 'First period') : t('قارنها بـ', 'Compare with')}</span>
+              <select className="o-field" value={spans[i]} onChange={e => { const v = e.target.value as Span; setSpans(s => (i === 0 ? [v, s[1]] : [s[0], v])) }}>
+                {SPANS.map(s => <option key={s} value={s}>{spanLabel(s)}</option>)}
+              </select>
+            </label>
+          ))}
+        </div>
+      ) : (
+        <>
+          <span className="o-label">{t('الفروع', 'Branches')}</span>
+          <div className="o-chips wrap">
+            {peers.map(b => <button key={b.id} type="button" aria-pressed={shown.includes(b.id)} className={`o-chip ${shown.includes(b.id) ? 'active' : ''}`} onClick={() => setShown(l => toggle(l, b.id))}>{shown.includes(b.id) && <Check />}{branchLabel(b)}</button>)}
+          </div>
+          <span className="o-label">{t('الفترة', 'Period')}</span>
+          <div className="o-chips wrap">
+            {SPANS.map(s => <button key={s} type="button" className={`o-chip ${span === s ? 'active' : ''}`} onClick={() => setSpan(s)}>{spanLabel(s)}</button>)}
+          </div>
+        </>
+      )}
+
+      {!byBranch && spans[0] === spans[1] && <p className="o-note"><Lightbulb />{t('اختر فترتين مختلفتين للمقارنة.', 'Pick two different periods to compare.')}</p>}
+      {uneven && <p className="o-note o-note-soft"><Lightbulb />{t('الفترتان بطول مختلف، لذا نعرض المجاميع كمعدل يومي.', 'The periods differ in length, so totals are shown per day.')}</p>}
+
+      <div className="o-builder-out">
+        {MEASURES.filter(m => picked.includes(m)).map(m => {
+          const vals = cols.map(c => c.get(m))
+          const lower = m === 'lost'
+          const best = lower ? Math.min(...vals) : Math.max(...vals)
+          const max = Math.max(1, ...vals)
+          const diff = cols.length === 2 && vals[1] ? Math.round(((vals[0] - vals[1]) / vals[1]) * 100) : null
+          const good = diff !== null && (lower ? diff < 0 : diff > 0)
+          return (
+            <div key={m} className="o-builder-row">
+              <header>
+                <b>{label(m)}{uneven && !RATES.includes(m) && <small>{t(' · في اليوم', ' · per day')}</small>}</b>
+                {byBranch && cols.length > 1 && (() => {
+                  // Branches: name the leader and how far ahead it is of the next one.
+                  const order = vals.map((v, i) => ({ v, i })).sort((a, b) => (lower ? a.v - b.v : b.v - a.v))
+                  const [a, b] = order
+                  const gap = m === 'returnRate' ? t(`${Math.abs(a.v - b.v)} نقاط`, `${Math.abs(a.v - b.v)} pts`) : b.v ? `${Math.abs(Math.round(((a.v - b.v) / b.v) * 100))}%` : ''
+                  return a.v === b.v ? <em>{t('متساويان', 'Tied')}</em> : <em className="good">{t(`${cols[a.i].name} ${lower ? 'أقل' : 'أعلى'} بـ \u2068${gap}\u2069`, `${cols[a.i].name} ${lower ? 'lower' : 'ahead'} by ${gap}`)}</em>
+                })()}
+                {!byBranch && diff !== null && diff !== 0 && <em className={good ? 'good' : 'bad'}>{diff > 0 ? <ArrowUp /> : <ArrowDown />}{m === 'returnRate' ? t(`${Math.abs(vals[0] - vals[1])} نقاط`, `${Math.abs(vals[0] - vals[1])} pts`) : `${Math.abs(diff)}%`}</em>}
+                {!byBranch && diff === 0 && <em>{t('بلا تغيير', 'No change')}</em>}
+              </header>
+              <ul className="o-top-items">
+                {cols.map((c, i) => (
+                  <li key={c.key} className={vals[i] === best && cols.length > 1 ? 'lead' : ''}>
+                    <span className="o-top-name">{c.name}</span>
+                    <span className="o-top-bar"><i style={{ width: `${(vals[i] / max) * 100}%` }} /></span>
+                    <b>{show(m, vals[i])}</b>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
 
 export default function Insights({ items, onMeetups, branch, peers = [] }: { items: Item[]; onMeetups: () => void; branch?: Branch; peers?: Branch[] }) {
   const scale = branch?.scale ?? 1
@@ -263,6 +393,8 @@ export default function Insights({ items, onMeetups, branch, peers = [] }: { ite
           {gap && <p className="o-note"><Lightbulb />{gap}</p>}
         </section>
       )}
+
+      <CompareBuilder branch={branch} peers={peers} />
 
       <section className="o-card o-customers">
         <h3>{t('من هم عملاؤك', 'Who your customers are')}</h3>
