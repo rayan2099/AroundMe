@@ -493,7 +493,7 @@ export function Meetups({ ops, notify, onTomorrow }: { ops: Ops; notify: (s: str
       <button type="button" className="o-tmr-teaser" onClick={onTomorrow}>
         <span className="o-tmr-teaser-icon"><CalendarClock /></span>
         <span><b>{t('غدًا في كافيهك', 'Tomorrow at your café')}</b><small>{t(`${tmr.need} يحتاجون مساعدة · ${tmr.help} يستطيعون · ${repeat} لقاءات متكررة`, `${tmr.need} need help · ${tmr.help} can help · ${repeat} repeat meetups`)}</small></span>
-        <em>{t('جهّز الغد', 'Get ready')}<Fwd /></em>
+        <em>{t('افتح جدول الغد', 'Open plan')}<Fwd /></em>
       </button>
 
       <RangePicker value={range} onChange={setRange} />

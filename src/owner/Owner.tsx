@@ -677,7 +677,7 @@ type View = 'overview' | 'orders' | 'tables' | 'messages' | 'tomorrow' | 'offers
 const NAV: [View, typeof Coffee, string, string][] = [
   ['overview', LayoutGrid, 'نظرة عامة', 'Overview'],
   ['orders', ClipboardList, 'الطلبات', 'Orders'], ['tables', Armchair, 'الطاولات', 'Tables'], ['messages', MessageCircle, 'الرسائل', 'Messages'],
-  ['tomorrow', CalendarClock, 'الغد', 'Tomorrow'],
+  ['tomorrow', CalendarClock, 'جدول الغد', "Tomorrow's plan"],
   ['offers', Gift, 'العروض', 'Offers'], ['meetups', HeartHandshake, 'اللقاءات', 'Meetups'],
   ['insights', ChartColumn, 'الأداء', 'Performance'], ['menu', Utensils, 'المنيو', 'Menu'], ['branches', Building2, 'الفروع', 'Branches'],
 ]
