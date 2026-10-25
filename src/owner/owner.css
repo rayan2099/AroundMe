@@ -1249,3 +1249,46 @@ html.o-web .o-ov-metrics { grid-template-columns: repeat(2, 1fr); }
   html.o-web .o-meet-grid > :only-child { grid-column: 1 / -1; }
   html.o-web .o-meet-grid { align-items: stretch; }
 }
+
+/* Meetup log: grouped by day, one row per meetup (a table on the computer) */
+.o-mlog { display: flex; flex-direction: column; gap: 10px; }
+.o-mlog-head { display: none; }
+.o-mlog-day { border-radius: 16px; background: #fff; border: 1px solid var(--border); overflow: hidden; }
+.o-mlog-day h4 { display: flex; align-items: baseline; gap: 8px; margin: 0; padding: 10px 14px; background: #f7f6f3; border-bottom: 1px solid var(--border); font-size: 13px; }
+.o-mlog-day h4 span { font-size: 12px; font-weight: 500; color: var(--muted); }
+.o-mlog-day h4 small { margin-inline-start: auto; font-size: 12px; font-weight: 700; color: var(--text); }
+.o-mlog-row { display: grid; grid-template-columns: 62px 1fr auto; grid-template-areas: "time main spend" "time meta status"; column-gap: 10px; row-gap: 6px; align-items: center; padding: 12px 14px; border-top: 1px solid var(--border); }
+.o-mlog-row:first-of-type { border-top: 0; }
+.o-mlog-time { grid-area: time; align-self: start; font-size: 12.5px; font-weight: 800; white-space: nowrap; padding-top: 1px; }
+.o-mlog-main { grid-area: main; display: flex; flex-direction: column; min-width: 0; }
+.o-mlog-main b { font-size: 13.5px; line-height: 1.4; }
+.o-mlog-main small { font-size: 12px; color: #6b6760; line-height: 1.45; }
+.o-mlog-seat, .o-mlog-mins { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.o-mlog-seat svg, .o-mlog-mins svg { width: 12px; flex: none; }
+.o-mlog-meta { grid-area: meta; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.o-mlog-spend { grid-area: spend; display: flex; flex-direction: column; align-items: flex-end; text-align: end; }
+.o-mlog-spend b { font-size: 13.5px; font-weight: 800; white-space: nowrap; }
+.o-mlog-spend small { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.o-mlog-status { grid-area: status; justify-self: end; }
+.o-mlog-status i, .o-mlog-send { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-style: normal; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.o-mlog-status i svg, .o-mlog-send svg { width: 12px; }
+.o-mlog-status .none { padding: 0; color: #a8a49d; font-weight: 500; }
+.o-mlog-status .used { background: var(--green-soft); color: var(--green); }
+.o-mlog-status .sent { background: #fdf3e2; color: #a86a12; }
+.o-mlog-send { background: var(--orange); color: #fff; padding: 5px 11px; }
+@media (min-width: 900px) {
+  html.o-web .o-mlog { gap: 0; border-radius: 16px; background: #fff; border: 1px solid var(--border); overflow: hidden; }
+  html.o-web .o-mlog-head, html.o-web .o-mlog-row { display: grid; grid-template-columns: 80px minmax(0, 1fr) 150px 80px 100px 130px; grid-template-areas: none; column-gap: 16px; align-items: center; }
+  html.o-web .o-mlog-head { padding: 10px 18px; background: #f7f6f3; border-bottom: 1px solid var(--border); font-size: 11.5px; font-weight: 700; color: var(--muted); }
+  html.o-web .o-mlog-head span:nth-child(5), html.o-web .o-mlog-head span:nth-child(6) { text-align: end; }
+  html.o-web .o-mlog-day { border: 0; border-radius: 0; }
+  html.o-web .o-mlog-day h4 { padding: 8px 18px; background: #fbfaf8; border-top: 1px solid var(--border); }
+  html.o-web .o-mlog-day:first-of-type h4 { border-top: 0; }
+  html.o-web .o-mlog-row { padding: 12px 18px; }
+  html.o-web .o-mlog-row > * { grid-area: auto; margin: 0; align-self: center; }
+  html.o-web .o-mlog-meta { display: contents; }
+  html.o-web .o-mlog-time { padding: 0; }
+  html.o-web .o-mlog-seat, html.o-web .o-mlog-mins { font-size: 12.5px; color: var(--text); }
+  html.o-web .o-mlog-status { justify-self: end; }
+}
+@media (max-width: 899px) { .o-mlog-status .none { display: none; } }
