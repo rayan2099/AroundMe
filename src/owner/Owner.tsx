@@ -783,16 +783,19 @@ function Live(props: MenuProps & { place: Place }) {
           <h2>{title}</h2>
           {multi && <button type="button" className="o-branch-chip" onClick={() => setSwitcher(true)} aria-haspopup="listbox"><Building2 />{current ? branchName(current) : t('كل الفروع', 'All branches')}<ChevronDown /></button>}
         </div>
-        <div className="o-live-card">
-          <PlaceLogo place={place} big />
-          <div>
-            <b>{tx(place.name)}{current && multi && <small className="o-live-branch">{branchName(current)}</small>}</b>
-            <span className="o-live-row">
-              <span className="o-live-badge"><i />{t('المنيو منشور', 'Menu is live')}</span>
-              <button type="button" className="o-live-view" onClick={() => setPreview(true)}><Eye />{t('اعرضه كعميل', 'Customer view')}</button>
-            </span>
+        {/* The café card (menu status + customer view) belongs with the menu; other sections start with their own content. */}
+        {shownView === 'menu' && (
+          <div className="o-live-card">
+            <PlaceLogo place={place} big />
+            <div>
+              <b>{tx(place.name)}{current && multi && <small className="o-live-branch">{branchName(current)}</small>}</b>
+              <span className="o-live-row">
+                <span className="o-live-badge"><i />{t('المنيو منشور', 'Menu is live')}</span>
+                <button type="button" className="o-live-view" onClick={() => setPreview(true)}><Eye />{t('اعرضه كعميل', 'Customer view')}</button>
+              </span>
+            </div>
           </div>
-        </div>
+        )}
         {isAll && PER_BRANCH.includes(shownView) && <BranchPick B={B} view={shownView as BranchView} onPick={id => setBranch(id)} />}
         {isAll && shownView === 'overview' && <Overview B={B} open={(id, v) => openIn(id, v)} />}
         {isAll && shownView === 'branches' && <BranchesAdmin B={B} notify={notify} onOpen={id => openIn(id, 'orders')} />}
@@ -803,7 +806,7 @@ function Live(props: MenuProps & { place: Place }) {
           {shownView === 'tomorrow' && <Tomorrow key={branch} ops={ops} items={viewItems} done={ready[branch] ?? []} setDone={f => setReady(r => ({ ...r, [branch]: f(r[branch] ?? []) }))} openMenu={() => setView('menu')} />}
           {shownView === 'offers' && <Offers key={branch} ops={ops} notify={notify} />}
           {shownView === 'meetups' && <Meetups key={branch} ops={ops} notify={notify} onTomorrow={() => setView('tomorrow')} />}
-          {shownView === 'insights' && <Insights key={branch} items={viewItems} branch={ops.branch} peers={B.branches} onMeetups={() => setView('meetups')} />}
+          {shownView === 'insights' && <Insights key={branch} items={viewItems} branch={ops.branch} peers={B.branches} />}
         </>}
         {shownView === 'menu' && <>
         {multi && <p className="o-note o-note-soft"><Building2 />{isAll ? t('تعديل الأصناف والأسعار يسري على كل الفروع. مفتاح «متوفر» هنا يغيّر الحالة في كل الفروع.', 'Edits to items and prices apply to every branch. The availability switch here changes every branch.') : t(`الأصناف والأسعار موحّدة. حالة «نفد» هنا تخص ${branchName(current!)} فقط.`, `Items and prices are shared. Sold-out here only affects ${branchName(current!)}.`)}</p>}

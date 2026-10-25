@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import type { ReactNode } from 'react'
-import { ArrowDown, ArrowUp, Armchair, SlidersHorizontal, CalendarClock, Check, ChevronLeft, ChevronRight, Clock, HeartHandshake, Lightbulb, Lock, MessageCircleHeart, Repeat, ShoppingBag, TrendingUp, UserPlus, Wallet, Zap } from 'lucide-react'
+import { ArrowDown, ArrowUp, SlidersHorizontal, CalendarClock, Check, ChevronLeft, ChevronRight, Clock, Lightbulb, Lock, MessageCircleHeart, ShoppingBag, TrendingUp } from 'lucide-react'
 import { useT } from './Owner'
 import { OfferButton, OfferSent, OfferSheet } from './Offer'
 import type { Branch, Ops } from './Ops'
 import type { Item } from './data'
 import { visitsFor } from './Tomorrow'
-import { RangePicker, inRange, matchPreset, prevRange, presetRange, rangeAgo, rangeDays, samePeriod, useRangeText } from './Range'
-import type { Preset, Range } from './Range'
+import { RangePicker, inRange, prevRange, presetRange, rangeAgo, rangeDays, samePeriod, useRangeText } from './Range'
+import type { Range } from './Range'
 
 type Period = 'day' | 'week' | 'month'
 // Sample numbers for a café's first weeks on AroundMe. A week is the base; a day and a month are scaled from it.
@@ -199,7 +198,7 @@ function CompareBuilder({ branch, peers }: { branch?: Branch; peers: Branch[] })
   )
 }
 
-export default function Insights({ items, onMeetups, branch, peers = [] }: { items: Item[]; onMeetups: () => void; branch?: Branch; peers?: Branch[] }) {
+export default function Insights({ items, branch, peers = [] }: { items: Item[]; branch?: Branch; peers?: Branch[] }) {
   const scale = branch?.scale ?? 1
   const W = weekFor(scale)
   const { t, tx, sar, lang } = useT()
@@ -208,7 +207,6 @@ export default function Insights({ items, onMeetups, branch, peers = [] }: { ite
   const days = rangeDays(range), prev = prevRange(range)
   const [hover, setHover] = useState<number | null>(null)
   const pick = (x: T2) => (lang === 'ar' ? x[0] : x[1])
-  const Fwd = lang === 'ar' ? ChevronLeft : ChevronRight
   const M = (m: Metric, r: Range = range) => measure(m, scale, r)
   // Counts that aren't modelled one by one (hours, items) follow orders for the chosen range.
   const k = M('orders') / W.orders
@@ -232,14 +230,6 @@ export default function Insights({ items, onMeetups, branch, peers = [] }: { ite
   const topMax = Math.max(...top.map(x => x.c), 1)
 
   const stayText = (m: number) => `${Math.floor(m / 60)}:${String(Math.round(m % 60)).padStart(2, '0')}`
-  const tiles: [ReactNode, string, string, string][] = [
-    [<UserPlus />, fmt(M('newCust')), t('عملاء جدد', 'New customers'), t('يزورونك لأول مرة عن طريق AroundMe', 'First visit ever, found you on AroundMe')],
-    [<Repeat />, `${M('returnRate')}%`, t('عادوا إليك', 'Came back'), t('زاروك مرة أخرى خلال أسبوعين', 'Visited again within two weeks')],
-    [<Wallet />, sar(M('avgOrder')), t('متوسط الطلب', 'Average order'), t(`أعلى بـ ${sar(M('avgOrder') - W.counterAvg)} من الكاونتر`, `${sar(M('avgOrder') - W.counterAvg)} more than at the counter`)],
-    [<Zap />, saved, t('وفّرنا على الكاشير', 'Saved at the counter'), t(`${fmt(orders)} طلب جاهز ومدفوع قبل وصولهم`, `${fmt(orders)} orders ready and paid before arrival`)],
-    [<Armchair />, fmt(M('bookings')), t('طاولات محجوزة', 'Tables booked'), t(`${sar(fmt(M('bookings') * W.fee))} رسوم حجز لك`, `${sar(fmt(M('bookings') * W.fee))} in booking fees to you`)],
-    [<Clock />, stayText(M('stay')), t('متوسط الجلسة', 'Average stay'), t(`ساعة و${M('stay') % 60} دقيقة، ويطلبون أكثر من مرة`, `${M('stay')} minutes, and they order more than once`)],
-  ]
 
   // Against the previous period: what it is now, what it was, and whether that's better.
   const pct = (x: number) => `${Math.abs(x)}%`
@@ -262,7 +252,7 @@ export default function Insights({ items, onMeetups, branch, peers = [] }: { ite
     return { key, label, now: show(now), before: show(before), up: c > 0, flat: c === 0, good: lower ? c < 0 : c > 0, delta: key === 'returnRate' ? t(`${Math.abs(c)} نقاط`, `${Math.abs(c)} pts`) : pct(c), c: lower ? -c : c }
   })
   const revChange = rows[0].c
-  const better = rows.filter(r => r.good).length
+  const better = rows.slice(1).filter(r => r.good).length
   const best = [...rows].filter(r => r.key !== 'returnRate').sort((a, b) => b.c - a.c)[0]
   const worst = [...rows].filter(r => !r.good).sort((a, b) => a.c - b.c)[0]
 
@@ -295,13 +285,6 @@ export default function Insights({ items, onMeetups, branch, peers = [] }: { ite
 
   return (
     <div className="o-insights">
-      <div className="o-period" role="tablist" aria-label={t('الفترة', 'Period')}>
-        {(['today', 'week', 'month'] as Preset[]).map(p => (
-          <button key={p} type="button" role="tab" aria-selected={matchPreset(range) === p} className={matchPreset(range) === p ? 'active' : ''} onClick={() => setRange(presetRange(p))}>
-            {p === 'today' ? t('اليوم', 'Today') : p === 'week' ? t('آخر 7 أيام', 'Last 7 days') : t('هذا الشهر', 'This month')}
-          </button>
-        ))}
-      </div>
       <RangePicker value={range} onChange={setRange} />
 
       <div className="o-hero-stat">
@@ -310,39 +293,33 @@ export default function Insights({ items, onMeetups, branch, peers = [] }: { ite
         <span><em>{revChange < 0 ? <ArrowDown /> : <TrendingUp />}{Math.abs(revChange)}%</em>{t(`من ${fmt(visits)} زيارة · ${fmt(orders)} طلب`, `from ${fmt(visits)} visits · ${fmt(orders)} orders`)}</span>
       </div>
 
-      <button type="button" className="o-meetups" onClick={onMeetups}>
-        <span className="o-meetups-icon"><HeartHandshake /></span>
-        <div>
-          <b>{t(`${fmt(M('meetups'))} لقاءً تم في كافيهك`, `${fmt(M('meetups'))} meetups happened at your café`)}</b>
-          <small>{t('أشخاص ساعدوا بعضهم على طاولاتك. وهذا ما يجعلهم يختارونك دون غيرك.', 'People helped each other at your tables. This is why they pick you over the café next door.')}</small>
-          <em>{t('عرض التفاصيل', 'See details')}<Fwd /></em>
-        </div>
-      </button>
-
-      <div className="o-tiles">
-        {tiles.map(([icon, v, label, sub]) => (
-          <div key={label} className="o-tile">
-            <span className="o-tile-head"><span className="o-tile-icon">{icon}</span><b>{v}</b></span>
-            <span className="o-tile-label">{label}</span>
-            <small>{sub}</small>
-          </div>
-        ))}
-      </div>
-
-      <section className="o-card o-compare">
+      <section className="o-card o-kpi-card">
         <h3>{t(days === 1 ? 'مقارنة باليوم السابق' : 'مقارنة بالفترة السابقة', days === 1 ? 'Compared with the day before' : 'Compared with the previous period')}</h3>
-        <p className="o-card-sub">{t(`${rangeText(prev)} · تحسّن ${better} من ${rows.length} مؤشرات`, `${rangeText(prev)} · ${better} of ${rows.length} measures improved`)}</p>
-        <ul className="o-cmp-list">
-          {rows.map(r => (
-            <li key={r.key}>
-              <span className="o-cmp-name">{r.label}<small>{t(`كان \u2068${r.before}\u2069`, `was ${r.before}`)}</small></span>
+        <p className="o-card-sub">{t(`${rangeText(prev)} · تحسّن ${better} من ${rows.length - 1} مؤشرات`, `${rangeText(prev)} · ${better} of ${rows.length - 1} measures improved`)}</p>
+        <div className="o-kpi-grid">
+          {rows.slice(1).map(r => (
+            <div key={r.key} className="o-kpi">
+              <span>{r.label}</span>
               <b>{r.now}</b>
-              {r.flat ? <em className="flat">{t('بلا تغيير', 'No change')}</em> : <em className={r.good ? 'good' : 'bad'}>{r.up ? <ArrowUp /> : <ArrowDown />}{r.delta}</em>}
-            </li>
+              <small>{r.flat ? <em className="flat">{t('بلا تغيير', 'No change')}</em> : <em className={r.good ? 'good' : 'bad'}>{r.up ? <ArrowUp /> : <ArrowDown />}{r.delta}</em>}{t(`كان \u2068${r.before}\u2069`, `was ${r.before}`)}</small>
+            </div>
           ))}
-        </ul>
+          <div className="o-kpi">
+            <span>{t('وفّرنا على الكاشير', 'Saved at the counter')}</span>
+            <b>{saved}</b>
+            <small>{t(`${fmt(orders)} طلب مدفوع قبل الوصول`, `${fmt(orders)} orders paid ahead`)}</small>
+          </div>
+        </div>
         {best && <p className="o-note"><TrendingUp />{t(`أكبر تحسّن: ${best.label} (${best.delta}).${worst ? ` راقب ${worst.label}.` : ''}`, `Biggest gain: ${best.label} (${best.delta}).${worst ? ` Keep an eye on ${worst.label.toLowerCase()}.` : ''}`)}</p>}
       </section>
+
+      {lost && (
+        <section className="o-card o-lost">
+          <h3>{t('طلبات فاتتك', 'Orders you missed')}</h3>
+          <p>{t(`${fmt(lostTries)} حاولوا طلب «${tx(lost.name)}» بعد نفاده، بقيمة تقارب ${sar(lostTries * (lost.price ?? 20))}.`, `${fmt(lostTries)} people tried to order “${tx(lost.name)}” while it was sold out, about ${sar(lostTries * (lost.price ?? 20))}.`)}</p>
+          <small>{t('فعّله من المنيو فور تجهيزه.', 'Turn it back on in the menu as soon as it is ready.')}</small>
+        </section>
+      )}
 
       {peers.length > 1 && branch && (
         <section className="o-card o-compare">
@@ -408,14 +385,6 @@ export default function Insights({ items, onMeetups, branch, peers = [] }: { ite
         <div className="o-hours-axis" dir="ltr">{[7, 11, 15, 19, 23].map(h => <span key={h} dir={dir}>{hourLabel(h)}</span>)}</div>
         <p className="o-legend"><span className="o-quiet-swatch" />{t('وقتك الهادئ', 'Your quiet hours')}</p>
       </section>
-
-      {lost && (
-        <section className="o-card o-lost">
-          <h3>{t('طلبات فاتتك', 'Orders you missed')}</h3>
-          <p>{t(`${fmt(lostTries)} حاولوا طلب «${tx(lost.name)}» بعد نفاده، بقيمة تقارب ${sar(lostTries * (lost.price ?? 20))}.`, `${fmt(lostTries)} people tried to order “${tx(lost.name)}” while it was sold out, about ${sar(lostTries * (lost.price ?? 20))}.`)}</p>
-          <small>{t('فعّله من المنيو فور تجهيزه.', 'Turn it back on in the menu as soon as it is ready.')}</small>
-        </section>
-      )}
 
       {top.length > 0 && (
         <section className="o-card">

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Armchair, Check, ChevronLeft, ChevronRight, Clock, Coffee, Gift, HeartHandshake, Percent, Plus, Repeat, ShoppingBag, Sparkles, TrendingUp, Wallet } from 'lucide-react'
+import { Armchair, Check, ChevronLeft, ChevronRight, Clock, Coffee, Gift, HeartHandshake, Percent, Plus, Repeat, ShoppingBag, Sparkles, Wallet } from 'lucide-react'
 import { Sheet, useT } from './Owner'
 import { OfferSheet, useOfferText } from './Offer'
 import { MEETUPS } from './Insights'
@@ -81,8 +81,7 @@ export default function Offers({ ops, notify }: { ops: Ops; notify: (s: string) 
         <div><Wallet /><b>{sar(spent)}</b><small>{t('دفعها العائدون بالعروض', 'paid by returners')}</small></div>
         <div><Sparkles /><b>{sar(given)}</b><small>{t('قيمة ما قدّمته', 'value you gave')}</small></div>
       </div>
-      <p className="o-note o-note-soft"><Check />{t('نحتسب العرض مستخدمًا عندما يطلب به العميل من التطبيق: يدفع طلبه بالعرض، أو يستلم المشروب المجاني. لا حاجة لأي تحقق عند الكاونتر.', 'An offer counts as used when the customer orders with it in the app: they pay for an order with it, or claim the free item. Nothing to check at the counter.')}</p>
-      {given > 0 && <p className="o-note"><TrendingUp />{t(`كل 1 ر.س قدّمته في العروض أعاد لك ${(spent / given).toFixed(1)} ر.س من المبيعات.`, `Every SAR 1 you gave in offers brought back SAR ${(spent / given).toFixed(1)} in sales.`)}</p>}
+      <p className="o-note o-note-soft"><Check /><span>{given > 0 && <b>{t(`كل 1 ر.س قدّمته أعاد لك ${(spent / given).toFixed(1)} ر.س من المبيعات. `, `Every SAR 1 you gave brought back SAR ${(spent / given).toFixed(1)} in sales. `)}</b>}{t('يُحتسب العرض مستخدمًا عندما يطلب به العميل أو يستلم هديته من التطبيق.', 'An offer counts as used when the customer orders with it or claims the gift in the app.')}</span></p>
 
       <section className="o-card">
         <h3>{t('أي العروض تعيدهم أكثر؟', 'Which offers bring people back?')}</h3>

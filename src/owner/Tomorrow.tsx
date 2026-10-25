@@ -92,8 +92,6 @@ export default function Tomorrow({ ops, items, done, setDone, openMenu }: { ops:
           <div><b>{guests}</b><small>{t('شخصًا متوقعًا', 'guests expected')}</small></div>
           <div><b>{withOrder.length}</b><small>{t('طلب مسبق مدفوع', 'paid pre-orders')}</small></div>
           <div><b>{withSeat.length}</b><small>{t('طاولة محجوزة', 'tables booked')}</small></div>
-          <div className="need"><b>{need.length}</b><small>{t('يحتاجون مساعدة', 'need help')}</small></div>
-          <div className="help"><b>{help.length}</b><small>{t('يستطيعون المساعدة', 'can help')}</small></div>
         </div>
       </section>
 
