@@ -3,9 +3,10 @@ import type { ReactNode } from 'react'
 import {
   Armchair, ArrowDown, ArrowUp, BadgeCheck, ClipboardList, Menu as MenuIcon, MessageCircle, ChartColumn, CakeSlice, Camera, Check, ChevronLeft, ChevronRight, CircleAlert, Coffee, Cookie, Croissant,
   CupSoda, Eye, FileText, GlassWater, ImagePlus, Languages, Leaf, Link2, MapPin, PenLine, Plus, Salad, Sandwich, ScanLine,
-  Search, Sparkles, Star, Store, Trash2, Upload, Utensils, X, Gift, HeartHandshake, LayoutGrid, Building2, ChevronDown,
+  Search, Sparkles, Star, Store, Trash2, Upload, Utensils, X, Gift, HeartHandshake, LayoutGrid, Building2, ChevronDown, CalendarClock,
 } from 'lucide-react'
 import Insights, { Meetups } from './Insights'
+import Tomorrow from './Tomorrow'
 import Offers from './Offers'
 import { Messages, Orders, Tables, attention, opsStats, useBranches } from './Ops'
 import type { Order } from './Ops'
@@ -672,15 +673,16 @@ function CustomerMenu({ place, cats, items }: { place: Place; cats: Category[]; 
 }
 
 /* ---------- After publishing: the café's dashboard ---------- */
-type View = 'overview' | 'orders' | 'tables' | 'messages' | 'offers' | 'meetups' | 'insights' | 'menu' | 'branches'
+type View = 'overview' | 'orders' | 'tables' | 'messages' | 'tomorrow' | 'offers' | 'meetups' | 'insights' | 'menu' | 'branches'
 const NAV: [View, typeof Coffee, string, string][] = [
   ['overview', LayoutGrid, 'نظرة عامة', 'Overview'],
   ['orders', ClipboardList, 'الطلبات', 'Orders'], ['tables', Armchair, 'الطاولات', 'Tables'], ['messages', MessageCircle, 'الرسائل', 'Messages'],
+  ['tomorrow', CalendarClock, 'الغد', 'Tomorrow'],
   ['offers', Gift, 'العروض', 'Offers'], ['meetups', HeartHandshake, 'اللقاءات', 'Meetups'],
   ['insights', ChartColumn, 'الأداء', 'Performance'], ['menu', Utensils, 'المنيو', 'Menu'], ['branches', Building2, 'الفروع', 'Branches'],
 ]
 // Sections that always belong to one branch; with «كل الفروع» selected they ask which branch first.
-const PER_BRANCH: View[] = ['orders', 'tables', 'messages', 'offers', 'meetups', 'insights']
+const PER_BRANCH: View[] = ['orders', 'tables', 'messages', 'tomorrow', 'offers', 'meetups', 'insights']
 // Sections that only make sense across all branches.
 const ALL_ONLY: View[] = ['overview', 'branches']
 function Live(props: MenuProps & { place: Place }) {
@@ -698,6 +700,8 @@ function Live(props: MenuProps & { place: Place }) {
   const [view, setViewRaw] = useState<View>('overview')
   const shownView: View = !isAll && ALL_ONLY.includes(view) ? 'orders' : isAll || view !== 'overview' ? view : 'orders'
   const [thread, setThread] = useState<string | null>(null)
+  // Tomorrow's checklist, per branch: the tasks the team has already done.
+  const [ready, setReady] = useState<Record<string, string[]>>({})
   const [switcher, setSwitcher] = useState(false)
   const [sideSwitch, setSideSwitch] = useState(false)
   const ops = isAll ? null : B.ops(branch)
@@ -751,7 +755,7 @@ function Live(props: MenuProps & { place: Place }) {
   const sum = (k: keyof ReturnType<typeof opsStats>) => scope.reduce((s, id) => s + statsOf(id)[k], 0)
   const newOrders = sum('newOrders'), unread = sum('unread'), lateTables = sum('lateBookings') + sum('overTime')
   const soldOut = isAll ? B.branches.reduce((s, b) => s + (soldBy[b.id]?.length ?? 0), 0) : viewItems.filter(i => i.soldOut).length
-  const badges: Record<View, number> = { overview: 0, orders: newOrders, tables: lateTables, messages: unread, offers: sum('returned'), meetups: 0, insights: 0, menu: soldOut, branches: 0 }
+  const badges: Record<View, number> = { overview: 0, orders: newOrders, tables: lateTables, messages: unread, tomorrow: 0, offers: sum('returned'), meetups: 0, insights: 0, menu: soldOut, branches: 0 }
   // Same count as the branch switcher: new orders, unread messages, and tables that need action.
   const totalBadge = scope.reduce((s, id) => s + attention(statsOf(id)), 0)
   const nav = NAV.filter(([id]) => multi || !ALL_ONLY.includes(id)).filter(([id]) => isAll || !ALL_ONLY.includes(id))
@@ -796,8 +800,9 @@ function Live(props: MenuProps & { place: Place }) {
           {shownView === 'orders' && <Orders key={`${branch}-${ordersTab}`} startTab={ordersTab} ops={ops} items={viewItems} notify={notify} openThread={openThread} />}
           {shownView === 'tables' && <Tables key={branch} ops={ops} notify={notify} openThread={openThread} />}
           {shownView === 'messages' && <Messages key={branch} ops={ops} open={thread} setOpen={setThread} />}
+          {shownView === 'tomorrow' && <Tomorrow key={branch} ops={ops} items={viewItems} done={ready[branch] ?? []} setDone={f => setReady(r => ({ ...r, [branch]: f(r[branch] ?? []) }))} openMenu={() => setView('menu')} />}
           {shownView === 'offers' && <Offers key={branch} ops={ops} notify={notify} />}
-          {shownView === 'meetups' && <Meetups key={branch} ops={ops} notify={notify} />}
+          {shownView === 'meetups' && <Meetups key={branch} ops={ops} notify={notify} onTomorrow={() => setView('tomorrow')} />}
           {shownView === 'insights' && <Insights key={branch} items={viewItems} branch={ops.branch} peers={B.branches} onMeetups={() => setView('meetups')} />}
         </>}
         {shownView === 'menu' && <>

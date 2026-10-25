@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { Armchair, Check, ChevronLeft, ChevronRight, CircleAlert, Clock, Copy, LayoutGrid, MessageCircle, Pause, PenLine, Plus, Receipt, Timer, Trash2, TrendingUp } from 'lucide-react'
-import { PlaceLogo, Sheet, useT } from './Owner'
+import { Check, ChevronLeft, ChevronRight, Clock, Copy, LayoutGrid, MessageCircle, PenLine, Plus, Receipt, Trash2, TrendingUp } from 'lucide-react'
+import { Sheet, useT } from './Owner'
 import { measure } from './Insights'
+import { visitsFor } from './Tomorrow'
 import { RangePicker, presetRange, useRangeText } from './Range'
 import type { Range } from './Range'
 import { attention, emptyBranch, nextPrefix, opsStats } from './Ops'
 import type { Branch, Branches as BranchStore, Ops } from './Ops'
-import type { Item, Place } from './data'
+import type { Place } from './data'
 
 // Running several branches from one dashboard.
 // Rules, so nothing is ambiguous: «كل الفروع» is for the overview, the shared menu and managing branches.
@@ -15,7 +16,7 @@ import type { Item, Place } from './data'
 // ask which branch first. Sold-out is per branch; the menu itself (items, prices, sections) is shared.
 type T2 = [string, string]
 type CmpKey = 'sales' | 'orders' | 'avgOrder' | 'prep' | 'seated' | 'returned'
-export type BranchView = 'orders' | 'tables' | 'messages' | 'offers' | 'meetups' | 'insights'
+export type BranchView = 'orders' | 'tables' | 'messages' | 'tomorrow' | 'offers' | 'meetups' | 'insights'
 
 export function useBranchText() {
   const { t, lang } = useT()
@@ -69,6 +70,7 @@ export function BranchPick({ B, view, onPick }: { B: BranchStore; view: BranchVi
       case 'tables': return [`${s.seated}/${s.tables}`, t(s.overTime ? `مشغولة · ${s.overTime} تجاوزت الوقت` : 'مشغولة', s.overTime ? `seated · ${s.overTime} over time` : 'seated'), s.overTime + s.lateBookings > 0]
       case 'messages': return [s.unread, t('غير مقروءة', 'unread'), s.unread > 0]
       case 'offers': return [s.returned, t('عادوا بعرض اليوم', 'came back today'), false]
+      case 'tomorrow': { const v = visitsFor(o.branch.scale); return [v.length, t(`زيارة مجدولة · ${v.filter(x => x.order).length} طلبات مسبقة`, `planned visits · ${v.filter(x => x.order).length} pre-orders`), false] }
       case 'meetups': return [o.branch.meetups.length, t('لقاءات هذا الأسبوع', 'meetups this week'), false]
       default: return [sar(s.sales), t('مبيعات اليوم', 'sales today'), false]
     }
@@ -94,7 +96,7 @@ export function BranchPick({ B, view, onPick }: { B: BranchStore; view: BranchVi
 // «كل الفروع»: today across every branch, each branch at a glance, and how the branches compare.
 export function Overview({ B, open }: { B: BranchStore; open: (id: string, view: BranchView) => void }) {
   const { t, branchName, hoursText, openNow } = useBranchText()
-  const { sar, tx, lang } = useT()
+  const { sar, lang } = useT()
   const Fwd = lang === 'ar' ? ChevronLeft : ChevronRight
   const rows = B.branches.map(b => ({ b, o: B.ops(b.id), s: opsStats(B.ops(b.id)), d: B.all[b.id] }))
   const tot = rows.reduce((a, { s }) => ({ sales: a.sales + s.sales, orders: a.orders + s.ordersToday, active: a.active + s.newOrders + s.inPrep + s.ready, seated: a.seated + s.seated, tables: a.tables + s.tables, unread: a.unread + s.unread }), { sales: 0, orders: 0, active: 0, seated: 0, tables: 0, unread: 0 })
