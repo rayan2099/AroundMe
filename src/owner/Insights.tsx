@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { ArrowDown, ArrowUp, SlidersHorizontal, CalendarClock, Check, ChevronLeft, ChevronRight, Clock, Lightbulb, Lock, MessageCircleHeart, ShoppingBag, TrendingUp } from 'lucide-react'
+import { ArrowDown, ArrowUp, SlidersHorizontal, Check, Clock, Gift, Lightbulb, Lock, MapPin, MessageCircleHeart, ShoppingBag, Tag, TrendingUp } from 'lucide-react'
 import { useT } from './Owner'
-import { OfferButton, OfferSent, OfferSheet } from './Offer'
+import { OfferSent, OfferSheet } from './Offer'
 import type { Branch, Ops } from './Ops'
 import type { Item } from './data'
-import { visitsFor } from './Tomorrow'
 import { RangePicker, inRange, prevRange, presetRange, rangeAgo, rangeDays, samePeriod, useRangeText } from './Range'
 import type { Range } from './Range'
 
@@ -413,11 +412,10 @@ const MEET_SEATS: [T2, number][] = [[['عند النافذة', 'By the window'],
 // Meetup visitors against everyone else: [meetup, others].
 const MEET_VS = { stay: [134, 96], orders: [2.1, 1.3], back: [61, 42] }
 
-export function Meetups({ ops, notify, onTomorrow }: { ops: Ops; notify: (s: string) => void; onTomorrow: () => void }) {
-  const Fwd = useT().lang === 'ar' ? ChevronLeft : ChevronRight
+export function Meetups({ ops, notify }: { ops: Ops; notify: (s: string) => void }) {
   const { t, lang, sar } = useT()
   const [offerFor, setOfferFor] = useState<number | null>(null)
-  const [filter, setFilter] = useState<'all' | 'again' | 'todo'>('all')
+  const [filter, setFilter] = useState<'all' | 'again'>('all')
   const [range, setRange] = useState<Range>(() => presetRange('week'))
   const pick = (x: T2) => (lang === 'ar' ? x[0] : x[1])
   const loc = lang === 'ar' ? 'ar-u-ca-gregory-nu-latn' : 'en-US'
@@ -434,7 +432,7 @@ export function Meetups({ ops, notify, onTomorrow }: { ops: Ops; notify: (s: str
   const mine = MEETUPS.map((m, i) => ({ m, i })).filter(({ m, i }) => ops.branch.meetups.includes(i) && inRange(range, daysAgo(m.when[0]).getTime()))
   const again = mine.filter(({ m }) => m.again)
   const todo = again.filter(({ i }) => !ops.offers[`M${i}`])
-  const shown = filter === 'again' ? again : filter === 'todo' ? todo : mine
+  const shown = filter === 'again' ? again : mine
   const w = weekFor(ops.branch.scale)
   const count = measure('meetups', ops.branch.scale, range)
   const before = measure('meetups', ops.branch.scale, prevRange(range))
@@ -442,91 +440,110 @@ export function Meetups({ ops, notify, onTomorrow }: { ops: Ops; notify: (s: str
   const avgMins = mine.length ? Math.round(mine.reduce((a, { m }) => a + m.mins, 0) / mine.length) : 21
   const perMeet = Math.round((mine.length ? mine.reduce((a, { m }) => a + m.ordered, 0) / mine.length : 2) * w.avgOrder)
   const againRate = mine.length ? Math.round((again.length / mine.length) * 100) : 0
-  const tv = visitsFor(ops.branch.scale)
-  const tmr = { need: tv.filter(v => v.kind === 'need').length, help: tv.filter(v => v.kind === 'help').length }
-  const repeat = MEETUPS.filter((m, i) => ops.branch.meetups.includes(i) && m.again).length
-  const bars = (rows: [T2, number][], cls = '') => (
-    <ul className={`o-top-items ${cls}`}>
-      {rows.map(([l, v]) => <li key={l[1]}><span className="o-top-name">{pick(l)}</span><span className="o-top-bar"><i style={{ width: `${(v / Math.max(...rows.map(r => r[1]))) * 100}%` }} /></span><b>{v}%</b></li>)}
-    </ul>
-  )
-  const vs = (label: string, [a, b]: number[], show: (x: number) => string) => (
-    <div className="o-meet-vs-row">
-      <span>{label}</span>
-      <div><i className="me" style={{ width: `${(a / Math.max(a, b)) * 100}%` }} /><b>{show(a)}</b></div>
-      <div><i style={{ width: `${(b / Math.max(a, b)) * 100}%` }} /><b>{show(b)}</b></div>
-    </div>
-  )
+  const pct = (a: number, b: number) => Math.round(((a - b) / b) * 100)
+  const topTime = [...MEET_TIMES].sort((x, y) => y[1] - x[1])[0]
+  const facts: [typeof Clock, string, T2, number][] = [
+    [Tag, t('الموضوع الأكثر', 'Top topic'), MEET_TOPICS[0][0], MEET_TOPICS[0][1]],
+    [Clock, t('الوقت الأكثر', 'Busiest time'), topTime[0], topTime[1]],
+    [MapPin, t('المكان المفضّل', 'Favourite spot'), MEET_SEATS[0][0], MEET_SEATS[0][1]],
+  ]
+  const value: [string, string, string, string][] = [
+    [t('مدة الجلسة', 'Time spent'), t(`${MEET_VS.stay[0]} د`, `${MEET_VS.stay[0]} min`), t(`${MEET_VS.stay[1]} د`, `${MEET_VS.stay[1]} min`), `\u2066+${pct(MEET_VS.stay[0], MEET_VS.stay[1])}%\u2069`],
+    [t('طلبات في الزيارة', 'Orders per visit'), MEET_VS.orders[0].toFixed(1), MEET_VS.orders[1].toFixed(1), `\u2066+${pct(MEET_VS.orders[0], MEET_VS.orders[1])}%\u2069`],
+    [t('عادوا خلال أسبوعين', 'Back within two weeks'), `${MEET_VS.back[0]}%`, `${MEET_VS.back[1]}%`, t(`\u2066+${MEET_VS.back[0] - MEET_VS.back[1]}\u2069 نقطة`, `+${MEET_VS.back[0] - MEET_VS.back[1]} pts`)],
+  ]
   return (
     <div className="o-meetups-page">
-      <button type="button" className="o-tmr-teaser" onClick={onTomorrow}>
-        <span className="o-tmr-teaser-icon"><CalendarClock /></span>
-        <span><b>{t('غدًا في كافيهك', 'Tomorrow at your café')}</b><small>{t(`${tmr.need} يحتاجون مساعدة · ${tmr.help} يستطيعون · ${repeat} لقاءات متكررة`, `${tmr.need} need help · ${tmr.help} can help · ${repeat} repeat meetups`)}</small></span>
-        <em>{t('افتح جدول الغد', 'Open plan')}<Fwd /></em>
-      </button>
-
       <RangePicker value={range} onChange={setRange} />
-      <div className="o-meet-stats">
-        <div><b>{count}</b><small>{t('لقاء في هذه الفترة', 'meetups in this period')}</small>{change !== 0 && <em className={change < 0 ? 'down' : ''}>{change < 0 ? <ArrowDown /> : <TrendingUp />}{Math.abs(change)}%</em>}</div>
-        <div><b>{againRate}%</b><small>{t('اتفقوا على لقاء جديد هنا', 'plan to meet here again')}</small></div>
-        <div><b>{sar(perMeet)}</b><small>{t('ينفقه كل لقاء في المتوسط', 'spent per meetup on average')}</small></div>
-        <div><b>{t(`${avgMins} د`, `${avgMins} min`)}</b><small>{t('متوسط اللقاء', 'average length')}</small></div>
-      </div>
-      <p className="o-note"><Lock />{t('لا نعرض الأسماء ولا الصور. يظهر لك نوع المساعدة ووقتها ومكانها فقط.', 'No names or photos. You only see the kind of help, when and where.')}</p>
 
       <div className="o-meet-grid">
-        <section className="o-card o-meet-vs">
-          <h3>{t('ماذا تضيف اللقاءات إلى كافيهك', 'What meetups add to your café')}</h3>
-          <p className="o-card-sub"><span className="o-meet-key me" />{t('من التقوا هنا', 'People who met here')}<span className="o-meet-key" />{t('باقي العملاء', 'Other customers')}</p>
-          {vs(t('مدة الجلسة', 'Time spent'), MEET_VS.stay, x => t(`${x} د`, `${x} min`))}
-          {vs(t('طلبات في الزيارة', 'Orders per visit'), MEET_VS.orders, x => x.toFixed(1))}
-          {vs(t('عادوا خلال أسبوعين', 'Back within two weeks'), MEET_VS.back, x => `${x}%`)}
-        </section>
-
-        <section className="o-card">
-          <h3>{t('عن ماذا يلتقون', 'What they meet about')}</h3>
-          <p className="o-card-sub">{t('نوع المساعدة في لقاءات هذه الفترة', 'The kind of help in meetups in this period')}</p>
-          {bars(MEET_TOPICS)}
-        </section>
-
-
-        <section className="o-card o-meet-when">
-          <h3>{t('متى وأين يلتقون', 'When and where they meet')}</h3>
-          <div className="o-meet-when-cols">
-            <div><h4 className="o-sub-h">{t('وقت اللقاء', 'Time of day')}</h4>{bars(MEET_TIMES)}</div>
-            <div><h4 className="o-sub-h">{t('المكان المفضّل', 'Favourite spot')}</h4>{bars(MEET_SEATS, 'needs')}</div>
+        <section className="o-card o-mt-sum">
+          <div className="o-mt-big">
+            <b>{count}</b>
+            <span>{t('لقاء في هذه الفترة', 'meetups in this period')}</span>
+            {change !== 0 && <em className={change < 0 ? 'down' : ''}>{change < 0 ? <ArrowDown /> : <TrendingUp />}{t(`${Math.abs(change)}% عن الفترة السابقة`, `${Math.abs(change)}% vs the period before`)}</em>}
           </div>
-          <p className="o-note"><Lightbulb />{t(`أغلب اللقاءات ${pick(MEET_TIMES[2][0])} ${pick(MEET_SEATS[0][0])}. أبقِ هذه الطاولات متاحة للحجز في ذلك الوقت.`, `Most meetups happen in the ${pick(MEET_TIMES[2][0]).toLowerCase()}, ${pick(MEET_SEATS[0][0]).toLowerCase()}. Keep those tables open for booking then.`)}</p>
+          <div className="o-mt-mini">
+            <div><b>{againRate}%</b><small>{t('اتفقوا على لقاء جديد هنا', 'plan to meet here again')}</small></div>
+            <div><b>{sar(perMeet)}</b><small>{t('إنفاق كل لقاء', 'spent per meetup')}</small></div>
+            <div><b>{t(`${avgMins} د`, `${avgMins} min`)}</b><small>{t('متوسط مدة اللقاء', 'average length')}</small></div>
+          </div>
+        </section>
+
+        {todo.length > 0 ? (
+          <section className="o-card o-mt-todo">
+            <h3><Gift />{t('ينتظرون عرضك', 'Waiting for your offer')}<span className="o-mt-count">{todo.length}</span></h3>
+            <p className="o-card-sub">{t('اتفق هؤلاء على اللقاء في كافيهك مرة أخرى. عرض صغير يشجعهم على العودة.', 'These pairs agreed to meet at your café again. A small offer brings them back.')}</p>
+            <ul>
+              {todo.map(({ m, i }) => (
+                <li key={i}>
+                  <span><b>{pick(m.topic)}</b><small>{meetWhen(m.when)}</small></span>
+                  <button type="button" className="o-mt-send" onClick={() => setOfferFor(i)}><Gift />{t('أرسل عرضًا', 'Send offer')}</button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : again.length > 0 && (
+          <section className="o-card o-mt-todo done">
+            <h3><Check />{t('لا أحد ينتظر عرضًا', 'No one is waiting for an offer')}</h3>
+            <p className="o-card-sub">{t('أرسلت عرضًا لكل من اتفقوا على اللقاء هنا مرة أخرى. تابع نتائجها في صفحة العروض.', 'You sent an offer to everyone meeting here again. Track them on the Offers page.')}</p>
+          </section>
+        )}
+      </div>
+
+      <div className="o-meet-grid">
+        <section className="o-card o-mt-value">
+          <h3>{t('ماذا تضيف اللقاءات إلى كافيهك', 'What meetups add to your café')}</h3>
+          <p className="o-card-sub">{t('من التقوا هنا مقارنة بباقي عملائك', 'People who met here, compared with your other customers')}</p>
+          <ul>
+            {value.map(([label, me, others, up]) => (
+              <li key={label}>
+                <span>{label}<small>{t(`باقي العملاء: \u2068${others}\u2069`, `Other customers: ${others}`)}</small></span>
+                <b>{me}</b>
+                <em><ArrowUp />{up}</em>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="o-card o-mt-facts">
+          <h3>{t('عن ماذا ومتى وأين يلتقون', 'What, when and where they meet')}</h3>
+          <p className="o-card-sub">{t('الأكثر تكرارًا في لقاءات هذه الفترة', 'The most common in meetups this period')}</p>
+          <div className="o-mt-fact-row">
+            {facts.map(([Icon, label, val, share]) => (
+              <div key={label}><Icon /><small>{label}</small><b>{pick(val)}</b><em>{t(`${share}% منها`, `${share}% of meetups`)}</em></div>
+            ))}
+          </div>
+          <p className="o-note"><Lightbulb />{t(`أبقِ طاولات ${pick(MEET_SEATS[0][0]).replace(/^عند /, '')} متاحة للحجز في ${pick(topTime[0])}.`, `Keep the tables ${pick(MEET_SEATS[0][0]).toLowerCase()} open for booking in the ${pick(topTime[0]).toLowerCase()}.`)}</p>
         </section>
       </div>
 
       <div className="o-meet-head">
-        <h3>{t('اللقاءات', 'Meetups')}</h3>
+        <h3>{t('سجل اللقاءات', 'Meetup log')}</h3>
         <div className="o-chips wrap">
-          {([['all', t(`الكل · ${mine.length}`, `All · ${mine.length}`)], ['again', t(`سيلتقون مجددًا · ${again.length}`, `Meeting again · ${again.length}`)], ['todo', t(`بلا عرض · ${todo.length}`, `No offer yet · ${todo.length}`)]] as const).map(([k, l]) => (
+          {([['all', t(`الكل · ${mine.length}`, `All · ${mine.length}`)], ['again', t(`سيلتقون مجددًا · ${again.length}`, `Meeting again · ${again.length}`)]] as const).map(([k, l]) => (
             <button key={k} type="button" className={`o-chip ${filter === k ? 'active' : ''}`} onClick={() => setFilter(k)}>{l}</button>
           ))}
         </div>
       </div>
-      {shown.length === 0 && <p className="o-empty">{filter === 'todo' ? t('أرسلت عرضًا لكل من اتفقوا على اللقاء مجددًا.', 'You sent an offer to everyone meeting again.') : t('لا توجد لقاءات في هذه الفترة. جرّب فترة أطول.', 'No meetups in this period. Try a longer one.')}</p>}
+      {shown.length === 0 && <p className="o-empty">{t('لا توجد لقاءات في هذه الفترة. جرّب فترة أطول.', 'No meetups in this period. Try a longer one.')}</p>}
       <ul className="o-meet-list">
         {shown.map(({ m, i }) => (
           <li key={i}>
-            <div className="o-meet-top"><span>{meetWhen(m.when)}</span><span>{pick(m.seat)}</span></div>
+            <div className="o-meet-top"><span>{meetWhen(m.when)}</span>{m.again && <span className="o-mt-pill"><MessageCircleHeart />{t('سيلتقون مجددًا', 'Meeting again')}</span>}</div>
             <b>{pick(m.topic)}</b>
             <p>{t(`${pick(m.helper)} ${m.f ? 'ساعدت' : 'ساعد'} ${pick(m.helped)}`, `${an(pick(m.helper))} helped ${an(pick(m.helped)).toLowerCase()}`)}</p>
             <div className="o-meet-facts">
+              <span><MapPin />{pick(m.seat)}</span>
               <span><Clock />{t(`${m.mins} دقيقة`, `${m.mins} min`)}</span>
               <span><ShoppingBag />{t(`${m.ordered === 1 ? 'طلب واحد' : m.ordered === 2 ? 'طلبان' : `${m.ordered} طلبات`} · ${sar(m.ordered * w.avgOrder)}`, `${m.ordered} order${m.ordered === 1 ? '' : 's'} · ${sar(m.ordered * w.avgOrder)}`)}</span>
             </div>
-            <div className="o-meet-tags">
-              {m.tags.map(tag => <span key={tag[1]}>{pick(tag)}</span>)}
-              {m.again && <span className="o-meet-again"><MessageCircleHeart />{t('اتفقوا على اللقاء هنا مرة أخرى', 'Plan to meet here again')}</span>}
-            </div>
-            {m.again && (ops.offers[`M${i}`] ? <OfferSent offer={ops.offers[`M${i}`]} pair /> : <OfferButton pair onClick={() => setOfferFor(i)} />)}
+            {ops.offers[`M${i}`] && <OfferSent offer={ops.offers[`M${i}`]} pair />}
           </li>
         ))}
       </ul>
+      <p className="o-fine"><Lock />{t('لا نعرض الأسماء ولا الصور. يظهر لك موضوع اللقاء ووقته ومكانه فقط.', 'No names or photos. You only see what the meetup was about, when and where.')}</p>
+
       {offerFor != null && (
         <OfferSheet pair onClose={() => setOfferFor(null)}
           onSend={o => { ops.setOffers(x => ({ ...x, [`M${offerFor}`]: { ...o, sentAt: Date.now(), src: 'meet', about: MEETUPS[offerFor].topic, pair: true } })); setOfferFor(null); notify(t('أرسلنا العرض إليهما، وسيصلهما إشعار «افتح هديتك»', 'Offer sent. They get an “Open your gift” notification')) }}

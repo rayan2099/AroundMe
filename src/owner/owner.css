@@ -1198,3 +1198,54 @@ html.o-web .o-ov-metrics { grid-template-columns: repeat(2, 1fr); }
   html.o-web .o-kpi-card { grid-column: 1 / -1; }
   html.o-web .o-kpi-grid { grid-template-columns: repeat(5, 1fr); gap: 10px; }
 }
+
+/* Meetups page: summary, who is waiting for an offer, what meetups add, the most common patterns, then the log */
+.o-meetups-page .o-meet-grid .o-card { margin: 0; }
+.o-mt-big { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.o-mt-big b { font-size: 40px; font-weight: 800; line-height: 1.1; color: var(--orange); }
+.o-mt-big span { font-size: 14px; font-weight: 700; }
+.o-mt-big em { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; padding: 2px 9px; border-radius: 99px; background: var(--green-soft); color: var(--green); font-style: normal; font-size: 12px; font-weight: 700; }
+.o-mt-big em.down { background: #fbeeec; color: #b5483a; }
+.o-mt-big em svg { width: 13px; }
+.o-mt-mini { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.o-mt-mini div { display: flex; flex-direction: column; gap: 2px; }
+.o-mt-mini b { font-size: 17px; font-weight: 800; }
+.o-mt-mini small { font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+.o-mt-todo { background: linear-gradient(135deg, #fff 0%, var(--orange-soft) 100%); border-color: #f0dccf; }
+.o-mt-todo h3 { display: flex; align-items: center; gap: 8px; }
+.o-mt-todo h3 svg { width: 18px; color: var(--orange); }
+.o-mt-todo.done { background: var(--green-soft); border-color: transparent; }
+.o-mt-todo.done h3 svg { color: var(--green); }
+.o-mt-count { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; background: var(--orange); color: #fff; font-size: 12px; display: inline-grid; place-items: center; }
+.o-mt-todo ul { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.o-mt-todo li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: #fff; border: 1px solid var(--border); }
+.o-mt-todo li > span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.o-mt-todo li b { font-size: 13.5px; }
+.o-mt-todo li small { font-size: 11.5px; color: var(--muted); }
+.o-mt-send { display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px; border-radius: 99px; background: var(--orange); color: #fff; font-size: 12.5px; font-weight: 700; white-space: nowrap; flex: none; }
+.o-mt-send svg { width: 14px; }
+.o-mt-value ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.o-mt-value li { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); }
+.o-mt-value li:first-child { border-top: 0; }
+.o-mt-value li > span { display: flex; flex-direction: column; font-size: 13.5px; font-weight: 700; }
+.o-mt-value li small { font-size: 11.5px; font-weight: 500; color: var(--muted); }
+.o-mt-value li b { font-size: 18px; font-weight: 800; }
+.o-mt-value li em { display: inline-flex; align-items: center; gap: 3px; min-width: 64px; justify-content: center; padding: 3px 8px; border-radius: 99px; background: var(--green-soft); color: var(--green); font-style: normal; font-size: 12px; font-weight: 700; }
+.o-mt-value li em svg { width: 12px; }
+.o-mt-fact-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.o-mt-fact-row div { display: flex; flex-direction: column; gap: 2px; padding: 12px 10px; border-radius: 14px; background: var(--bg); }
+.o-mt-fact-row svg { width: 18px; color: var(--green); margin-bottom: 4px; }
+.o-mt-fact-row small { font-size: 11px; color: var(--muted); }
+.o-mt-fact-row b { font-size: 13.5px; font-weight: 800; line-height: 1.35; }
+.o-mt-fact-row em { font-style: normal; font-size: 11.5px; color: var(--green); font-weight: 700; }
+.o-mt-facts .o-note { margin: 12px 0 0; }
+.o-mt-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 99px; background: var(--orange-soft); color: var(--orange); font-weight: 700; white-space: nowrap; }
+.o-mt-pill svg { width: 12px; }
+.o-meet-top { align-items: center; }
+.o-meet-list .o-offer-sent { margin-top: 10px; }
+.o-meetups-page > .o-fine { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 4px 0 0; }
+.o-meetups-page > .o-fine svg { width: 13px; }
+@media (min-width: 900px) {
+  html.o-web .o-meet-grid > :only-child { grid-column: 1 / -1; }
+  html.o-web .o-meet-grid { align-items: stretch; }
+}

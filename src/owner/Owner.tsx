@@ -805,7 +805,7 @@ function Live(props: MenuProps & { place: Place }) {
           {shownView === 'messages' && <Messages key={branch} ops={ops} open={thread} setOpen={setThread} />}
           {shownView === 'tomorrow' && <Tomorrow key={branch} ops={ops} items={viewItems} done={ready[branch] ?? []} setDone={f => setReady(r => ({ ...r, [branch]: f(r[branch] ?? []) }))} openMenu={() => setView('menu')} />}
           {shownView === 'offers' && <Offers key={branch} ops={ops} notify={notify} />}
-          {shownView === 'meetups' && <Meetups key={branch} ops={ops} notify={notify} onTomorrow={() => setView('tomorrow')} />}
+          {shownView === 'meetups' && <Meetups key={branch} ops={ops} notify={notify} />}
           {shownView === 'insights' && <Insights key={branch} items={viewItems} branch={ops.branch} peers={B.branches} />}
         </>}
         {shownView === 'menu' && <>
