@@ -1156,3 +1156,29 @@ html.o-web .o-ov-metrics { grid-template-columns: repeat(2, 1fr); }
   html.o-web .o-tmr-main { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; align-items: start; }
   html.o-web .o-tmr-side { position: sticky; top: 12px; }
 }
+.o-tmr-prep li { grid-template-columns: 24px 30px 1fr auto; }
+.o-tmr-prep li i { width: 22px; height: 22px; border-radius: 50%; background: #f0efec; display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 800; color: #4d4943; }
+.o-tmr-prep li:first-child i { background: var(--orange); color: #fff; }
+.o-tmr-group h4 svg { color: var(--orange) !important; }
+.o-tmr-alert { display: flex; align-items: center; gap: 10px; margin: 8px 0; padding: 10px 12px; border-radius: 12px; background: #fdf3f1; border: 1px solid #f0d2cc; font-size: 12.5px; color: #8a3a2f; }
+.o-tmr-alert svg { width: 16px; flex: none; }
+.o-tmr-alert span { flex: 1; }
+.o-tmr-alert button { flex: none; padding: 5px 10px; border-radius: 99px; background: #fff; border: 1px solid #e6c2bb; color: #b5483a; font-size: 12px; font-weight: 700; }
+.o-tmr-what { gap: 6px; }
+.o-tmr-job { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--border); background: #fff; text-align: start; }
+.o-tmr-job > i { width: 20px; height: 20px; flex: none; border-radius: 6px; border: 2px solid #cfcbc4; display: grid; place-items: center; }
+.o-tmr-job > i svg { width: 12px; color: #fff; }
+.o-tmr-job > span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.o-tmr-job b { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 800; }
+.o-tmr-job b svg { width: 13px; color: var(--muted); }
+.o-tmr-job small { font-size: 12px; color: #4d4943; line-height: 1.45; }
+.o-tmr-job em { flex: none; font-style: normal; font-size: 11.5px; font-weight: 700; color: var(--orange); white-space: nowrap; }
+.o-tmr-job.on { background: var(--green-soft); border-color: transparent; }
+.o-tmr-job.on > i { background: var(--green); border-color: var(--green); }
+.o-tmr-job.on em { color: var(--green); }
+.o-tmr-job.on small { opacity: 0.6; }
+.o-tmr-part li.on .o-tmr-what { opacity: 1; }
+.o-tmr-part li.on .o-tmr-time { color: var(--muted); }
+.o-tmr-prep li { grid-template-columns: 24px 1fr auto 74px; }
+.o-tmr-prep b { font-size: 13px; padding: 1px 8px; border-radius: 99px; background: var(--orange-soft); }
+.o-tmr-prep small { text-align: end; }

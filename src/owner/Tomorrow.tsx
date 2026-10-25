@@ -1,4 +1,4 @@
-import { Armchair, CalendarClock, Check, ChefHat, CircleAlert, HeartHandshake, Lock, ShoppingBag, Store, Users } from 'lucide-react'
+import { Armchair, CalendarClock, Check, ChefHat, CircleAlert, HeartHandshake, Lock, ShoppingBag, Store } from 'lucide-react'
 import { useT } from './Owner'
 import { MEETUPS, TOMORROW } from './Insights'
 import type { Visit } from './Insights'
@@ -9,7 +9,6 @@ import type { Item } from './data'
 // time, party size, table and pre-order, never a name. The checklist is built from those visits, and the
 // owner ticks it off as the team gets ready.
 type T2 = [string, string]
-type Task = { id: string; group: 'team' | 'meet' | 'menu'; text: string; sub?: string; warn?: boolean }
 const FIRST_HOUR = 7, LAST_HOUR = 23
 
 // A smaller branch gets fewer of the sample visits, so each branch's tomorrow looks like its own.
@@ -47,34 +46,28 @@ export default function Tomorrow({ ops, items, done, setDone, openMenu }: { ops:
   const prep = Object.values(withOrder.reduce<Record<string, { en: string; qty: number; at: [number, number] }>>((acc, v) => {
     v.order!.forEach(([en, q]) => { acc[en] ??= { en, qty: 0, at: v.at }; acc[en].qty += q })
     return acc
-  }, {})).sort((a, b) => b.qty - a.qty)
+  }, {})).sort((a, b) => a.at[0] * 60 + a.at[1] - (b.at[0] * 60 + b.at[1]) || b.qty - a.qty)
   const soldOutNeeded = prep.filter(p => itemOf(p.en)?.soldOut)
 
   const mins = (v: Visit) => v.at[0] * 60 + v.at[1]
   const helpers = [...need, ...help].sort((a, b) => mins(a) - mins(b))
   const orderText = (o: [string, number][]) => o.map(([en, q]) => `${q > 1 ? `${q} ` : ''}${itemName(en)}`).join(t('، ', ', '))
-  const kindLabel = (k: Visit['kind']) => k === 'visit' ? t('زيارة فقط', 'Just visiting') : k === 'need' ? t('يحتاج مساعدة', 'Needs help') : t('يستطيع المساعدة', 'Can help')
-  const vid = (v: Visit) => `v-${v.at.join(':')}-${v.tag[1]}`
-
-  // Before opening: what has to be settled before the first guest walks in.
-  const before: Task[] = [
-    ...soldOutNeeded.map(p => ({ id: `so-${p.en}`, group: 'menu' as const, warn: true, text: t(`«${itemName(p.en)}» نافد الآن، وعليه ${p.qty} طلب مسبق غدًا`, `“${itemName(p.en)}” is sold out now, with ${p.qty} pre-ordered for tomorrow`), sub: t('جهّزه وأعد تفعيله في المنيو قبل الافتتاح', 'Make it and turn it back on in the menu before opening') })),
-    { id: 'team-open', group: 'team', text: t(`الفريق جاهز قبل الافتتاح ${hourText(ops.branch.hours[0] % 24)}`, `Team ready before opening at ${hourText(ops.branch.hours[0] % 24)}`), sub: t(`أول زيارة ${visits[0] ? clock(...visits[0].at) : '—'}`, `First visit at ${visits[0] ? clock(...visits[0].at) : '—'}`) },
-    { id: 'team-peak', group: 'team', text: t(`موظف إضافي من ${hourText(peakH - 1)} إلى ${hourText(peakH + 2)}`, `An extra team member from ${hourText(peakH - 1)} to ${hourText(peakH + 2)}`), sub: t(`الذروة نحو ${hourText(peakH)}، قرابة ${load[peak]} أشخاص`, `Peak around ${hourText(peakH)}, about ${load[peak]} people`) },
-    ...(helpers.length ? [{ id: 'meet-seats', group: 'meet' as const, text: t('أبقِ طاولتين هادئتين للقاءات', 'Keep two quiet tables free for meetups'), sub: t(`من ${clock(...helpers[0].at)} إلى ${clock(...helpers.at(-1)!.at)}`, `From ${clock(...helpers[0].at)} to ${clock(...helpers.at(-1)!.at)}`) }] : []),
-  ]
-  // During the day: one row per visit, in time order. A visit with a table or a pre-order is something to get ready.
-  const actionable = visits.filter(v => v.seat || v.order)
-  const ids = new Set([...before.map(x => x.id), ...actionable.map(vid)])
-  const doneHere = done.filter(id => ids.has(id))
-  const total = ids.size
+  // Tomorrow's paid pre-orders and table bookings, with codes from the branch's letters, in time order.
+  type Job = { v: Visit; order?: string; booking?: string }
+  let on = 101, bn = 21
+  const jobs: Job[] = visits.filter(v => v.seat || v.order).map(v => ({ v, order: v.order ? `${ops.branch.prefix[0]}${on++}` : undefined, booking: v.seat ? `${ops.branch.prefix[1]}${bn++}` : undefined }))
+  const hash = (c: string) => `\u2066#${c}\u2069`
+  // Each pre-order and each table is its own check, so it's clear what is ready.
+  const checks = jobs.flatMap(j => [...(j.order ? [`o-${j.order}`] : []), ...(j.booking ? [`t-${j.booking}`] : [])])
+  const doneHere = done.filter(id => checks.includes(id))
+  const total = checks.length
   const pct = total ? Math.round((doneHere.length / total) * 100) : 100
   const toggle = (id: string) => setDone(d => (d.includes(id) ? d.filter(x => x !== id) : [...d, id]))
-  const next = actionable.find(v => !doneHere.includes(vid(v)))
-  const beforeLeft = before.filter(x => !doneHere.includes(x.id)).length
+  const isDone = (j: Job) => (!j.order || doneHere.includes(`o-${j.order}`)) && (!j.booking || doneHere.includes(`t-${j.booking}`))
+  const next = jobs.find(j => !isDone(j))
 
   const PARTS: [T2, number][] = [[['الصباح', 'Morning'], 12], [['الظهر', 'Midday'], 15], [['العصر', 'Afternoon'], 18], [['المساء', 'Evening'], 24]]
-  const parts = PARTS.map(([label, end], i) => ({ label, visits: visits.filter(v => v.at[0] < end && v.at[0] >= (i ? PARTS[i - 1][1] : 0)) })).filter(g => g.visits.length)
+  const parts = PARTS.map(([label, end], i) => ({ label, jobs: jobs.filter(({ v }) => v.at[0] < end && v.at[0] >= (i ? PARTS[i - 1][1] : 0)) })).filter(g => g.jobs.length)
   const Check2 = ({ on }: { on: boolean }) => <i>{on && <Check />}</i>
 
   return (
@@ -90,8 +83,8 @@ export default function Tomorrow({ ops, items, done, setDone, openMenu }: { ops:
         <p className="o-tmr-status">{pct === 100 ? t('كل شيء جاهز للغد 👌', 'All set for tomorrow 👌') : t(`أُنجز ${doneHere.length} من ${total}`, `${doneHere.length} of ${total} done`)}</p>
         {next && (
           <div className="o-tmr-next">
-            <small>{beforeLeft ? t(`ابدأ بـ«قبل الافتتاح» (${beforeLeft})، ثم أول تجهيز:`, `Start with “Before opening” (${beforeLeft}), then the first one:`) : t('التالي', 'Next up')}</small>
-            <b><span>{clock(...next.at)}</span>{[next.seat && t(`جهّز ${pick(next.seat)}`, `Set ${pick(next.seat).toLowerCase()}`), next.order && orderText(next.order)].filter(Boolean).join(' · ')}</b>
+            <small>{t('التالي', 'Next up')}</small>
+            <b><span>{clock(...next.v.at)}</span>{[next.order && t(`طلب ${hash(next.order)}`, `Order #${next.order}`), next.booking && t(`حجز ${hash(next.booking)} · ${pick(next.v.seat!)}`, `Booking #${next.booking} · ${pick(next.v.seat!)}`)].filter(Boolean).join(' · ')}</b>
           </div>
         )}
         <div className="o-tmr-kpis">
@@ -107,43 +100,36 @@ export default function Tomorrow({ ops, items, done, setDone, openMenu }: { ops:
       <div className="o-tmr-main">
         <section className="o-card o-tmr-tasks">
           <div className="o-tmr-group">
-            <h4><span className="o-tmr-step">1</span>{t('قبل الافتتاح', 'Before opening')}<small>{before.length - beforeLeft}/{before.length}</small></h4>
-            <ul>
-              {before.map(x => {
-                const on = doneHere.includes(x.id)
-                return (
-                  <li key={x.id} className={`${on ? 'on' : ''} ${x.warn ? 'warn' : ''}`}>
-                    <button type="button" role="checkbox" aria-checked={on} onClick={() => toggle(x.id)}>
-                      <Check2 on={on} />
-                      <span className="o-tmr-ic">{x.group === 'menu' ? <CircleAlert /> : x.group === 'meet' ? <HeartHandshake /> : <Users />}</span>
-                      <span><b>{x.text}</b>{x.sub && <small>{x.sub}</small>}</span>
-                    </button>
-                    {x.group === 'menu' && !on && <button type="button" className="o-tmr-link" onClick={openMenu}>{t('افتح المنيو', 'Open menu')}</button>}
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-
-          <div className="o-tmr-group">
-            <h4><span className="o-tmr-step">2</span>{t('خلال اليوم', 'During the day')}<small>{actionable.filter(v => doneHere.includes(vid(v))).length}/{actionable.length}</small></h4>
-            <p className="o-card-sub">{t('بالترتيب حسب الوقت. علّم الزيارة «جاهزة» بعد تجهيز طاولتها وطلبها.', 'In time order. Mark a visit ready once its table and order are set.')}</p>
+            <h4><CalendarClock />{t('خلال اليوم', 'During the day')}<small>{doneHere.length}/{total}</small></h4>
+            <p className="o-card-sub">{t('الطلبات المسبقة والطاولات المحجوزة حسب الوقت. علّم كلًّا منها عند تجهيزه.', 'Pre-orders and booked tables in time order. Tick each one off when it is ready.')}</p>
+            {soldOutNeeded.map(p => (
+              <p key={p.en} className="o-tmr-alert"><CircleAlert /><span>{t(`«${itemName(p.en)}» نافد الآن، وعليه ${p.qty} طلب مسبق غدًا. أعد تفعيله في المنيو بعد تجهيزه.`, `“${itemName(p.en)}” is sold out now, with ${p.qty} pre-ordered for tomorrow. Turn it back on in the menu once it's made.`)}</span><button type="button" onClick={openMenu}>{t('افتح المنيو', 'Open menu')}</button></p>
+            ))}
             {parts.map(g => (
               <section key={g.label[1]} className="o-tmr-part">
-                <h5>{pick(g.label)}<small>{t(`${g.visits.length} زيارات`, `${g.visits.length} visits`)}</small></h5>
+                <h5>{pick(g.label)}</h5>
                 <ul>
-                  {g.visits.map(v => {
-                    const act = !!(v.seat || v.order), on = doneHere.includes(vid(v)), isNext = next === v
+                  {g.jobs.map(j => {
+                    const oOn = !!j.order && doneHere.includes(`o-${j.order}`), tOn = !!j.booking && doneHere.includes(`t-${j.booking}`)
                     return (
-                      <li key={vid(v)} className={`${on ? 'on' : ''} ${act ? 'act' : 'info'} ${isNext ? 'next' : ''}`}>
-                        <span className="o-tmr-time">{clock(...v.at)}</span>
+                      <li key={j.order ?? j.booking} className={`${isDone(j) ? 'on' : ''} ${next === j ? 'next' : ''}`}>
+                        <span className="o-tmr-time">{clock(...j.v.at)}</span>
                         <div className="o-tmr-what">
-                          <b>{pick(v.tag)}<em className={`o-kind o-kind-${v.kind}`}>{kindLabel(v.kind)}</em></b>
-                          <small>{people(v.ppl)}</small>
-                          {v.seat && <span className="o-tmr-do"><Armchair />{t(`جهّز ${pick(v.seat)}`, `Set ${pick(v.seat).toLowerCase()}`)}</span>}
-                          {v.order && <span className="o-tmr-do"><ShoppingBag />{orderText(v.order)}</span>}
+                          {j.order && (
+                            <button type="button" role="checkbox" aria-checked={oOn} className={`o-tmr-job ${oOn ? 'on' : ''}`} onClick={() => toggle(`o-${j.order}`)}>
+                              <Check2 on={oOn} />
+                              <span><b><ShoppingBag />{t(`طلب ${hash(j.order)}`, `Order #${j.order}`)}</b><small>{orderText(j.v.order!)}</small></span>
+                              <em>{oOn ? t('الطلب جاهز', 'Order ready') : t('جهّز الطلب', 'Prepare order')}</em>
+                            </button>
+                          )}
+                          {j.booking && (
+                            <button type="button" role="checkbox" aria-checked={tOn} className={`o-tmr-job ${tOn ? 'on' : ''}`} onClick={() => toggle(`t-${j.booking}`)}>
+                              <Check2 on={tOn} />
+                              <span><b><Armchair />{t(`حجز ${hash(j.booking)}`, `Booking #${j.booking}`)}</b><small>{`${pick(j.v.seat!)} · ${people(j.v.ppl)}`}</small></span>
+                              <em>{tOn ? t('الطاولة جاهزة', 'Table ready') : t('جهّز الطاولة', 'Set table')}</em>
+                            </button>
+                          )}
                         </div>
-                        {act && <button type="button" role="checkbox" aria-checked={on} className="o-tmr-ready" onClick={() => toggle(vid(v))}><Check2 on={on} />{on ? t('جاهزة', 'Ready') : t('جاهزة؟', 'Ready?')}</button>}
                       </li>
                     )
                   })}
@@ -151,10 +137,20 @@ export default function Tomorrow({ ops, items, done, setDone, openMenu }: { ops:
               </section>
             ))}
           </div>
-          <p className="o-note"><Lock />{t('لا نعرض الأسماء ولا الصور. يظهر لك الوقت والعدد وسبب الزيارة فقط.', 'No names or photos. You only see the time, party size and reason for the visit.')}</p>
+          <p className="o-note"><Lock />{t('لا نعرض الأسماء ولا الصور. يظهر لك رقم الطلب أو الحجز ووقته فقط.', 'No names or photos. You only see the order or booking number and its time.')}</p>
         </section>
 
         <aside className="o-tmr-side">
+          {prep.length > 0 && (
+            <section className="o-card">
+              <h3><ChefHat />{t('ملخص التحضير', 'Prep summary')}</h3>
+              <p className="o-card-sub">{t('حسب أولوية التحضير: الأقرب استلامًا أولًا', 'By prep priority: earliest pickup first')}</p>
+              <ul className="o-tmr-prep">
+                {prep.map((p, i) => <li key={p.en} className={itemOf(p.en)?.soldOut ? 'warn' : ''}><i>{i + 1}</i><span>{itemName(p.en)}</span><b dir="ltr">×{p.qty}</b><small>{t(`قبل ${clock(...p.at)}`, `by ${clock(...p.at)}`)}</small></li>)}
+              </ul>
+            </section>
+          )}
+
           <section className="o-card o-tmr-load">
             <h3>{t('الازدحام المتوقع', 'Expected crowd')}</h3>
             <p className="o-card-sub">{t(`الذروة نحو ${hourText(peakH)}`, `Peak around ${hourText(peakH)}`)}</p>
@@ -163,16 +159,6 @@ export default function Tomorrow({ ops, items, done, setDone, openMenu }: { ops:
             </div>
             <div className="o-hours-axis" dir="ltr">{[7, 11, 15, 19, 22].map(h => <span key={h} dir={lang === 'ar' ? 'rtl' : 'ltr'}>{hourText(h)}</span>)}</div>
           </section>
-
-          {prep.length > 0 && (
-            <section className="o-card">
-              <h3><ChefHat />{t('ملخص التحضير', 'Prep summary')}</h3>
-              <p className="o-card-sub">{t('مجموع الطلبات المسبقة لكل صنف، ووقت أول استلام', 'Pre-ordered totals per item, and the first pickup')}</p>
-              <ul className="o-tmr-prep">
-                {prep.map(p => <li key={p.en} className={itemOf(p.en)?.soldOut ? 'warn' : ''}><b>{p.qty}</b><span>{itemName(p.en)}</span><small>{clock(...p.at)}</small></li>)}
-              </ul>
-            </section>
-          )}
 
           {helpers.length > 0 && (
             <section className="o-card o-meet-tmr">
