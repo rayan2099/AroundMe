@@ -583,6 +583,11 @@ export function Meetups({ ops, notify }: { ops: Ops; notify: (s: string) => void
   const perMeet = Math.round((mine.length ? mine.reduce((a, { m }) => a + m.ordered, 0) / mine.length : 2) * w.avgOrder)
   const againRate = mine.length ? Math.round((again.length / mine.length) * 100) : 0
   const tmr = { need: TOMORROW.filter(v => v.kind === 'need').length, help: TOMORROW.filter(v => v.kind === 'help').length }
+  // Tomorrow doesn't depend on the chosen period: planned visits who need or can help, and every pair who said they'd meet here again.
+  const slots = TOMORROW.filter(v => v.kind !== 'visit')
+  const repeat = MEETUPS.filter((m, i) => ops.branch.meetups.includes(i) && m.again).length
+  const tmrDate = daysAgo(-1)
+  const tomorrowText = `${tmrDate.toLocaleDateString(loc, { weekday: 'long' })} ${dayMonth(tmrDate)}`
   const bars = (rows: [T2, number][], cls = '') => (
     <ul className={`o-top-items ${cls}`}>
       {rows.map(([l, v]) => <li key={l[1]}><span className="o-top-name">{pick(l)}</span><span className="o-top-bar"><i style={{ width: `${(v / Math.max(...rows.map(r => r[1]))) * 100}%` }} /></span><b>{v}%</b></li>)}
@@ -597,12 +602,31 @@ export function Meetups({ ops, notify }: { ops: Ops; notify: (s: string) => void
   )
   return (
     <div className="o-meetups-page">
+      <section className="o-card o-meet-tmr">
+        <h3><CalendarClock />{t('غدًا في كافيهك', 'Tomorrow at your café')}<small>{tomorrowText}</small></h3>
+        <div className="o-tomorrow-row">
+          <div className="need"><b>{tmr.need}</b><small>{t('يحتاجون مساعدة', 'need help')}</small></div>
+          <div className="help"><b>{tmr.help}</b><small>{t('يستطيعون المساعدة', 'can help')}</small></div>
+          <div><b>{repeat}</b><small>{t('لقاءات متكررة متوقعة', 'repeat meetups expected')}</small></div>
+        </div>
+        <ul className="o-meet-slots">
+          {slots.map((v, i) => (
+            <li key={i} className={v.kind}>
+              <span className="o-meet-slot-time">{clock(v.at[0], v.at[1])}</span>
+              <span className="o-meet-slot-kind">{v.kind === 'need' ? t('يحتاج مساعدة', 'Needs help') : t('يستطيع المساعدة', 'Can help')}</span>
+              <b>{pick(v.tag)}</b>
+            </li>
+          ))}
+        </ul>
+        <p className="o-note"><Sparkles />{tmr.need > tmr.help ? t(`من يحتاجون المساعدة أكثر ممن يستطيعون بـ ${tmr.need - tmr.help}. عرض صغير لمن يساعد قد يحسم اختياره لكافيهك.`, `${tmr.need - tmr.help} more ${tmr.need - tmr.help === 1 ? 'person needs' : 'people need'} help than can help. A small perk for helpers could make them pick your café.`) : t('العدد متوازن بين من يحتاج المساعدة ومن يستطيعها.', 'Those who need help and those who can are evenly matched.')}</p>
+      </section>
+
       <RangePicker value={range} onChange={setRange} />
       <div className="o-meet-stats">
         <div><b>{count}</b><small>{t('لقاء في هذه الفترة', 'meetups in this period')}</small>{change !== 0 && <em className={change < 0 ? 'down' : ''}>{change < 0 ? <ArrowDown /> : <TrendingUp />}{Math.abs(change)}%</em>}</div>
-        <div><b>{t(`${avgMins} د`, `${avgMins} min`)}</b><small>{t('متوسط اللقاء', 'average length')}</small></div>
         <div><b>{againRate}%</b><small>{t('اتفقوا على لقاء جديد هنا', 'plan to meet here again')}</small></div>
         <div><b>{sar(perMeet)}</b><small>{t('ينفقه كل لقاء في المتوسط', 'spent per meetup on average')}</small></div>
+        <div><b>{t(`${avgMins} د`, `${avgMins} min`)}</b><small>{t('متوسط اللقاء', 'average length')}</small></div>
       </div>
       <p className="o-note"><Lock />{t('لا نعرض الأسماء ولا الصور. يظهر لك نوع المساعدة ووقتها ومكانها فقط.', 'No names or photos. You only see the kind of help, when and where.')}</p>
 
@@ -621,23 +645,14 @@ export function Meetups({ ops, notify }: { ops: Ops; notify: (s: string) => void
           {bars(MEET_TOPICS)}
         </section>
 
-        <section className="o-card">
-          <h3>{t('متى وأين يلتقون', 'When and where they meet')}</h3>
-          <h4 className="o-sub-h">{t('وقت اللقاء', 'Time of day')}</h4>
-          {bars(MEET_TIMES)}
-          <h4 className="o-sub-h">{t('المكان المفضّل', 'Favourite spot')}</h4>
-          {bars(MEET_SEATS, 'needs')}
-          <p className="o-note"><Lightbulb />{t(`أغلب اللقاءات ${pick(MEET_TIMES[2][0])} ${pick(MEET_SEATS[0][0])}. أبقِ هذه الطاولات متاحة للحجز في ذلك الوقت.`, `Most meetups happen in the ${pick(MEET_TIMES[2][0]).toLowerCase()}, ${pick(MEET_SEATS[0][0]).toLowerCase()}. Keep those tables open for booking then.`)}</p>
-        </section>
 
-        <section className="o-card o-meet-tmr">
-          <h3><CalendarClock />{t('غدًا في كافيهك', 'Tomorrow at your café')}</h3>
-          <div className="o-tomorrow-row">
-            <div><b>{tmr.need}</b><small>{t('يحتاجون مساعدة', 'need help')}</small></div>
-            <div><b>{tmr.help}</b><small>{t('يستطيعون المساعدة', 'can help')}</small></div>
-            <div><b>{again.length}</b><small>{t('لقاءات متكررة متوقعة', 'repeat meetups expected')}</small></div>
+        <section className="o-card o-meet-when">
+          <h3>{t('متى وأين يلتقون', 'When and where they meet')}</h3>
+          <div className="o-meet-when-cols">
+            <div><h4 className="o-sub-h">{t('وقت اللقاء', 'Time of day')}</h4>{bars(MEET_TIMES)}</div>
+            <div><h4 className="o-sub-h">{t('المكان المفضّل', 'Favourite spot')}</h4>{bars(MEET_SEATS, 'needs')}</div>
           </div>
-          <p className="o-note"><Sparkles />{tmr.need > tmr.help ? t(`من يحتاجون المساعدة أكثر ممن يستطيعون بـ ${tmr.need - tmr.help}. عرض صغير لمن يساعد قد يحسم اختياره لكافيهك.`, `${tmr.need - tmr.help} more ${tmr.need - tmr.help === 1 ? 'person needs' : 'people need'} help than can help. A small perk for helpers could make them pick your café.`) : t('العدد متوازن بين من يحتاج المساعدة ومن يستطيعها.', 'Those who need help and those who can are evenly matched.')}</p>
+          <p className="o-note"><Lightbulb />{t(`أغلب اللقاءات ${pick(MEET_TIMES[2][0])} ${pick(MEET_SEATS[0][0])}. أبقِ هذه الطاولات متاحة للحجز في ذلك الوقت.`, `Most meetups happen in the ${pick(MEET_TIMES[2][0]).toLowerCase()}, ${pick(MEET_SEATS[0][0]).toLowerCase()}. Keep those tables open for booking then.`)}</p>
         </section>
       </div>
 

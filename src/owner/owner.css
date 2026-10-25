@@ -1032,3 +1032,27 @@ html.o-web .o-ov-metrics { grid-template-columns: repeat(2, 1fr); }
   html.o-web .o-insights > .o-range-btn { grid-column: 1 / -1; max-width: 420px; }
   html.o-web .o-meetups-page > .o-range-btn, html.o-web .o-offers > .o-range-btn { max-width: 420px; }
 }
+/* Meetups: tomorrow first */
+.o-meetups-page > .o-meet-tmr { margin: 0; background: linear-gradient(135deg, #fff 0%, var(--orange-soft) 100%); border-color: #f0dccf; }
+.o-meet-tmr h3 { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.o-meet-tmr h3 svg { width: 18px; color: var(--orange); }
+.o-meet-tmr h3 small { font-size: 12px; font-weight: 600; color: var(--muted); margin-inline-start: auto; }
+.o-meetups-page .o-meet-tmr .o-tomorrow-row div { background: #fff; border: 1px solid var(--border); }
+.o-meet-tmr .o-tomorrow-row b { font-size: 24px; }
+.o-meet-tmr .o-tomorrow-row .need b { color: var(--orange); }
+.o-meet-tmr .o-tomorrow-row .help b { color: var(--green); }
+.o-meet-slots { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.o-meet-slots li { display: grid; grid-template-columns: 64px auto 1fr; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: #fff; border: 1px solid var(--border); font-size: 12.5px; }
+.o-meet-slot-time { font-weight: 800; white-space: nowrap; }
+.o-meet-slot-kind { padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.o-meet-slots li.need .o-meet-slot-kind { background: var(--orange-soft); color: var(--orange); }
+.o-meet-slots li.help .o-meet-slot-kind { background: var(--green-soft); color: var(--green); }
+.o-meet-slots b { font-size: 13px; text-align: end; }
+.o-meet-tmr .o-note { margin: 12px 0 0; }
+.o-meet-when { margin: 0; }
+.o-meet-when-cols { display: flex; flex-direction: column; }
+@media (min-width: 900px) {
+  html.o-web .o-meet-slots { display: grid; grid-template-columns: repeat(2, 1fr); }
+  html.o-web .o-meet-when-cols { display: grid; grid-template-columns: repeat(2, 1fr); gap: 28px; }
+  html.o-web .o-meet-when { grid-column: 1 / -1; }
+}
