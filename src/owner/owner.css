@@ -1292,3 +1292,40 @@ html.o-web .o-ov-metrics { grid-template-columns: repeat(2, 1fr); }
   html.o-web .o-mlog-status { justify-self: end; }
 }
 @media (max-width: 899px) { .o-mlog-status .none { display: none; } }
+
+/* Meetups: revenue first, then what it brings, then ways to earn more */
+.o-mt-hero { margin: 0; }
+.o-mt-tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.o-mt-tiles div { display: flex; flex-direction: column; gap: 2px; padding: 12px; border-radius: 16px; background: #fff; border: 1px solid var(--border); }
+.o-mt-tiles span { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.o-mt-tiles span svg { width: 14px; color: var(--green); }
+.o-mt-tiles b { font-size: 22px; font-weight: 800; line-height: 1.3; }
+.o-mt-tiles small { font-size: 11.5px; color: #6b6760; line-height: 1.45; }
+.o-mt-plays { margin: 0; }
+.o-mt-plays-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.o-mt-plays-head h3 { display: flex; align-items: center; gap: 8px; }
+.o-mt-plays-head h3 svg { width: 18px; color: var(--orange); }
+.o-mt-potential { flex: none; display: flex; flex-direction: column; align-items: center; padding: 8px 12px; border-radius: 14px; background: var(--green-soft); text-align: center; }
+.o-mt-potential b { font-size: 18px; font-weight: 800; color: var(--green); white-space: nowrap; }
+.o-mt-potential small { font-size: 10.5px; color: var(--green-dark); white-space: nowrap; }
+.o-mt-plays ul { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.o-mt-plays li { display: grid; grid-template-columns: 40px 1fr; gap: 10px 12px; padding: 14px; border-radius: 16px; border: 1px solid #f0dccf; background: linear-gradient(135deg, #fff 0%, var(--orange-soft) 100%); }
+.o-mt-plays li.live { background: #fff; border-color: var(--border); }
+.o-mt-play-icon { width: 40px; height: 40px; border-radius: 12px; background: #fff; color: var(--orange); display: grid; place-items: center; border: 1px solid #f0dccf; }
+.o-mt-play-icon svg { width: 19px; }
+li.live .o-mt-play-icon { color: var(--green); border-color: var(--border); background: var(--green-soft); }
+.o-mt-play-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.o-mt-play-text b { font-size: 14px; line-height: 1.4; }
+.o-mt-play-text small { font-size: 12px; color: #5f5b55; line-height: 1.6; }
+.o-mt-play-act { grid-column: 2; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.o-mt-play-act em { font-style: normal; font-size: 12.5px; font-weight: 800; color: var(--green); }
+.o-mt-play-act button { padding: 8px 14px; border-radius: 99px; background: var(--orange); color: #fff; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.o-mt-play-act i { display: inline-flex; align-items: center; gap: 5px; font-style: normal; font-size: 12.5px; font-weight: 700; color: var(--green); }
+.o-mt-play-act i svg { width: 14px; }
+@media (min-width: 900px) {
+  html.o-web .o-mt-tiles { grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  html.o-web .o-mt-tiles div { padding: 16px 18px; }
+  html.o-web .o-mt-plays ul { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  html.o-web .o-mt-plays li { grid-template-rows: auto 1fr; }
+  html.o-web .o-mt-play-act { align-self: end; }
+}

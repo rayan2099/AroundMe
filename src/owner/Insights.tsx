@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { ArrowDown, ArrowUp, SlidersHorizontal, Check, Clock, Gift, Lightbulb, Lock, MapPin, MessageCircleHeart, Tag, TrendingUp } from 'lucide-react'
+import { ArrowDown, ArrowUp, SlidersHorizontal, Check, Clock, Coffee, Gift, HeartHandshake, Lightbulb, Lock, MapPin, MessageCircleHeart, Repeat, ShoppingBag, Sparkles, TrendingUp } from 'lucide-react'
 import { useT } from './Owner'
 import { OfferSheet } from './Offer'
 import type { Branch, Ops } from './Ops'
 import type { Item } from './data'
 import { RangePicker, inRange, prevRange, presetRange, rangeAgo, rangeDays, samePeriod, useRangeText } from './Range'
 import type { Range } from './Range'
+import { visitsFor } from './Tomorrow'
 
 type Period = 'day' | 'week' | 'month'
 // Sample numbers for a café's first weeks on AroundMe. A week is the base; a day and a month are scaled from it.
@@ -412,8 +413,12 @@ const MEET_SEATS: [T2, number][] = [[['عند النافذة', 'By the window'],
 // Meetup visitors against everyone else: [meetup, others].
 const MEET_VS = { stay: [134, 96], orders: [2.1, 1.3], back: [61, 42] }
 
+// Meetup ideas the owner turned on, per branch (kept while the dashboard is open).
+const meetPlays: Record<string, string[]> = {}
+
 export function Meetups({ ops, notify }: { ops: Ops; notify: (s: string) => void }) {
-  const { t, lang, sar } = useT()
+  const { t, lang, sar: sar0 } = useT()
+  const sar = (x: number) => sar0(x.toLocaleString('en-US'))
   const [offerFor, setOfferFor] = useState<number | null>(null)
   const [filter, setFilter] = useState<'all' | 'again'>('all')
   const [range, setRange] = useState<Range>(() => presetRange('week'))
@@ -422,11 +427,6 @@ export function Meetups({ ops, notify }: { ops: Ops; notify: (s: string) => void
   const dayMonth = (d: Date) => d.toLocaleDateString(loc, { day: 'numeric', month: 'long' })
   const daysAgo = (n: number) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n); return d }
   const clock = (h: number, m: number) => lang === 'ar' ? `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'ص' : 'م'}` : `${h % 12 || 12}:${String(m).padStart(2, '0')}${h < 12 ? 'am' : 'pm'}`
-  const meetWhen = ([ago, h, m]: [number, number, number]) => {
-    const d = daysAgo(ago)
-    const day = ago === 0 ? t('اليوم', 'Today') : ago === 1 ? t('أمس', 'Yesterday') : d.toLocaleDateString(loc, { weekday: 'long' })
-    return `${day} ${dayMonth(d)} · ${clock(h, m)}`
-  }
   const an = (x: string) => `${/^[aeio]|^u(?!ni)/i.test(x) ? 'An' : 'A'} ${x.toLowerCase()}`
   // Only meetups inside the chosen period.
   const mine = MEETUPS.map((m, i) => ({ m, i })).filter(({ m, i }) => ops.branch.meetups.includes(i) && inRange(range, daysAgo(m.when[0]).getTime()))
@@ -437,86 +437,90 @@ export function Meetups({ ops, notify }: { ops: Ops; notify: (s: string) => void
   const count = measure('meetups', ops.branch.scale, range)
   const before = measure('meetups', ops.branch.scale, prevRange(range))
   const change = before ? Math.round(((count - before) / before) * 100) : 0
-  const avgMins = mine.length ? Math.round(mine.reduce((a, { m }) => a + m.mins, 0) / mine.length) : 21
   const perMeet = Math.round((mine.length ? mine.reduce((a, { m }) => a + m.ordered, 0) / mine.length : 2) * w.avgOrder)
-  const againRate = mine.length ? Math.round((again.length / mine.length) * 100) : 0
-  const pct = (a: number, b: number) => Math.round(((a - b) / b) * 100)
+  const days = rangeDays(range)
+  const weekly = (n: number) => Math.round((n / days) * 7)
   const topTime = [...MEET_TIMES].sort((x, y) => y[1] - x[1])[0]
-  const facts: [typeof Clock, string, T2, number][] = [
-    [Tag, t('الموضوع الأكثر', 'Top topic'), MEET_TOPICS[0][0], MEET_TOPICS[0][1]],
-    [Clock, t('الوقت الأكثر', 'Busiest time'), topTime[0], topTime[1]],
-    [MapPin, t('المكان المفضّل', 'Favourite spot'), MEET_SEATS[0][0], MEET_SEATS[0][1]],
+  // What meetups bring in, from the sample shares: two people per meetup, 44% of them new to the café, 61% back within two weeks.
+  const meetRev = count * perMeet
+  const people = count * 2
+  const newPeople = Math.round(people * 0.44)
+  const backVisits = Math.round(people * (MEET_VS.back[0] / 100))
+  const quietRev = Math.round(meetRev * (topTime[1] / 100))
+  const tv = visitsFor(ops.branch.scale)
+  const tmr = { need: tv.filter(v => v.kind === 'need').length, help: tv.filter(v => v.kind === 'help').length }
+  const done = meetPlays[ops.branch.id] ?? (meetPlays[ops.branch.id] = [])
+  const [, bump] = useState(0)
+  const turnOn = (k: string, msg: string) => { done.push(k); bump(x => x + 1); notify(msg) }
+  const tiles: [typeof Clock, string, string, string][] = [
+    [Sparkles, t('عملاء جدد', 'New customers'), String(newPeople), t('زاروا كافيهك أول مرة من أجل لقاء', 'visited your café for the first time for a meetup')],
+    [Repeat, t('زيارات عودة', 'Return visits'), String(backVisits), t(`عادوا خلال أسبوعين · نحو ${sar(backVisits * w.avgOrder)}`, `came back within two weeks · about ${sar(backVisits * w.avgOrder)}`)],
+    [Clock, t('دخل في وقتك الهادئ', 'Quiet-hours sales'), sar(quietRev), t(`\u2066${topTime[1]}%\u2069 من اللقاءات بين 1 و5 عصرًا`, `${topTime[1]}% of meetups land between 1 and 5pm`)],
+    [ShoppingBag, t('طلبات أكثر', 'Bigger orders'), `⁦+${Math.round(((MEET_VS.orders[0] - MEET_VS.orders[1]) / MEET_VS.orders[1]) * 100)}%⁩`, t(`${MEET_VS.orders[0]} طلب في الزيارة مقابل ${MEET_VS.orders[1]} لباقي العملاء`, `${MEET_VS.orders[0]} orders a visit vs ${MEET_VS.orders[1]} for other customers`)],
   ]
-  const value: [string, string, string, string][] = [
-    [t('مدة الجلسة', 'Time spent'), t(`${MEET_VS.stay[0]} د`, `${MEET_VS.stay[0]} min`), t(`${MEET_VS.stay[1]} د`, `${MEET_VS.stay[1]} min`), `\u2066+${pct(MEET_VS.stay[0], MEET_VS.stay[1])}%\u2069`],
-    [t('طلبات في الزيارة', 'Orders per visit'), MEET_VS.orders[0].toFixed(1), MEET_VS.orders[1].toFixed(1), `\u2066+${pct(MEET_VS.orders[0], MEET_VS.orders[1])}%\u2069`],
-    [t('عادوا خلال أسبوعين', 'Back within two weeks'), `${MEET_VS.back[0]}%`, `${MEET_VS.back[1]}%`, t(`\u2066+${MEET_VS.back[0] - MEET_VS.back[1]}\u2069 نقطة`, `+${MEET_VS.back[0] - MEET_VS.back[1]} pts`)],
+  // Ways to earn more from meetups, each with a rough weekly gain and one button.
+  const plays: { k: string; icon: typeof Clock; title: string; why: string; gain: number; once?: boolean; cta: string; on: string; act: () => void; live: boolean }[] = [
+    { k: 'offer', icon: Gift, live: todo.length === 0,
+      title: todo.length ? t(`أرسل عرض عودة إلى ${todo.length === 1 ? 'لقاء واحد' : todo.length === 2 ? 'لقاءين' : `${todo.length} لقاءات`}`, `Send a come-back offer to ${todo.length} meetup${todo.length === 1 ? '' : 's'}`) : t('عروض العودة', 'Come-back offers'),
+      why: todo.length ? t(`اتفقوا على اللقاء في كافيهك مرة أخرى. عرض صغير يضمن أن يعودوا إليك لا إلى غيرك. «${pick(todo[0].m.topic)}»`, `They agreed to meet at your café again. A small offer makes sure they come back to you. “${pick(todo[0].m.topic)}”`) : t('أرسلت عرضًا لكل من اتفقوا على العودة. تابع النتائج في صفحة العروض.', 'Everyone meeting again has an offer. Track results on the Offers page.'),
+      gain: todo.length * perMeet, once: true, cta: t('أرسل عرضًا', 'Send offer'), on: t('أُرسلت كل العروض', 'All offers sent'), act: () => todo[0] && setOfferFor(todo[0].i) },
+    { k: 'table', icon: MapPin, live: done.includes('table'),
+      title: t(`خصّص طاولة للقاءات ${pick(MEET_SEATS[0][0])} في ${pick(topTime[0])}`, `Set a meetup table ${pick(MEET_SEATS[0][0]).toLowerCase()} in the ${pick(topTime[0]).toLowerCase()}`),
+      why: t(`\u2066${topTime[1]}%\u2069 من اللقاءات في وقتك الهادئ، و\u2066${MEET_SEATS[0][1]}%\u2069 منها ${pick(MEET_SEATS[0][0])}. يقترح التطبيق هذه الطاولة لمن يتفقون على اللقاء، فيأتون في الوقت الذي تحتاجهم فيه.`, `${topTime[1]}% of meetups fall in your quiet hours, ${MEET_SEATS[0][1]}% of them ${pick(MEET_SEATS[0][0]).toLowerCase()}. The app suggests this table to people arranging a meetup, so they come when you need them.`),
+      gain: Math.max(1, weekly(count * 0.2)) * perMeet, cta: t('خصّص الطاولة', 'Set the table'), on: t('طاولة اللقاءات مفعّلة', 'Meetup table is on'),
+      act: () => turnOn('table', t('فعّلنا طاولة اللقاءات، وسيقترحها التطبيق في وقتك الهادئ', 'Meetup table is on. The app will suggest it in your quiet hours')) },
+    { k: 'perk', icon: HeartHandshake, live: done.includes('perk'),
+      title: t('كافئ من يساعد بمشروب مجاني', 'Give helpers a free drink'),
+      why: t(`غدًا ${tmr.need} يحتاجون مساعدة و${tmr.help} فقط يستطيعون. من يساعد يختار الكافيه، ومكافأة صغيرة تجعله يختار كافيهك ويأتي معه من يحتاج المساعدة.`, `Tomorrow ${tmr.need} people need help and only ${tmr.help} can help. Helpers pick the café, and a small perk makes them pick yours, bringing the person they help with them.`),
+      gain: Math.max(1, weekly(count * 0.15)) * (perMeet - 16), cta: t('فعّل المكافأة', 'Turn on the perk'), on: t('مكافأة المساعدين مفعّلة', 'Helper perk is on'),
+      act: () => turnOn('perk', t('فعّلنا المكافأة. سيرى المساعدون أن لهم مشروبًا مجانيًا في كافيهك', 'Perk is on. Helpers will see a free drink waiting at your café')) },
+    { k: 'bundle', icon: Coffee, live: done.includes('bundle'),
+      title: t('أضف «باقة جلسة عمل»', 'Add a “work session” bundle'),
+      why: t(`يجلس من يلتقون ${MEET_VS.stay[0]} دقيقة في المتوسط، وأغلب لقاءاتهم عن ${pick(MEET_TOPICS[0][0])}. باقة قهوتين ومعجنات بسعر واحد تظهر لهم عند تأكيد اللقاء.`, `People who meet stay ${MEET_VS.stay[0]} minutes on average, mostly on ${pick(MEET_TOPICS[0][0]).toLowerCase()}. Two coffees and a pastry at one price, shown when they confirm a meetup.`),
+      gain: weekly(count * 0.3) * 12, cta: t('أضف الباقة', 'Add bundle'), on: t('الباقة تظهر عند تأكيد اللقاء', 'Bundle shows when a meetup is confirmed'),
+      act: () => turnOn('bundle', t('أضفنا الباقة، وستظهر لمن يؤكدون لقاءً في كافيهك', 'Bundle added. It shows to people confirming a meetup at your café')) },
   ]
+  const open = plays.filter(p => !p.live)
+  const potential = open.filter(p => !p.once).reduce((x, p) => x + p.gain, 0)
   return (
     <div className="o-meetups-page">
       <RangePicker value={range} onChange={setRange} />
 
-      <div className="o-meet-grid">
-        <section className="o-card o-mt-sum">
-          <div className="o-mt-big">
-            <b>{count}</b>
-            <span>{t('لقاء في هذه الفترة', 'meetups in this period')}</span>
-            {change !== 0 && <em className={change < 0 ? 'down' : ''}>{change < 0 ? <ArrowDown /> : <TrendingUp />}{t(`${Math.abs(change)}% عن الفترة السابقة`, `${Math.abs(change)}% vs the period before`)}</em>}
-          </div>
-          <div className="o-mt-mini">
-            <div><b>{againRate}%</b><small>{t('اتفقوا على لقاء جديد هنا', 'plan to meet here again')}</small></div>
-            <div><b>{sar(perMeet)}</b><small>{t('إنفاق كل لقاء', 'spent per meetup')}</small></div>
-            <div><b>{t(`${avgMins} د`, `${avgMins} min`)}</b><small>{t('متوسط مدة اللقاء', 'average length')}</small></div>
-          </div>
-        </section>
-
-        {todo.length > 0 ? (
-          <section className="o-card o-mt-todo">
-            <h3><Gift />{t('ينتظرون عرضك', 'Waiting for your offer')}<span className="o-mt-count">{todo.length}</span></h3>
-            <p className="o-card-sub">{t('اتفق هؤلاء على اللقاء في كافيهك مرة أخرى. عرض صغير يشجعهم على العودة.', 'These pairs agreed to meet at your café again. A small offer brings them back.')}</p>
-            <ul>
-              {todo.map(({ m, i }) => (
-                <li key={i}>
-                  <span><b>{pick(m.topic)}</b><small>{meetWhen(m.when)}</small></span>
-                  <button type="button" className="o-mt-send" onClick={() => setOfferFor(i)}><Gift />{t('أرسل عرضًا', 'Send offer')}</button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : again.length > 0 && (
-          <section className="o-card o-mt-todo done">
-            <h3><Check />{t('لا أحد ينتظر عرضًا', 'No one is waiting for an offer')}</h3>
-            <p className="o-card-sub">{t('أرسلت عرضًا لكل من اتفقوا على اللقاء هنا مرة أخرى. تابع نتائجها في صفحة العروض.', 'You sent an offer to everyone meeting here again. Track them on the Offers page.')}</p>
-          </section>
-        )}
+      <div className="o-hero-stat o-mt-hero">
+        <small>{t('دخل جاءك من اللقاءات', 'Revenue from meetups')}</small>
+        <b>{sar(meetRev)}</b>
+        <span>{change !== 0 && <em>{change < 0 ? <ArrowDown /> : <TrendingUp />}{Math.abs(change)}%</em>}{t(`${count} لقاء · ${people} عميل · ${sar(perMeet)} لكل لقاء`, `${count} meetups · ${people} customers · ${sar(perMeet)} per meetup`)}</span>
       </div>
 
-      <div className="o-meet-grid">
-        <section className="o-card o-mt-value">
-          <h3>{t('ماذا تضيف اللقاءات إلى كافيهك', 'What meetups add to your café')}</h3>
-          <p className="o-card-sub">{t('من التقوا هنا مقارنة بباقي عملائك', 'People who met here, compared with your other customers')}</p>
-          <ul>
-            {value.map(([label, me, others, up]) => (
-              <li key={label}>
-                <span>{label}<small>{t(`باقي العملاء: \u2068${others}\u2069`, `Other customers: ${others}`)}</small></span>
-                <b>{me}</b>
-                <em><ArrowUp />{up}</em>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="o-card o-mt-facts">
-          <h3>{t('عن ماذا ومتى وأين يلتقون', 'What, when and where they meet')}</h3>
-          <p className="o-card-sub">{t('الأكثر تكرارًا في لقاءات هذه الفترة', 'The most common in meetups this period')}</p>
-          <div className="o-mt-fact-row">
-            {facts.map(([Icon, label, val, share]) => (
-              <div key={label}><Icon /><small>{label}</small><b>{pick(val)}</b><em>{t(`${share}% منها`, `${share}% of meetups`)}</em></div>
-            ))}
-          </div>
-          <p className="o-note"><Lightbulb />{t(`أبقِ طاولات ${pick(MEET_SEATS[0][0]).replace(/^عند /, '')} متاحة للحجز في ${pick(topTime[0])}.`, `Keep the tables ${pick(MEET_SEATS[0][0]).toLowerCase()} open for booking in the ${pick(topTime[0]).toLowerCase()}.`)}</p>
-        </section>
+      <div className="o-mt-tiles">
+        {tiles.map(([Icon, label, val, sub]) => (
+          <div key={label}><span><Icon />{label}</span><b>{val}</b><small>{sub}</small></div>
+        ))}
       </div>
+
+      <section className="o-card o-mt-plays">
+        <div className="o-mt-plays-head">
+          <div>
+            <h3><Lightbulb />{t('فرص لزيادة دخلك', 'Ways to earn more')}</h3>
+            <p className="o-card-sub">{open.length ? t('مبنية على لقاءات كافيهك. فعّل ما يناسبك بضغطة.', 'Based on meetups at your café. Turn on what suits you in one tap.') : t('فعّلت كل الفرص. تابع أثرها هنا وفي صفحة العروض.', 'All on. Watch their effect here and on the Offers page.')}</p>
+          </div>
+          {potential > 0 && <div className="o-mt-potential"><small>{t('دخل إضافي متوقع', 'Possible extra')}</small><b>{t(`+${sar(potential)}`, `+${sar(potential)}`)}</b><small>{t('في الأسبوع تقريبًا', 'a week, roughly')}</small></div>}
+        </div>
+        <ul>
+          {[...open, ...plays.filter(p => p.live)].map(p => (
+            <li key={p.k} className={p.live ? 'live' : ''}>
+              <span className="o-mt-play-icon"><p.icon /></span>
+              <div className="o-mt-play-text"><b>{p.title}</b><small>{p.why}</small></div>
+              <div className="o-mt-play-act">
+                {p.live ? <i><Check />{p.on}</i> : <>
+                  <em>{p.once ? t(`≈ +${sar(p.gain)} عند عودتهم`, `≈ +${sar(p.gain)} when they return`) : t(`≈ +${sar(p.gain)} أسبوعيًا`, `≈ +${sar(p.gain)} a week`)}</em>
+                  <button type="button" onClick={p.act}>{p.cta}</button>
+                </>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <div className="o-meet-head">
         <h3>{t('سجل اللقاءات', 'Meetup log')}</h3>
