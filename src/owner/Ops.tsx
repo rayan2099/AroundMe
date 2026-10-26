@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Armchair, BellRing, Lock, Trash2, Check, ChefHat, CircleAlert, Clock, Gift, HandPlatter, LayoutGrid, MessageCircle, House, Navigation, Pause, PenLine, Play, Plus, Rows3, Search, Send, ShoppingBag, Timer, Users } from 'lucide-react'
+import { Armchair, BellRing, Lock, Trash2, Hourglass, Zap, Sparkles, ChevronLeft, ChevronRight, Check, ChefHat, CircleAlert, Clock, Gift, HandPlatter, LayoutGrid, MessageCircle, House, Navigation, Pause, PenLine, Play, Plus, Rows3, Search, Send, ShoppingBag, Timer, Users } from 'lucide-react'
 import { Sheet, useT } from './Owner'
 import { useCan } from './Staff'
+import { DAY, RangePicker, dayStart, presetRange, samePeriod, today, useRangeText } from './Range'
+import type { Range } from './Range'
 import { OfferButton, OfferSent, OfferSheet, useOfferText } from './Offer'
 import type { Offer } from './Offer'
 import type { Item } from './data'
@@ -850,15 +852,42 @@ const topicOf = (text: string): Topic =>
     : /مكان|شاحن|طاولة|جلسة|seat|table|charger/i.test(text) ? 'place'
     : 'ask'
 
+// Past days' chats, for the calendar: a steady sample per day, sized to the branch.
+const PAST_ASK: Record<Topic, [string, string][]> = {
+  change: [['هل يمكن تحضيره بحليب الشوفان؟', 'Can you make it with oat milk?'], ['أريد إضافة كرواسون للطلب', "I'd like to add a croissant"], ['بدون سكر من فضلكم', 'No sugar please']],
+  late: [['سأتأخر عشر دقائق، احجزوا الطاولة', "I'll be 10 minutes late, please hold the table"], ['نحن في الطريق', "We're on our way"]],
+  status: [['هل الطلب جاهز؟', 'Is the order ready?'], ['متى يجهز طلبي؟', 'When will my order be ready?']],
+  thanks: [['شكرًا، كان رائعًا 🤍', 'Thanks, it was great 🤍'], ['القهوة ممتازة اليوم', 'Great coffee today']],
+  place: [['هل يوجد مكان قريب من الشاحن؟', 'Is there a seat near a charger?'], ['هل الجلسات الخارجية متاحة؟', 'Is outdoor seating open?']],
+  ask: [['هل لديكم خيارات نباتية؟', 'Do you have vegan options?'], ['هل يوجد واي فاي؟', 'Is there Wi-Fi?']],
+}
+type PastChat = { code: string; at: number; ask: [string, string]; topic: Topic; reply: number; booking: boolean }
+function pastChats(day: number, scale: number, prefix: [string, string]): PastChat[] {
+  let x = (Math.floor(day / DAY) * 9301 + 49297) % 233280
+  const rnd = () => (x = (x * 9301 + 49297) % 233280) / 233280
+  const n = Math.max(2, Math.round((5 + rnd() * 5) * scale))
+  const topics = Object.keys(PAST_ASK) as Topic[]
+  return Array.from({ length: n }, (_, i) => {
+    const topic = topics[Math.floor(rnd() * topics.length)]
+    const list = PAST_ASK[topic]
+    const booking = topic === 'late' && rnd() < 0.5
+    return { code: `${booking ? prefix[1] : prefix[0]}${10 + Math.floor(rnd() * 80)}`, at: day + (8 + i * (14 / n)) * 3_600_000 + Math.floor(rnd() * 40) * min, ask: list[Math.floor(rnd() * list.length)], topic, reply: 1 + Math.floor(rnd() * rnd() * 12), booking }
+  }).reverse()
+}
+
 export function Messages({ ops, items, open, setOpen, saved, setSaved }: { ops: Ops; items: Item[]; open: string | null; setOpen: (c: string | null) => void; saved: string[]; setSaved: (f: (s: string[]) => string[]) => void }) {
   const { t, tx, clock, mins, pick, people } = useFmt()
+  const { rangeName, loc } = useRangeText()
   const { threads, setThreads, orders, bookings, tables, now } = ops
   const can = useCan()
+  const Chevron = useFmt().lang === 'ar' ? ChevronLeft : ChevronRight
   const [draft, setDraft] = useState('')
   const [q, setQ] = useState('')
   const [manage, setManage] = useState(false)
   const [newReply, setNewReply] = useState('')
   const [more, setMore] = useState(false)
+  const [range, setRange] = useState<Range>(() => presetRange('today'))
+  const [days, setDays] = useState(3)
   const last = (th: Thread) => th.msgs[th.msgs.length - 1]
   const needs = (th: Thread) => !th.done && last(th).from === 'them'
   const orderOf = (code: string) => orders.find(x => x.code === code)
@@ -938,6 +967,55 @@ export function Messages({ ops, items, open, setOpen, saved, setSaved }: { ops: 
     ['all', t('الكل', 'All'), threads.length, 0],
     ['done', t('انتهت', 'Finished'), done.length, 0],
   ]
+  const longest = waiting.reduce((m, th) => Math.max(m, waitOf(th)), 0)
+  const fast = gaps.length ? Math.round((gaps.filter(g => g <= 5 * min).length / gaps.length) * 100) : 0
+  const isToday = samePeriod(range, presetRange('today'))
+
+  // A past period: every day's chats, with how fast the café answered.
+  const dayList: number[] = []
+  for (let d = Math.min(range.to, today()); d >= range.from && dayList.length < 92; d = dayStart(d - DAY / 2)) dayList.push(d)
+  const past = dayList.filter(d => d !== today()).map(d => ({ day: d, chats: pastChats(d, ops.branch.scale, ops.branch.prefix) }))
+  const allPast = past.flatMap(x => x.chats)
+  const pAvg = allPast.length ? Math.round(allPast.reduce((s, c) => s + c.reply, 0) / allPast.length) : 0
+  const pFast = allPast.length ? Math.round((allPast.filter(c => c.reply <= 5).length / allPast.length) * 100) : 0
+  const topicCount = (Object.keys(TOPIC) as Topic[]).map(k => [k, allPast.filter(c => c.topic === k).length] as const).sort((a, b) => b[1] - a[1])
+  const nChats = (n: number) => t(n === 1 ? 'محادثة واحدة' : n === 2 ? 'محادثتان' : n <= 10 ? `${n} محادثات` : `${n} محادثة`, `${n} chat${n === 1 ? '' : 's'}`)
+  const history = (
+    <>
+      <div className="o-msg-kpis">
+        <div><span><MessageCircle /></span><b>{allPast.length.toLocaleString('en-US')}</b><small>{t('محادثات', 'Chats')}</small><em>{t(`في ${rangeName(range)}`, `in ${rangeName(range)}`)}</em></div>
+        <div className={pAvg <= 5 ? 'k-good' : 'k-slow'}><span><Timer /></span><b>{t(`${pAvg} د`, `${pAvg} min`)}</b><small>{t('متوسط وقت ردك', 'Avg reply time')}</small><em>{t('الهدف: أقل من 5 د', 'Goal: under 5 min')}</em></div>
+        <div><span><Zap /></span><b>{pFast}%</b><small>{t('رددت خلال 5 دقائق', 'Replied within 5 min')}</small></div>
+        <div><span><Sparkles /></span><b className="o-kpi-word">{topicCount[0] ? TOPIC[topicCount[0][0]] : '—'}</b><small>{t('أكثر ما يسألون عنه', 'Most asked about')}</small>{topicCount[0] && allPast.length > 0 && <em>{Math.round((topicCount[0][1] / allPast.length) * 100)}%</em>}</div>
+      </div>
+      {dayList.includes(today()) && (
+        <button type="button" className="o-msg-today" onClick={() => setRange(presetRange('today'))}>
+          <span><b>{t('اليوم', 'Today')}</b><small>{t(`${nChats(threads.length)} · ${waiting.length} تنتظر ردك`, `${threads.length} chats · ${waiting.length} waiting for you`)}</small></span>
+          <Chevron />
+        </button>
+      )}
+      <div className="o-mlog o-msg-log">
+        {past.slice(0, days).map(({ day, chats }) => {
+          const avg = Math.round(chats.reduce((s, c) => s + c.reply, 0) / chats.length)
+          return (
+            <section key={day} className="o-mlog-day">
+              <h4>{new Date(day).toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' })}<span>{nChats(chats.length)} · {t(`متوسط الرد ${avg} د`, `avg reply ${avg} min`)}</span></h4>
+              <ul>
+                {chats.map((c, i) => (
+                  <li key={i}>
+                    <span className="o-msg-log-time">{clock(c.at)}</span>
+                    <span className="o-avatar sm">{hash(c.code)}</span>
+                    <span className="o-msg-log-main"><b>{pick(c.ask)}</b><small>{TOPIC[c.topic]}<i className={`o-reply-pill ${c.reply <= 5 ? 'ok' : 'slow'}`}>{t(`رددت خلال ${c.reply} د`, `replied in ${c.reply} min`)}</i></small></span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )
+        })}
+      </div>
+      {past.length > days && <button type="button" className="o-text-btn o-show-more" onClick={() => setDays(n => n + 5)}>{t(`اعرض أيامًا أخرى · بقي ${past.length - days}`, `Show more days · ${past.length - days} left`)}</button>}
+    </>
+  )
   const ctx = (code: string) => {
     const o = orderOf(code), b = bookingOf(code)
     if (o) return (
@@ -965,17 +1043,20 @@ export function Messages({ ops, items, open, setOpen, saved, setSaved }: { ops: 
 
   return (
     <div className="o-ops o-msgs">
-      <div className="o-stats">
-        <div className={waiting.length ? 'warn' : ''}><b>{waiting.length}</b><small>{t('تنتظر ردك', 'waiting')}</small></div>
-        <div><b>{avgReply ? t(`${avgReply} د`, `${avgReply} min`) : '—'}</b><small>{t('متوسط وقت ردك', 'avg reply time')}</small></div>
-        <div><b>{threads.length}</b><small>{t('محادثات اليوم', 'chats today')}</small></div>
+      <RangePicker value={range} onChange={r => { setRange(r); setDays(3) }} label={t('المحادثات في', 'Chats in')} />
+      {!isToday ? history : <>
+      <div className="o-msg-kpis">
+        <div className={`k-wait ${waiting.length ? 'on' : ''}`}><span><Hourglass /></span><b>{waiting.length}</b><small>{t('تنتظر ردك', 'Waiting for you')}</small>{waiting.length > 0 && <em>{t(`أطولها ${longest} د`, `longest ${longest} min`)}</em>}</div>
+        <div className={avgReply && avgReply <= 5 ? 'k-good' : avgReply ? 'k-slow' : ''}><span><Timer /></span><b>{avgReply ? t(`${avgReply} د`, `${avgReply} min`) : '—'}</b><small>{t('متوسط وقت ردك', 'Avg reply time')}</small><em>{t('الهدف: أقل من 5 د', 'Goal: under 5 min')}</em></div>
+        <div><span><Zap /></span><b>{fast}%</b><small>{t('رددت خلال 5 دقائق', 'Replied within 5 min')}</small></div>
+        <div><span><MessageCircle /></span><b>{threads.length}</b><small>{t('محادثات اليوم', 'Chats today')}</small><em>{t(`منها ${done.length} انتهت`, `${done.length} finished`)}</em></div>
       </div>
       <label className="o-search"><Search /><input value={q} onChange={e => setQ(e.target.value)} placeholder={t('ابحث برقم الطلب أو الحجز', 'Search by order or booking number')} /></label>
       {!q.trim() && (
         <div className="o-status-tabs o-btabs" role="tablist">
           {tabs.map(([id, label, n, red]) => (
-            <button key={id} type="button" role="tab" aria-selected={tab === id} className={`${tab === id ? 'active' : ''} ${red ? 'warn' : ''}`} onClick={() => { setTab(id); setMore(false) }}>
-              {label}<span>{n}</span>{red > 0 && <em>{t(`${red} تأخر`, `${red} slow`)}</em>}
+            <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? 'active' : ''} onClick={() => { setTab(id); setMore(false) }}>
+              {label}<span>{n}</span>{red > 0 && <i className="o-tab-late">{t(`${red} متأخر`, `${red} slow`)}</i>}
             </button>
           ))}
         </div>
@@ -1008,6 +1089,7 @@ export function Messages({ ops, items, open, setOpen, saved, setSaved }: { ops: 
         </ul>}
       {!more && sorted.length > 15 && <button type="button" className="o-text-btn o-show-more" onClick={() => setMore(true)}>{t(`اعرض الكل (${sorted.length})`, `Show all (${sorted.length})`)}</button>}
       <p className="o-fine"><Lock />{t('لا تظهر أسماء العملاء، بل رقم الطلب أو الحجز فقط.', "You don't see customer names, only the order or booking number.")}</p>
+      </>}
       {can('messages.reply') && <button type="button" className="o-text-btn o-inline o-manage-replies" onClick={() => setManage(true)}><PenLine />{t(`ردودك الجاهزة (${saved.length})`, `Your saved replies (${saved.length})`)}</button>}
 
       {open && (

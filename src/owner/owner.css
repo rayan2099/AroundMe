@@ -1532,7 +1532,8 @@ li.live .o-mt-play-icon { color: var(--green); border-color: var(--border); back
 }
 
 /* ---------- Messages ---------- */
-.o-msgs { display: flex; flex-direction: column; gap: 12px; }
+.o-ops.o-msgs { display: flex; flex-direction: column; gap: 12px; }
+.o-msgs > * { margin-top: 0 !important; }
 .o-msgs .o-stats { margin: 0; }
 .o-msgs .o-threads { margin: 0; }
 .o-msgs .o-fine { display: flex; align-items: flex-start; justify-content: center; gap: 6px; margin: 0; }
@@ -1576,3 +1577,41 @@ li.live .o-mt-play-icon { color: var(--green); border-color: var(--border); back
   html.o-web .o-msgs .o-threads { max-width: none; }
 }
 .o-ctx-pill.b-late { background: var(--warn-soft); color: var(--warn); }
+.o-msg-kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.o-msg-kpis > div { position: relative; display: flex; flex-direction: column; gap: 1px; padding: 14px; border-radius: 18px; background: #fff; border: 1px solid var(--border); min-width: 0; }
+.o-msg-kpis > div > span { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; background: #f4f2ee; color: #5d5952; margin-bottom: 8px; }
+.o-msg-kpis > div > span svg { width: 17px; }
+.o-msg-kpis b { font-size: 22px; font-weight: 800; line-height: 1.2; }
+.o-msg-kpis b.o-kpi-word { font-size: 16px; padding: 3px 0; }
+.o-msg-kpis small { font-size: 12.5px; color: var(--muted); }
+.o-msg-kpis em { font-style: normal; font-size: 11.5px; font-weight: 600; color: var(--muted); margin-top: 4px; }
+.o-msg-kpis .k-wait.on { background: linear-gradient(135deg, #fff4ea, #fdebe4); border-color: #f2d3bf; }
+.o-msg-kpis .k-wait.on > span { background: #fff; color: var(--warn); }
+.o-msg-kpis .k-wait.on b, .o-msg-kpis .k-wait.on em { color: var(--warn); }
+.o-msg-kpis .k-good > span { background: var(--green-soft); color: var(--green-dark); }
+.o-msg-kpis .k-good em { color: var(--green-dark); }
+.o-msg-kpis .k-slow > span { background: var(--warn-soft); color: var(--warn); }
+.o-msg-kpis .k-slow em { color: var(--warn); }
+.o-msgs .o-status-tabs { margin-top: 0; }
+.o-tab-late { font-style: normal; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 99px; background: var(--warn-soft); color: var(--warn); }
+.o-status-tabs button.active .o-tab-late { background: #fff; color: var(--warn); }
+.o-msg-today { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--green-soft); border: 1px solid #cfe0d8; text-align: start; color: var(--green-dark); }
+.o-msg-today span { flex: 1; display: flex; flex-direction: column; }
+.o-msg-today small { font-size: 12.5px; }
+.o-msg-today svg { width: 18px; }
+.o-msg-log ul { list-style: none; margin: 0; padding: 0; }
+.o-msg-log li { display: grid; grid-template-columns: auto auto 1fr; grid-template-areas: "time av main"; align-items: center; gap: 10px; padding: 9px 14px; }
+.o-msg-log li + li { border-top: 1px solid var(--border); }
+.o-msg-log-time { grid-area: time; font-size: 11.5px; color: var(--muted); min-width: 52px; }
+.o-avatar.sm { grid-area: av; width: 40px; height: 40px; border-radius: 13px; font-size: 11px; }
+.o-msg-log-main { grid-area: main; min-width: 0; display: flex; flex-direction: column; }
+.o-msg-log-main b { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.o-msg-log-main small { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 2px; font-size: 11.5px; color: var(--muted); }
+.o-reply-pill { font-style: normal; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+.o-reply-pill.ok { background: var(--green-soft); color: var(--green-dark); }
+.o-reply-pill.slow { background: var(--warn-soft); color: var(--warn); }
+@media (min-width: 900px) {
+  html.o-web .o-msg-kpis { grid-template-columns: repeat(4, 1fr); }
+}
+@media (min-width: 900px) { html.o-web .o-msgs > .o-range-btn { max-width: 420px; } }
+@media (min-width: 900px) { html.o-web .o-ops.o-msgs { display: flex; gap: 12px; align-items: stretch; max-width: 900px; } html.o-web .o-msgs > .o-fine, html.o-web .o-msgs > .o-manage-replies { align-self: flex-start; } html.o-web .o-msgs > .o-status-tabs { margin-inline: 0; padding-inline: 0; } }
