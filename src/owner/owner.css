@@ -1370,3 +1370,46 @@ li.live .o-mt-play-icon { color: var(--green); border-color: var(--border); back
 .o-tm-group .o-search { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; margin-bottom: 8px; border-radius: 14px; background: #fff; border: 1px solid var(--border); }
 .o-tm-group .o-search svg { width: 16px; color: var(--muted); flex: none; }
 .o-tm-group .o-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; font-size: 13.5px; }
+.o-side .o-busy-switch { margin-top: auto; margin-bottom: 8px; padding: 10px 12px; border-radius: 12px; border-style: dashed; }
+.o-side .o-busy-switch b { font-size: 12.5px; }
+.o-side .o-busy-switch small { font-size: 11px; }
+.o-side .o-busy-switch + .o-side-view { margin-top: 0; }
+
+/* Orders at volume: late counts on tabs, search + view switch, make-now summary, compact rows */
+.o-status-tabs button em { min-width: 18px; padding: 1px 5px; border-radius: 99px; background: #d4473a; color: #fff; font-style: normal; font-size: 11px; font-weight: 700; text-align: center; }
+.o-orders-tools { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.o-orders-tools .o-search { flex: 1; min-width: 0; height: 42px; }
+.o-orders-tools .o-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; font-size: 13.5px; }
+.o-seg-mini { display: flex; padding: 3px; border-radius: 12px; background: #f0efec; flex: none; }
+.o-seg-mini button { display: inline-flex; align-items: center; gap: 4px; height: 36px; padding: 0 10px; border-radius: 9px; font-size: 12px; font-weight: 700; color: #6b6760; }
+.o-seg-mini button svg { width: 14px; }
+.o-seg-mini button.active { background: #fff; color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
+.o-tomake { margin-top: 12px; padding: 12px 14px; border-radius: 16px; background: #fff; border: 1px solid var(--border); }
+.o-tomake-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.o-tomake-head b { font-size: 14px; }
+.o-tomake-head .o-advance { flex: none; min-height: 38px; padding: 0 14px; font-size: 13px; background: var(--orange); }
+.o-tomake-head .o-advance svg { width: 16px; }
+.o-tomake-items { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.o-tomake-items span { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 99px; background: #f7f6f3; font-size: 12.5px; }
+.o-tomake-items b { color: var(--green-dark); }
+.o-orders.compact { gap: 6px; }
+.o-orow { display: flex; align-items: stretch; border-radius: 14px; background: #fff; border: 1px solid var(--border); overflow: hidden; }
+.o-orow.late { border-color: #f1c7c1; box-shadow: inset 3px 0 0 #d4473a; }
+.o-orow-main { flex: 1; min-width: 0; display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: 10px; padding: 10px 12px; text-align: start; }
+.o-orow .o-code { font-size: 14.5px; }
+.o-orow-kind svg { width: 15px; color: var(--muted); display: block; }
+.o-orow-lines { font-size: 12.5px; color: #4d4943; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.o-orow-time { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.o-orow-time.late { color: #d4473a; }
+.o-orow-time svg { width: 13px; }
+.o-orow-act { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 0 14px; background: var(--green); color: #fff; font-size: 12.5px; font-weight: 700; }
+.o-orow-act svg { width: 15px; }
+.o-orow.s-new .o-orow-act { background: var(--orange); }
+.o-orow.s-ready .o-orow-act { background: var(--text); }
+.o-order-fold { float: inline-end; font-size: 12px; font-weight: 700; color: var(--muted); padding: 2px 0 6px 8px; }
+.o-ops > .o-show-more { display: block; margin: 10px auto 0; font-weight: 700; color: var(--green-dark); }
+@media (max-width: 420px) { .o-orow-act { padding: 0 10px; } .o-orow-act svg { display: none; } .o-seg-mini button { padding: 0 8px; } .o-orow-main { gap: 8px; padding: 10px; } }
+@media (min-width: 900px) {
+  html.o-web .o-orders.compact { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; align-items: start; }
+  html.o-web .o-orders-tools .o-search { max-width: 420px; }
+}

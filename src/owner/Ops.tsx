@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Armchair, BellRing, Check, ChefHat, CircleAlert, Clock, Gift, HandPlatter, MessageCircle, House, Navigation, Pause, PenLine, Play, Plus, Send, ShoppingBag, Timer, Users } from 'lucide-react'
+import { Armchair, BellRing, Check, ChefHat, CircleAlert, Clock, Gift, HandPlatter, LayoutGrid, MessageCircle, House, Navigation, Pause, PenLine, Play, Plus, Rows3, Search, Send, ShoppingBag, Timer, Users } from 'lucide-react'
 import { Sheet, useT } from './Owner'
 import { OfferButton, OfferSent, OfferSheet, useOfferText } from './Offer'
 import type { Offer } from './Offer'
@@ -170,6 +170,68 @@ export function seedBranches(boot: number): Record<string, BranchData> {
   return { b1: main, b2: recode(malqa, BRANCHES[1].prefix), b3: recode(yasmin, BRANCHES[2].prefix) }
 }
 
+// «Busy café» demo: a full day at about 120 visits, so every section can be judged at real volume.
+// Deterministic, so the same switch always shows the same day.
+function seedBusy(boot: number, size: number, prefix: [string, string], base: BranchData): BranchData {
+  let r = 7 + size * 13
+  const rnd = () => ((r = (r * 9301 + 49297) % 233280) / 233280)
+  const pickOne = <T,>(xs: T[]) => xs[Math.floor(rnd() * xs.length)]
+  const ago = (m: number) => boot - m * min
+  const n = (x: number) => Math.max(1, Math.round(x * size))
+  const DRINKS = ['Spanish latte', 'Latte', 'Flat white', 'Cortado', 'V60', 'Iced latte', 'Iced Spanish latte', 'Cold brew', 'Matcha latte']
+  const FOOD = ['Butter croissant', 'San Sebastián cheesecake', 'Lotus cheesecake', 'Honey cake', 'Cookie', 'Zaatar croissant', 'Brownie', 'Halloumi sandwich']
+  let code = 100
+  const lines = (ppl: number): [string, number][] => {
+    const d = pickOne(DRINKS), d2 = pickOne(DRINKS)
+    const out: [string, number][] = d === d2 || ppl === 1 ? [[d, ppl]] : [[d, Math.ceil(ppl / 2)], [d2, Math.floor(ppl / 2)]]
+    if (rnd() < 0.55) out.push([pickOne(FOOD), 1])
+    return out
+  }
+  const order = (status: Status, o: Partial<Order>): Order => {
+    const ppl = rnd() < 0.55 ? 1 : rnd() < 0.7 ? 2 : 3 + Math.floor(rnd() * 2)
+    const kind: Order['kind'] = rnd() < 0.45 ? 'seat' : rnd() < 0.6 ? 'pickup' : 'pre'
+    return { code: `${prefix[0]}${code++}`, kind, ppl, lines: lines(ppl), pay: rnd() < 0.7 ? 'apple' : 'google', status, seat: kind === 'seat' ? pickOne(SEATS) : undefined, where: kind === 'seat' ? 'here' : rnd() < 0.5 ? 'here' : 'way', placed: boot, ...o }
+  }
+  const orders: Order[] = []
+  // Handed over earlier today, spread over the last ten hours.
+  for (let i = 0; i < n(78); i++) { const t0 = 20 + Math.floor(rnd() * 580); orders.push(order('done', { placed: ago(t0 + 12), started: ago(t0 + 10), readyAt: ago(t0 + 2), doneAt: ago(t0), where: undefined })) }
+  for (let i = 0; i < n(7); i++) { const t0 = 2 + Math.floor(rnd() * 16); orders.push(order('ready', { placed: ago(t0 + 12), started: ago(t0 + 10), readyAt: ago(t0) })) }
+  for (let i = 0; i < n(11); i++) { const t0 = 1 + Math.floor(rnd() * (i < n(4) ? 25 : 9)); orders.push(order('prep', { placed: ago(t0 + 3), started: ago(t0) })) }
+  for (let i = 0; i < n(9); i++) { const t0 = Math.floor(rnd() * (i < n(3) ? 12 : 4)); orders.push(order('new', { placed: ago(t0) })) }
+  for (let i = 0; i < n(16); i++) { const due = 20 + Math.floor(rnd() * 200); orders.push(order('scheduled', { kind: 'pre', placed: ago(30 + Math.floor(rnd() * 300)), due: ago(-due), where: 'home', seat: undefined })) }
+  // Pre-orders that are already moving get an arrival time.
+  orders.forEach(o => { if (o.where === 'way' && o.status !== 'done') { o.eta = ago(-(2 + Math.floor(rnd() * 14))); if (o.kind === 'pre') o.due = o.eta } })
+  const tables: Table[] = []
+  const per: [number, number][] = [[4, 2], [6, 4], [4, 2], [6, 4]]
+  const TNAME: T2[] = [['نافذة', 'Window'], ['داخل', 'Inside'], ['هادئة', 'Quiet'], ['خارجية', 'Outside']]
+  AREAS.forEach((a, ai) => {
+    for (let i = 0; i < Math.max(2, Math.round(per[ai][0] * Math.min(size, 1.3))); i++) {
+      const seated = rnd() < 0.75, over = rnd() < 0.18
+      tables.push({ id: `t${ai}${i}`, name: [`${TNAME[ai][0]} ${i + 1}`, `${TNAME[ai][1]} ${i + 1}`], area: a, seats: per[ai][1], limit: ai === 2 ? 120 : 60, bookable: true, ...(seated ? { seatedAt: ago(over ? 65 + Math.floor(rnd() * 40) : 5 + Math.floor(rnd() * 50)), ppl: 1 + Math.floor(rnd() * per[ai][1]) } : {}) })
+    }
+  })
+  const TAGS: T2[] = [['عمل', 'Work'], ['مذاكرة', 'Studying'], ['اجتماع', 'Meeting'], ['لقاء أصدقاء', 'Meeting friends'], ['استرخاء', 'Chilling']]
+  const bookings: Booking[] = []
+  let bc = 40
+  for (let i = 0; i < n(18); i++) {
+    const m = 240 - i * 25 + Math.floor(rnd() * 10)
+    const state: Booking['state'] = m > 90 ? 'left' : m > 0 ? (rnd() < 0.85 ? 'arrived' : 'noshow') : 'upcoming'
+    bookings.push({ code: `${prefix[1]}${bc++}`, at: ago(m), table: pickOne(tables).id, ppl: 1 + Math.floor(rnd() * 4), tag: pickOne(TAGS), state })
+  }
+  const ASK = ['هل يمكن تحضيره بحليب الشوفان؟', 'سأتأخر عشر دقائق، احجزوا الطاولة من فضلكم', 'هل يوجد مكان قريب من الشاحن؟', 'أريد إضافة كرواسون للطلب', 'هل الطلب جاهز؟', 'هل يمكن أن يكون بدون سكر؟', 'نحن في الطريق', 'شكرًا، كان رائعًا 🤍']
+  const active = orders.filter(o => o.status !== 'done' && o.status !== 'scheduled')
+  const threads: Thread[] = Array.from({ length: n(22) }, (_, i) => {
+    const o = i < active.length ? active[i] : orders[i]
+    const unread = i < n(8)
+    return { code: o.code, unread, msgs: unread ? [{ from: 'them' as const, text: pickOne(ASK), at: ago(1 + i * 3) }] : [{ from: 'them' as const, text: pickOne(ASK), at: ago(10 + i * 6) }, { from: 'me' as const, text: 'أهلًا بك، تم 👍', at: ago(8 + i * 6) }] }
+  })
+  return { ...base, orders, tables, bookings, threads, nextCode: code }
+}
+export function seedBusyBranches(boot: number, branches: Branch[]): Record<string, BranchData> {
+  const calm = seedBranches(boot)
+  return Object.fromEntries(branches.map(b => [b.id, seedBusy(boot, b.id === 'b2' ? 1.3 : b.id === 'b3' ? 0.6 : 1, b.prefix, calm[b.id] ?? emptyBranch())]))
+}
+
 // One branch's slice, with setters that only touch that branch. Every section takes this, whichever branch is open.
 type SetAll = (f: (a: Record<string, BranchData>) => Record<string, BranchData>) => void
 type Upd<T> = T | ((x: T) => T)
@@ -208,6 +270,14 @@ export function useBranches() {
   const [boot] = useState(() => Date.now())
   const [branches, setBranches] = useState<Branch[]>(BRANCHES)
   const [all, setAll] = useState<Record<string, BranchData>>(() => seedBranches(boot))
+  // «Busy café» demo switch: reloads every branch with a full day at about 120 visits, and sizes the sample numbers to match.
+  const [busy, setBusyState] = useState(false)
+  const setBusy = (on: boolean) => {
+    if (on === busy) return
+    setBusyState(on)
+    setAll(on ? seedBusyBranches(Date.now(), branches) : seedBranches(boot))
+    setBranches(bs => bs.map(b => ({ ...b, scale: +(b.scale * (on ? 4 : 0.25)).toFixed(2) })))
+  }
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id) }, [])
   // A timed pause ends on its own, in whichever branch it was set.
@@ -216,7 +286,7 @@ export function useBranches() {
       setAll(a => Object.fromEntries(Object.entries(a).map(([k, d]) => [k, typeof d.paused === 'number' && now >= d.paused ? { ...d, paused: null } : d])))
   }, [now, all])
   const ops = (id: string) => { const b = branches.find(x => x.id === id)!; return branchOps(b, all[id] ?? emptyBranch(), setAll, now) }
-  return { branches, setBranches, all, setAll, ops, now }
+  return { branches, setBranches, all, setAll, ops, now, busy, setBusy }
 }
 export type Branches = ReturnType<typeof useBranches>
 
@@ -269,6 +339,11 @@ export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { o
   const [issue, setIssue] = useState<Order | null>(null)
   const [offerFor, setOfferFor] = useState<Order | null>(null)
   const [pauseOpen, setPauseOpen] = useState(false)
+  // Busy cafés: search by code, compact rows (tap one to open it), and a cap on the handed-over list.
+  const [q, setQ] = useState('')
+  const [view, setView] = useState<'auto' | 'compact' | 'full'>('auto')
+  const [opened, setOpened] = useState<string[]>([])
+  const [doneShown, setDoneShown] = useState(20)
   const name = (en: string) => { const it = items.find(i => i.name.en === en); return it ? tx(it.name) : en }
   const count = (s: Status) => orders.filter(o => o.status === s).length
   const set = (code: string, patch: Partial<Order>) => setOrders(l => l.map(o => (o.code === code ? { ...o, ...patch } : o)))
@@ -285,7 +360,21 @@ export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { o
     : o.status === 'prep' ? [t('جاهز', 'Mark ready'), <BellRing key="i" />] as const
     : [o.kind === 'seat' ? t('تم التسليم للطاولة', 'Served to the table') : t('تم تسليم الطلب', 'Handed over'), <HandPlatter key="i" />] as const
 
-  const shown = orders.filter(o => o.status === tab).sort((a, b) => tab === 'done' ? (b.doneAt ?? 0) - (a.doneAt ?? 0) : tab === 'scheduled' ? (a.due ?? 0) - (b.due ?? 0) : a.placed - b.placed)
+  // Orders that need a nudge float to the top of their tab: prep over target, new waiting over 5 min, ready over 10 min.
+  const lateOf = (o: Order) => o.status === 'prep' ? !!o.started && now - o.started > PREP_TARGET * min : o.status === 'new' ? now - o.placed > 5 * min : o.status === 'ready' ? !!o.readyAt && now - o.readyAt > 10 * min : false
+  const lateCount = (st: Status) => orders.filter(o => o.status === st && lateOf(o)).length
+  const query = q.trim().toUpperCase().replace('#', '')
+  const all = orders.filter(o => (query ? o.code.toUpperCase().includes(query) : o.status === tab)).sort((a, b) => (+lateOf(b) - +lateOf(a)) || (tab === 'done' ? (b.doneAt ?? 0) - (a.doneAt ?? 0) : tab === 'scheduled' ? (a.due ?? 0) - (b.due ?? 0) : a.placed - b.placed))
+  const shown = !query && tab === 'done' ? all.slice(0, doneShown) : all
+  const compact = view === 'compact' || (view === 'auto' && all.length > 6)
+  // What the bar has to make right now, summed across orders, so the barista can batch the same drink.
+  const toMake = Object.entries(orders.filter(o => o.status === (tab === 'new' ? 'new' : 'prep')).flatMap(o => o.lines.filter(([en]) => !o.refunded?.includes(en))).reduce<Record<string, number>>((m, [en, n]) => ({ ...m, [en]: (m[en] ?? 0) + n }), {})).sort((a, b) => b[1] - a[1])
+  const nOrders = (n: number) => (n === 1 ? 'طلب واحد' : n === 2 ? 'طلبين' : n <= 10 ? `${n} طلبات` : `${n} طلبًا`)
+  const acceptAll = () => {
+    const xs = orders.filter(o => o.status === 'new')
+    setOrders(l => l.map(o => (o.status === 'new' ? { ...o, status: 'prep', started: Date.now() } : o)))
+    notify(t(`بدأ تحضير ${nOrders(xs.length)}، ووصل كل عميل إشعار`, `Started ${xs.length} orders. Each customer was notified`))
+  }
   const stats = opsStats(ops)
   const TABS: [Status, string][] = [['new', t('جديد', 'New')], ['prep', t('تحضير', 'Preparing')], ['ready', t('جاهز', 'Ready')], ['scheduled', t('مجدولة', 'Scheduled')], ['done', t('تم التسليم', 'Handed over')]]
 
@@ -309,23 +398,59 @@ export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { o
       <div className="o-status-tabs" role="tablist">
         {TABS.map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id} className={`${tab === id ? 'active' : ''} s-${id}`} onClick={() => setTab(id)}>
-            {label}<span>{count(id)}</span>
+            {label}<span>{count(id)}</span>{id !== 'done' && id !== 'scheduled' && lateCount(id) > 0 && <em title={t('متأخرة', 'Late')}>{lateCount(id)}</em>}
           </button>
         ))}
       </div>
 
+      <div className="o-orders-tools">
+        <label className="o-search"><Search /><input value={q} onChange={e => setQ(e.target.value)} placeholder={t('ابحث برقم الطلب، مثل A105', 'Search by order number, e.g. A105')} /></label>
+        <div className="o-seg-mini" role="group" aria-label={t('طريقة العرض', 'View')}>
+          <button type="button" className={compact ? 'active' : ''} onClick={() => setView('compact')}><Rows3 />{t('مختصر', 'Compact')}</button>
+          <button type="button" className={!compact ? 'active' : ''} onClick={() => setView('full')}><LayoutGrid />{t('مفصّل', 'Detailed')}</button>
+        </div>
+      </div>
+
+      {!query && (tab === 'new' || tab === 'prep') && toMake.length > 0 && (
+        <div className="o-tomake">
+          <div className="o-tomake-head">
+            <b>{tab === 'new' ? t(count('new') === 1 ? 'طلب واحد ينتظر القبول' : count('new') === 2 ? 'طلبان ينتظران القبول' : `${nOrders(count('new'))} تنتظر القبول`, `${count('new')} order${count('new') === 1 ? '' : 's'} waiting`) : t('حضّر الآن', 'Make now')}</b>
+            {tab === 'new' && <button type="button" className="o-advance" onClick={acceptAll}><ChefHat />{t('اقبل الكل وابدأ التحضير', 'Accept all and start')}</button>}
+          </div>
+          <div className="o-tomake-items">{toMake.slice(0, 8).map(([en, n]) => <span key={en}><b>{`\u2066${n}×\u2069`}</b>{name(en)}</span>)}</div>
+        </div>
+      )}
+      {query && <p className="o-card-sub">{t(`نتائج «${q.trim()}» في كل الحالات · ${all.length}`, `Results for “${q.trim()}” in every status · ${all.length}`)}</p>}
+
       {shown.length === 0 && (
-        <div className="o-empty"><Check /><b>{tab === 'new' ? t('لا توجد طلبات جديدة', 'No new orders') : tab === 'prep' ? t('لا شيء قيد التحضير', 'Nothing being prepared') : tab === 'ready' ? t('سُلّمت كل الطلبات الجاهزة', 'Everything ready was handed over') : t('لا شيء هنا', 'Nothing here')}</b><small>{t('يظهر هنا كل طلب جديد ويصلك تنبيه به.', "New orders show up here and you'll get an alert.")}</small></div>
+        <div className="o-empty"><Check /><b>{query ? t('لا يوجد طلب بهذا الرقم', 'No order with that number') : tab === 'new' ? t('لا توجد طلبات جديدة', 'No new orders') : tab === 'prep' ? t('لا شيء قيد التحضير', 'Nothing being prepared') : tab === 'ready' ? t('سُلّمت كل الطلبات الجاهزة', 'Everything ready was handed over') : t('لا شيء هنا', 'Nothing here')}</b><small>{t('يظهر هنا كل طلب جديد ويصلك تنبيه به.', "New orders show up here and you'll get an alert.")}</small></div>
       )}
 
-      <ul className="o-orders">
+      <ul className={`o-orders ${compact ? 'compact' : ''}`}>
         {shown.map(o => {
+          const late = lateOf(o)
+          if (compact && !opened.includes(o.code)) {
+            const [lbl, ic] = action(o)
+            const when = o.status === 'done' ? clock(o.doneAt!) : o.status === 'scheduled' ? clock(o.due!) : o.status === 'ready' ? dur(mins(now - o.readyAt!)) : o.status === 'prep' ? dur(mins(now - (o.started ?? now))) : dur(mins(now - o.placed))
+            return (
+              <li key={o.code} className={`o-orow s-${o.status} ${late ? 'late' : ''}`}>
+                <button type="button" className="o-orow-main" onClick={() => setOpened(x => [...x, o.code])} aria-expanded={false}>
+                  <span className="o-code">{hash(o.code)}</span>
+                  <span className={`o-orow-kind k-${o.kind}`}>{o.kind === 'seat' ? <Armchair /> : o.kind === 'pickup' ? <ShoppingBag /> : <Clock />}</span>
+                  <span className="o-orow-lines">{o.lines.map(([en, n]) => `${n > 1 ? `\u2066${n}×\u2069 ` : ''}${name(en)}`).join(t('، ', ', '))}</span>
+                  <span className={`o-orow-time ${late ? 'late' : ''}`}>{late && <CircleAlert />}{when}</span>
+                </button>
+                {o.status !== 'done' && <button type="button" className="o-orow-act" onClick={() => advance(o)} aria-label={lbl}>{ic}<span>{o.status === 'new' ? t('اقبل', 'Accept') : o.status === 'prep' ? t('جاهز', 'Ready') : o.status === 'ready' ? t('سُلّم', 'Handed') : t('ابدأ', 'Start')}</span></button>}
+              </li>
+            )
+          }
           const waited = mins(now - o.placed)
           const inPrep = o.started ? mins(now - o.started) : 0
           const slow = o.status === 'prep' && inPrep > PREP_TARGET
           const [label, icon] = action(o)
           return (
             <li key={o.code} className={`o-order s-${o.status} ${slow ? 'slow' : ''}`}>
+              {compact && <button type="button" className="o-order-fold" onClick={() => setOpened(x => x.filter(c => c !== o.code))}>{t('اطوِ', 'Collapse')}</button>}
               <div className="o-order-top">
                 <span className="o-code">{hash(o.code)}</span>
                 <span className={`o-kind-tag k-${o.kind}`}>
@@ -366,6 +491,8 @@ export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { o
           )
         })}
       </ul>
+
+      {!query && tab === 'done' && all.length > doneShown && <button type="button" className="o-text-btn o-show-more" onClick={() => setDoneShown(n => n + 20)}>{t(`اعرض 20 أخرى · بقي ${all.length - doneShown}`, `Show 20 more · ${all.length - doneShown} left`)}</button>}
 
       {issue && (
         <Sheet title={t(`مشكلة في ${hash(issue.code)}`, `Problem with ${hash(issue.code)}`)} onClose={() => setIssue(null)}>

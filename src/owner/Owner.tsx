@@ -857,6 +857,10 @@ function Live(props: MenuProps & { place: Place }) {
             )
           })}
         </nav>
+        <button type="button" className="o-switch-row o-busy-switch" role="switch" aria-checked={B.busy} onClick={() => { B.setBusy(!B.busy); notify(B.busy ? t('عدنا إلى اليوم العادي', 'Back to a normal day') : t('حمّلنا يومًا مزدحمًا: نحو 120 زيارة في اليوم', 'Loaded a busy day: about 120 visits')) }}>
+          <span><b>{t('تجربة: كافيه مزدحم', 'Demo: busy café')}</b><small>{t('نحو 120 زيارة في اليوم', 'About 120 visits a day')}</small></span>
+          <em className={B.busy ? 'on' : ''} />
+        </button>
         <button type="button" className="o-side-view" onClick={() => { setPreview(true); setDrawer(false) }}><Eye />{t('اعرض المنيو كعميل', 'See the menu as a customer')}</button>
       </aside>
       {drawer && <div className="o-side-scrim" onClick={() => setDrawer(false)} />}
