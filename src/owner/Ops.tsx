@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { Armchair, BellRing, Check, ChefHat, CircleAlert, Clock, Gift, HandPlatter, LayoutGrid, MessageCircle, House, Navigation, Pause, PenLine, Play, Plus, Rows3, Search, Send, ShoppingBag, Timer, Users } from 'lucide-react'
 import { Sheet, useT } from './Owner'
 import { OfferButton, OfferSent, OfferSheet, useOfferText } from './Offer'
@@ -558,6 +559,8 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
   const [editing, setEditing] = useState<Table | 'new' | null>(null)
   const [ppl, setPpl] = useState(2)
   const [offerBooking, setOfferBooking] = useState<Booking | null>(null)
+  const [bTab, setBTab] = useState<'coming' | 'seated' | 'done'>('coming')
+  const [bMore, setBMore] = useState(false)
   const HOLD = 60
   const nTables = (n: number) => t(n === 1 ? 'طاولة' : n === 2 ? 'طاولتين' : n <= 10 ? `${n} طاولات` : `${n} طاولة`, `${n} table${n === 1 ? '' : 's'}`)
   const table = (id: string) => tables.find(x => x.id === id)
@@ -682,55 +685,84 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
   )
 
   function renderBookings() {
-    const groups: [string, Booking[]][] = [
-      [t('جالسون الآن', 'Seated now'), bookings.filter(b => b.state === 'arrived')],
-      [t('قادمون', 'Coming up'), bookings.filter(b => b.state === 'upcoming').sort((a, b) => a.at - b.at)],
-      [t('انتهت', 'Finished'), bookings.filter(b => b.state === 'left' || b.state === 'noshow')],
+    // Three states, the one that needs action first. Each row is one line: time, table, party, and its one action.
+    const coming = bookings.filter(b => b.state === 'upcoming').sort((a, b) => a.at - b.at)
+    const seated = bookings.filter(b => b.state === 'arrived')
+    const doneB = bookings.filter(b => b.state === 'left' || b.state === 'noshow').sort((a, b) => b.at - a.at)
+    const lateN = coming.filter(b => now > b.at).length
+    const inTime = (m: number) => m < 60 ? t(`بعد ${m} د`, `in ${m} min`) : t(`بعد ${Math.floor(m / 60)} س${m % 60 ? ` و${m % 60} د` : ''}`, `in ${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ''}`)
+    const left = (b: Booking) => { const x = table(b.table); return x?.seatedAt && x.limit ? x.limit - mins(now - x.seatedAt) : null }
+    const seatedSorted = [...seated].sort((a, b) => (left(a) ?? 999) - (left(b) ?? 999))
+    const overN = seated.filter(b => (left(b) ?? 1) < 0).length
+    const tabs: ['coming' | 'seated' | 'done', string, number, number][] = [
+      ['coming', t('قادمون', 'Coming'), coming.length, lateN],
+      ['seated', t('جالسون الآن', 'Seated now'), seated.length, overN],
+      ['done', t('انتهت', 'Finished'), doneB.length, 0],
     ]
+    const arrive = (b: Booking) => { setB(b.code, 'arrived'); seat(b.table, b.ppl, b.code); notify(t(`وصل ${hash(b.code)}، وبدأ عدّاد ${tName(b.table)}`, `${hash(b.code)} arrived. Timer started on ${tName(b.table)}`)) }
+    const leave = (b: Booking) => { free(b.table); setB(b.code, 'left'); notify(t(`${tName(b.table)} أصبحت شاغرة`, `${tName(b.table)} is free again`)) }
+    const noShow = (b: Booking) => { setB(b.code, 'noshow'); notify(t(`${hash(b.code)} لم يحضروا. رسوم الحجز لك، والطاولة أصبحت شاغرة`, `${hash(b.code)} didn't show. You keep the booking fee and the table is free`)) }
+    const row = (b: Booking, side: ReactNode, act: ReactNode, cls = '') => (
+      <li key={b.code} className={`o-brow ${cls}`}>
+        <span className="o-brow-time">{clock(b.at)}</span>
+        <button type="button" className="o-brow-main" onClick={() => openThread(b.code)} aria-label={t('راسل العميل', 'Message the customer')}>
+          <b>{pick(table(b.table)?.name ?? ['', ''])}<small>{pick(table(b.table)?.area ?? ['', ''])}</small></b>
+          <span><Users />{people(b.ppl)} · {pick(b.tag)} · {hash(b.code)}{b.order && <> · <ShoppingBag />{hash(b.order)}</>}</span>
+        </button>
+        <span className="o-brow-side">{side}</span>
+        {act && <span className="o-brow-act">{act}</span>}
+      </li>
+    )
+    const parts: [string, Booking[], boolean][] = bTab === 'coming' ? [
+      [t('متأخرون', 'Late'), coming.filter(b => now > b.at), true],
+      [t('خلال 30 دقيقة', 'In the next 30 min'), coming.filter(b => b.at >= now && b.at - now <= 30 * min), false],
+      [t('لاحقًا اليوم', 'Later today'), coming.filter(b => b.at - now > 30 * min), false],
+    ] : bTab === 'seated' ? [[t('حسب الوقت المتبقي', 'By time left'), seatedSorted, false]] : [[t('الأحدث أولًا', 'Newest first'), doneB.slice(0, bMore ? undefined : 10), false]]
     return (
       <>
-        {groups.map(([title, list]) => list.length > 0 && (
+        <div className="o-status-tabs o-btabs" role="tablist">
+          {tabs.map(([id, label, n, warn]) => (
+            <button key={id} type="button" role="tab" aria-selected={bTab === id} className={bTab === id ? 'active' : ''} onClick={() => setBTab(id)}>
+              {label}<span>{n}</span>{warn > 0 && <em>{warn}</em>}
+            </button>
+          ))}
+        </div>
+        {bTab === 'coming' && lateN > 0 && <p className="o-hold late o-btip"><CircleAlert />{t(`${lateN === 1 ? 'حجز متأخر' : `${lateN} حجوزات متأخرة`}. نحجز الطاولة ساعة من وقت الحجز، ثم يمكنك تسجيل «لم يحضروا».`, `${lateN} late. Tables are held for an hour, then you can mark a no-show.`)}</p>}
+        {bTab === 'seated' && overN > 0 && <p className="o-hold late o-btip"><CircleAlert />{t(`${overN === 1 ? 'طاولة تجاوزت' : `${overN} طاولات تجاوزت`} وقتها. يصلهم تنبيه لطيف من التطبيق.`, `${overN} over their time. They get a gentle reminder in the app.`)}</p>}
+        {parts.map(([title, list, isLate]) => list.length > 0 && (
           <section key={title} className="o-tm-group">
-            <h4>{title}<small>{list.length}</small></h4>
-            <ul className="o-bookings">
+            {parts.length > 1 && <h4>{title}<small>{list.length}</small></h4>}
+            <ul className="o-brows">
               {list.map(b => {
-                const holdEnd = b.at + HOLD * min
-                const late = b.state === 'upcoming' && now > b.at
-                const busy = table(b.table)?.seatedAt && !table(b.table)?.booking
-                return (
-                  <li key={b.code} className={`b-${b.state} ${late ? 'late' : ''}`}>
-                    <div className="o-booking-main">
-                      <span className="o-visit-time">{clock(b.at)}</span>
-                      <div>
-                        <b>{tName(b.table)}</b>
-                        <small>{people(b.ppl)} · {pick(b.tag)} · {hash(b.code)}{b.order && ` · ${t('لديه طلب', 'has an order')} ${hash(b.order)}`}</small>
-                      </div>
-                      <button type="button" className="o-icon-btn" onClick={() => openThread(b.code)} aria-label={t('راسل العميل', 'Message the customer')}><MessageCircle /></button>
-                    </div>
-                    {b.state === 'upcoming' && (
-                      <>
-                        <p className={`o-hold ${late ? 'late' : ''}`}><Timer />{late ? t(`متأخر ${mins(now - b.at)} د · الطاولة محجوزة له ${mins(holdEnd - now)} د أخرى`, `${mins(now - b.at)} min late · table held ${mins(holdEnd - now)} more min`) : t(`محجوزة حتى ${clock(holdEnd)}`, `Held until ${clock(holdEnd)}`)}</p>
-                        {busy && <p className="o-hold late"><CircleAlert />{t('الطاولة مشغولة الآن، فرّغها قبل وصولهم', 'The table is taken right now. Free it before they arrive')}</p>}
-                        <div className="o-order-actions">
-                          <button type="button" className={`o-advance ${late || b.at - now < 15 * min ? '' : 'soft'}`} onClick={() => { setB(b.code, 'arrived'); seat(b.table, b.ppl, b.code); notify(t(`وصل ${hash(b.code)}، وبدأ عدّاد ${tName(b.table)}`, `${hash(b.code)} arrived. Timer started on ${tName(b.table)}`)) }}><Check />{t('وصلوا، أجلسهم', 'Arrived, seat them')}</button>
-                          {late && <button type="button" className="o-issue" onClick={() => { setB(b.code, 'noshow'); notify(t(`${hash(b.code)} لم يحضروا. رسوم الحجز لك، والطاولة أصبحت شاغرة`, `${hash(b.code)} didn't show. You keep the booking fee and the table is free`)) }}>{t('لم يحضروا', 'No-show')}</button>}
-                        </div>
-                      </>
-                    )}
-                    {b.state === 'arrived' && (
-                      <div className="o-order-actions">
-                        <button type="button" className="o-issue" onClick={() => { free(b.table); setB(b.code, 'left'); notify(t(`${tName(b.table)} أصبحت شاغرة`, `${tName(b.table)} is free again`)) }}>{t('غادروا، الطاولة شاغرة', 'They left, table is free')}</button>
-                      </div>
-                    )}
-                    {b.state === 'left' && (ops.offers[b.order ?? b.code] ? <OfferSent offer={ops.offers[b.order ?? b.code]} /> : <OfferButton onClick={() => setOfferBooking(b)} />)}
-                    {b.state === 'noshow' && <p className="o-hold">{t('لم يحضروا · رسوم الحجز 5 ر.س لك', 'No-show · you keep the SAR 5 fee')}</p>}
-                  </li>
-                )
+                if (bTab === 'coming') {
+                  const busy = table(b.table)?.seatedAt && !table(b.table)?.booking && b.at - now < 30 * min
+                  const holdLeft = mins(b.at + HOLD * min - now)
+                  return row(b,
+                    isLate ? <i className="late">{t(`متأخر ${mins(now - b.at)} د`, `${mins(now - b.at)} min late`)}<small>{t(`محجوزة ${holdLeft} د أخرى`, `held ${holdLeft} more min`)}</small></i>
+                      : busy ? <i className="warn">{t('الطاولة مشغولة', 'Table taken')}<small>{t('فرّغها قبل وصولهم', 'Free it first')}</small></i>
+                      : <i>{inTime(mins(b.at - now))}</i>,
+                    <>{isLate && <button type="button" className="o-brow-btn ghost" onClick={() => noShow(b)}>{t('لم يحضروا', 'No-show')}</button>}<button type="button" className="o-brow-btn" onClick={() => arrive(b)}><Check />{t('وصلوا', 'Arrived')}</button></>,
+                    isLate ? 'late' : '')
+                }
+                if (bTab === 'seated') {
+                  const l = left(b), x = table(b.table)
+                  const pct = x?.seatedAt && x.limit ? Math.min(100, (mins(now - x.seatedAt) / x.limit) * 100) : 0
+                  return row(b,
+                    <i className={l != null && l < 0 ? 'late' : l != null && l <= 10 ? 'warn' : ''}>{l == null ? t('بلا حد', 'No limit') : l < 0 ? t(`تجاوزوا ${-l} د`, `${-l} min over`) : t(`باقي ${l} د`, `${l} min left`)}<span className="o-brow-bar"><b style={{ width: `${pct}%` }} /></span></i>,
+                    <button type="button" className="o-brow-btn ghost" onClick={() => leave(b)}>{t('غادروا', 'Left')}</button>,
+                    l != null && l < 0 ? 'late' : '')
+                }
+                const offer = ops.offers[b.order ?? b.code]
+                return row(b,
+                  b.state === 'noshow' ? <i className="muted">{t('لم يحضروا · 5 ر.س لك', 'No-show · SAR 5 kept')}</i> : offer ? <i className={offer.usedAt ? 'good' : 'muted'}><Gift />{offer.usedAt ? t('عادوا بعرضك', 'Came back') : t('أُرسل عرض', 'Offer sent')}</i> : <i className="muted">{t('غادروا', 'Left')}</i>,
+                  b.state === 'left' && !offer ? <button type="button" className="o-brow-btn soft" onClick={() => setOfferBooking(b)}><Gift />{t('عرض', 'Offer')}</button> : null)
               })}
             </ul>
           </section>
         ))}
-        <p className="o-note"><Armchair />{t('نحجز الطاولة ساعة من وقت الحجز. وإذا لم يحضروا، رسوم الحجز لك.', "Each booking is held for an hour. If they don't show, you keep the booking fee.")}</p>
+        {(bTab === 'coming' ? coming : bTab === 'seated' ? seated : doneB).length === 0 && <div className="o-empty"><Check /><b>{bTab === 'coming' ? t('لا حجوزات قادمة اليوم', 'No more bookings today') : bTab === 'seated' ? t('لا أحد جالس بحجز الآن', 'No one seated from a booking') : t('لا شيء انتهى بعد', 'Nothing finished yet')}</b></div>}
+        {bTab === 'done' && !bMore && doneB.length > 10 && <button type="button" className="o-text-btn o-show-more" onClick={() => setBMore(true)}>{t(`اعرض الكل (${doneB.length})`, `Show all (${doneB.length})`)}</button>}
+        <p className="o-fine"><Armchair />{t('نحجز الطاولة ساعة من وقت الحجز. وإذا لم يحضروا، رسوم الحجز لك. اضغط على أي حجز لمراسلة العميل.', "Each booking is held for an hour. If they don't show, you keep the fee. Tap a booking to message the customer.")}</p>
       </>
     )
   }

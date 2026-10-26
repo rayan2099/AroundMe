@@ -1413,3 +1413,44 @@ li.live .o-mt-play-icon { color: var(--green); border-color: var(--border); back
   html.o-web .o-orders.compact { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; align-items: start; }
   html.o-web .o-orders-tools .o-search { max-width: 420px; }
 }
+
+/* Today's bookings: three tabs (coming / seated / finished), one line per booking */
+.o-btabs { margin-top: 12px; }
+.o-btip { margin: 10px 0 0; }
+.o-brows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-radius: 16px; background: #fff; border: 1px solid var(--border); overflow: hidden; }
+.o-ops > .o-tm-group:first-of-type, .o-btabs + .o-tm-group, .o-btip + .o-tm-group { margin-top: 4px; }
+.o-brow { display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; grid-template-areas: "time main act" "time side act"; column-gap: 10px; row-gap: 8px; align-items: center; padding: 11px 12px; border-top: 1px solid var(--border); }
+.o-brow:first-child { border-top: 0; }
+.o-brow.late { background: #fdf4f2; box-shadow: inset 3px 0 0 #d4473a; }
+.o-brow-time { grid-area: time; align-self: start; font-size: 13px; font-weight: 800; white-space: nowrap; padding-top: 1px; }
+.o-brow-main { grid-area: main; display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: start; }
+.o-brow-main b { font-size: 13.5px; display: flex; align-items: baseline; gap: 6px; }
+.o-brow-main b small { font-size: 11.5px; font-weight: 500; color: var(--muted); }
+.o-brow-main > span { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 11.5px; color: #6b6760; }
+.o-brow-main svg { width: 12px; color: var(--muted); }
+.o-brow-side { grid-area: side; text-align: start; }
+.o-brow-side i { align-items: flex-start !important; }
+.o-brow-side i { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; font-style: normal; font-size: 12px; font-weight: 700; color: var(--green-dark); white-space: nowrap; }
+.o-brow-side i small { font-size: 11px; font-weight: 500; color: var(--muted); }
+.o-brow-side i.late { color: #d4473a; }
+.o-brow-side i.warn { color: #b26a00; }
+.o-brow-side i.muted { color: var(--muted); font-weight: 600; flex-direction: row; align-items: center; gap: 4px; }
+.o-brow-side i.good { color: var(--green); flex-direction: row; align-items: center; gap: 4px; }
+.o-brow-side i svg { width: 13px; }
+.o-brow-bar { width: 72px; height: 5px; border-radius: 99px; background: #eceae6; overflow: hidden; }
+.o-brow-bar b { display: block; height: 100%; background: var(--green); border-radius: 99px; }
+.o-brow-side i.warn .o-brow-bar b { background: #e0a030; }
+.o-brow-side i.late .o-brow-bar b { background: #d4473a; }
+.o-brow-act { grid-area: act; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 6px; }
+.o-brow-btn { display: inline-flex; align-items: center; gap: 4px; height: 34px; padding: 0 14px; border-radius: 10px; background: var(--green); color: #fff; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.o-brow-btn svg { width: 14px; }
+.o-brow-btn.ghost { background: #f0efec; color: var(--text); }
+.o-brow-btn.soft { background: var(--orange-soft); color: var(--orange); }
+.o-ops > .o-fine { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.o-ops > .o-fine svg { width: 14px; flex: none; }
+@media (min-width: 900px) {
+  html.o-web .o-brow { grid-template-columns: 70px minmax(0, 1fr) 170px 220px; grid-template-areas: "time main side act"; padding: 12px 16px; }
+  html.o-web .o-brow-side { text-align: end; }
+  html.o-web .o-brow-side i { align-items: flex-end !important; }
+  html.o-web .o-brow-act { flex-direction: row; justify-content: flex-end; }
+}
