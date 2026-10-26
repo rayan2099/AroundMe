@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowDown, ArrowUp, SlidersHorizontal, Check, ChevronLeft, ChevronRight, Clock, Coffee, Gift, HeartHandshake, Lightbulb, Lock, MapPin, MessageCircleHeart, Repeat, ShoppingBag, Sparkles, TrendingUp } from 'lucide-react'
+import { ArrowDown, ArrowUp, SlidersHorizontal, Check, ChevronLeft, ChevronRight, Clock, Coffee, Gift, HeartHandshake, Lightbulb, Lock, MapPin, MessageCircleHeart, Repeat, Search, ShoppingBag, Sparkles, TrendingUp, UserPlus, Users } from 'lucide-react'
 import { Sheet, useT } from './Owner'
 import { BundleSheet, PerkSheet, bundleFull, defaultBundle } from './Grow'
 import type { Bundle, Perk } from './Grow'
@@ -453,6 +453,11 @@ export function Meetups({ ops, notify, items, cafe }: { ops: Ops; notify: (s: st
   const live = meetPlays[ops.branch.id] ?? (meetPlays[ops.branch.id] = {})
   const [, bump] = useState(0)
   const [growing, setGrowing] = useState(false)
+  const [gRange, setGRange] = useState<Range>(() => presetRange('week'))
+  const [gq, setGq] = useState('')
+  const { rangeName } = useRangeText()
+  const [gMore, setGMore] = useState(false)
+  const [gTarget, setGTarget] = useState<{ id: string; name: T2; sub: T2; n: number; back: number; pair: boolean } | null>(null)
   const [editing, setEditing] = useState<'bundle' | 'perk' | null>(null)
   const tiles: [typeof Clock, string, string, string][] = [
     [Sparkles, t('عملاء جدد', 'New customers'), String(newPeople), t('زاروا كافيهك أول مرة من أجل لقاء', 'visited your café for the first time for a meetup')],
@@ -472,8 +477,19 @@ export function Meetups({ ops, notify, items, cafe }: { ops: Ops; notify: (s: st
       sub: live.bundle ? t(`مفعّلة · ${sar(live.bundle.price)} بدل ${sar(bundleFull(live.bundle, items))}`, `On · ${sar(live.bundle.price)} instead of ${sar(bundleFull(live.bundle, items))}`) : t(`يجلسون ${MEET_VS.stay[0]} دقيقة في المتوسط · نحو +${sar(bundleGain)} أسبوعيًا`, `They stay ${MEET_VS.stay[0]} min on average · about +${sar(bundleGain)} a week`) },
   ]
   const openIdeas = ideas.filter(x => !x.on)
-  const potential = openIdeas.reduce((x, p) => x + p.gain, 0) + todo.length * perMeet
-  const waiting = openIdeas.length + todo.length
+  // Ready-made groups of people who met here, for one offer each (sample shares of the period's meetups).
+  const gCount = measure('meetups', ops.branch.scale, gRange)
+  const sentMeet = Object.values(ops.offers).filter(o => o.group && o.src === 'meet' && o.sentAt && inRange(gRange, o.sentAt)).reduce((x, o) => x + (o.group ?? 0), 0)
+  const groups: { id: string; icon: typeof Clock; name: T2; sub: T2; n: number; back: number; pair: boolean }[] = [
+    { id: 'again', icon: MessageCircleHeart, pair: true, back: 0.45, n: Math.round(gCount * 0.33) * 2, name: ['اتفقوا على اللقاء مجددًا', 'Plan to meet again'], sub: ['عرض يضمن أن يعودوا إلى كافيهك لا إلى غيره', 'An offer makes sure they come back to you'] },
+    { id: 'first', icon: UserPlus, pair: false, back: 0.25, n: Math.round(gCount * 2 * 0.44), name: ['زاروا كافيهك أول مرة للقاء', 'First visit was for a meetup'], sub: ['عملاء جدد جاؤوا بسبب لقاء', 'New customers who came for a meetup'] },
+    { id: 'helpers', icon: HeartHandshake, pair: false, back: 0.3, n: gCount, name: ['من ساعدوا غيرهم', 'People who helped someone'], sub: ['شكر صغير يجعلهم يختارون كافيهك في اللقاء القادم', 'A small thank-you makes them pick you next time'] },
+    { id: 'all', icon: Users, pair: false, back: 0.2, n: Math.max(0, gCount * 2 - sentMeet), name: ['كل من التقوا في الفترة', 'Everyone who met here'], sub: ['عدا من لديه عرض لم ينتهِ', 'Except those with an active offer'] },
+  ]
+  const weekAgain = Math.round(measure('meetups', ops.branch.scale, presetRange('week')) * 0.33)
+  const potential = openIdeas.reduce((x, p) => x + p.gain, 0) + Math.round(weekAgain * 0.45) * perMeet
+  const gFound = todo.filter(({ m }) => !gq.trim() || `${m.topic[0]} ${m.topic[1]}`.toLowerCase().includes(gq.trim().toLowerCase()))
+  const fmtN = (n: number) => n.toLocaleString('en-US')
   return (
     <div className="o-meetups-page">
       <RangePicker value={range} onChange={setRange} />
@@ -494,7 +510,7 @@ export function Meetups({ ops, notify, items, cafe }: { ops: Ops; notify: (s: st
         <span className="o-offer-new-icon"><TrendingUp /></span>
         <div>
           <b>{t('زِد دخلك', 'Earn more')}</b>
-          <small>{waiting ? t(`${waiting === 1 ? 'فرصة واحدة' : waiting === 2 ? 'فرصتان' : `${waiting} فرص`} · نحو +${sar(potential)} في الأسبوع`, `${waiting} idea${waiting === 1 ? '' : 's'} · about +${sar(potential)} a week`) : t('فعّلت كل الفرص. يمكنك تعديلها في أي وقت.', 'Everything is on. You can change it any time.')}</small>
+          <small>{t(`${fmtN(weekAgain * 2)} شخص اتفقوا على العودة في آخر 7 أيام · نحو +${sar(potential)} في الأسبوع`, `${fmtN(weekAgain * 2)} people plan to come back (last 7 days) · about +${sar(potential)} a week`)}</small>
         </div>
         <button type="button" className="o-offer-new-btn" onClick={() => setGrowing(true)}><Sparkles />{t('اعرض الفرص', 'See ideas')}</button>
       </div>
@@ -549,21 +565,21 @@ export function Meetups({ ops, notify, items, cafe }: { ops: Ops; notify: (s: st
 
       {growing && (
         <Sheet title={t('كيف تزيد دخلك؟', 'How to earn more?')} onClose={() => setGrowing(false)}>
-          <p className="o-sheet-sub">{t('فرص مبنية على لقاءات كافيهك. اختر واحدة لتراها وتفعّلها.', 'Ideas based on meetups at your café. Pick one to see and turn it on.')}</p>
-          {todo.length > 0 && (
-            <section className="o-tm-group">
-              <h4>{t('عروض العودة', 'Come-back offers')}<small>{todo.length}</small></h4>
-              <div className="o-offer-pick">
-                {todo.map(({ m, i }) => (
-                  <button key={i} type="button" onClick={() => { setGrowing(false); setOfferFor(i) }}>
-                    <span className="o-offer-kind"><Gift /></span>
-                    <span><b>{pick(m.topic)}</b><small>{t(`اتفقا على اللقاء هنا مرة أخرى · نحو +${sar(perMeet)}`, `Plan to meet here again · about +${sar(perMeet)}`)}</small></span>
-                    <Fwd />
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
+          <p className="o-sheet-sub">{t('أرسل عرضًا واحدًا لمجموعة كاملة ممن التقوا هنا، أو فعّل فكرة تجذب لقاءات أكثر. لا يظهر لك أي اسم.', 'Send one offer to a whole group of people who met here, or turn on an idea that brings more meetups. You never see a name.')}</p>
+          <RangePicker value={gRange} onChange={setGRange} label={t('لقاءات أي فترة؟', 'Meetups from when?')} />
+          <section className="o-tm-group">
+            <h4>{t('مجموعات جاهزة', 'Ready-made groups')}<small>{t(`${fmtN(gCount)} لقاء · ${rangeName(gRange)}`, `${fmtN(gCount)} meetups · ${rangeName(gRange)}`)}</small></h4>
+            <div className="o-offer-pick">
+              {groups.map(g => (
+                <button key={g.id} type="button" disabled={!g.n} onClick={() => { setGrowing(false); setGTarget(g) }}>
+                  <span className="o-offer-kind"><g.icon /></span>
+                  <span><b>{pick(g.name)}</b><small>{pick(g.sub)} · {t(`يعود عادةً ⁦${Math.round(g.back * 100)}%⁩`, `usually ${Math.round(g.back * 100)}% come back`)}</small></span>
+                  <em className="o-seg-n">{fmtN(g.n)}</em>
+                  <Fwd />
+                </button>
+              ))}
+            </div>
+          </section>
           {([[false, t('أفكار لجذب لقاءات أكثر', 'Ideas to bring more meetups')], [true, t('مفعّلة', 'Turned on')]] as const).map(([on, title]) => {
             const xs = ideas.filter(x => x.on === on)
             return xs.length > 0 && (
@@ -581,6 +597,23 @@ export function Meetups({ ops, notify, items, cafe }: { ops: Ops; notify: (s: st
               </section>
             )
           })}
+          {todo.length > 0 && (
+            <section className="o-tm-group">
+              <h4>{t('أو لقاء بعينه', 'Or a single meetup')}<small>{t(`سيلتقون مجددًا · ${todo.length}`, `Meeting again · ${todo.length}`)}</small></h4>
+              <label className="o-search"><Search /><input value={gq} onChange={e => setGq(e.target.value)} placeholder={t('ابحث بموضوع اللقاء', 'Search by what the meetup was about')} /></label>
+              <div className="o-offer-pick">
+                {(gMore || gq ? gFound : gFound.slice(0, 4)).map(({ m, i }) => (
+                  <button key={i} type="button" onClick={() => { setGrowing(false); setOfferFor(i) }}>
+                    <span className="o-offer-kind"><Gift /></span>
+                    <span><b>{pick(m.topic)}</b><small>{t(`اتفقا على اللقاء هنا مرة أخرى · نحو +${sar(perMeet)}`, `Plan to meet here again · about +${sar(perMeet)}`)}</small></span>
+                    <Fwd />
+                  </button>
+                ))}
+                {!gFound.length && <p className="o-empty">{t('لا يوجد لقاء بهذا الموضوع.', 'No meetup matches.')}</p>}
+                {!gq && !gMore && gFound.length > 4 && <button type="button" className="o-text-btn o-show-more" onClick={() => setGMore(true)}>{t(`اعرض الكل (${gFound.length})`, `Show all (${gFound.length})`)}</button>}
+              </div>
+            </section>
+          )}
         </Sheet>
       )}
       {editing === 'bundle' && (
@@ -590,6 +623,15 @@ export function Meetups({ ops, notify, items, cafe }: { ops: Ops; notify: (s: st
       {editing === 'perk' && (
         <PerkSheet start={live.perk ?? { cap: 20 }} onClose={() => setEditing(null)}
           onSave={p => { live.perk = p; setEditing(null); bump(x => x + 1); notify(t('فعّلنا المكافأة. سيرى المساعدون أن لهم مشروبًا مجانيًا في كافيهك', 'Perk is on. Helpers will see a free drink waiting at your café')) }} />
+      )}
+      {gTarget && (
+        <OfferSheet pair={gTarget.pair} count={gTarget.n} onClose={() => setGTarget(null)}
+          onSend={o => {
+            ops.sendGroupOffer(`G-meet-${gTarget.id}-${Date.now()}`, { ...o, sentAt: Date.now(), src: 'meet', about: gTarget.name, group: gTarget.n, pair: gTarget.pair }, gTarget.back, w.avgOrder, n => notify(t(`عاد ${fmtN(n)} شخص بعرضك 🎁`, `${fmtN(n)} people came back with your offer 🎁`)))
+            notify(t(`أرسلنا العرض إلى ${fmtN(gTarget.n)} شخص، وسيصلهم إشعار «افتح هديتك»`, `Offer sent to ${fmtN(gTarget.n)} people. They get an “Open your gift” notification`))
+            setGTarget(null)
+          }}
+          about={<p className="o-offer-for"><Users /><span><b>{pick(gTarget.name)} · {t(`${fmtN(gTarget.n)} شخص`, `${fmtN(gTarget.n)} people`)}</b><small>{pick(gTarget.sub)}</small></span></p>} />
       )}
       {offerFor != null && (
         <OfferSheet pair onClose={() => setOfferFor(null)}

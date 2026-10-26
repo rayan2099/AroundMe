@@ -81,18 +81,10 @@ export default function Offers({ ops, notify }: { ops: Ops; notify: (s: string) 
   const SegIcon = ({ k }: { k: string }) => (k === 'new' ? <UserPlus /> : k === 'lapsed' ? <Hourglass /> : k === 'top' ? <Crown /> : <Users />)
   const found = targets.filter(x => !q.trim() || `${pick(x.about)} ${x.id}`.toLowerCase().includes(q.trim().toLowerCase().replace('#', '')))
   const sendGroup = (x: Target, o: Offer) => {
-    const key = `G-${x.id}-${Date.now()}`
     const g = SEGMENTS.find(s => s.id === x.id)!
-    ops.setOffers(m => ({ ...m, [key]: { ...o, sentAt: Date.now(), src: 'order', about: x.about, group: x.group, returned: 0 } }))
+    ops.sendGroupOffer(`G-${x.id}-${Date.now()}`, { ...o, sentAt: Date.now(), src: 'order', about: x.about, group: x.group }, g.back, w.avgOrder, n => notify(t(`عاد ${n} عميل بعرضك 🎁`, `${n} customers came back with your offer 🎁`)))
     setTarget(null)
     notify(t(`أرسلنا العرض إلى ${x.group!.toLocaleString('en-US')} عميل، وسيصلهم إشعار «افتح هديتك»`, `Offer sent to ${x.group!.toLocaleString('en-US')} customers. They get an “Open your gift” notification`))
-    // Prototype: part of the group comes back a little later.
-    setTimeout(() => {
-      const n = Math.max(1, Math.round(x.group! * g.back))
-      const per = o.kind === 'drink' ? 18 : o.kind === 'sweet' ? 24 : Math.round((w.avgOrder * o.pct) / 100)
-      ops.setOffers(m => (m[key] ? { ...m, [key]: { ...m[key], returned: n, usedAt: Date.now(), spent: n * w.avgOrder, saved: n * per } } : m))
-      notify(t(`عاد ${n} عميل بعرضك 🎁`, `${n} customers came back with your offer 🎁`))
-    }, 15_000)
   }
   const send = (x: Target, o: Offer) => {
     if (x.group) return sendGroup(x, o)

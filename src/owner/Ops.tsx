@@ -257,8 +257,18 @@ export function branchOps(branch: Branch, data: BranchData, setAll: SetAll, now:
       onBack(code)
     }, 15_000)
   }
+  // One offer to a whole group (busy cafés). Prototype: part of the group comes back a little later.
+  const sendGroupOffer = (key: string, offer: Offer, back: number, avgOrder: number, onBack: (n: number) => void) => {
+    setOffers(x => ({ ...x, [key]: { ...offer, returned: 0 } }))
+    setTimeout(() => {
+      const n = Math.max(1, Math.round((offer.group ?? 1) * back))
+      const per = offer.kind === 'drink' ? 18 : offer.kind === 'sweet' ? 24 : Math.round((avgOrder * offer.pct) / 100)
+      setOffers(x => (x[key] ? { ...x, [key]: { ...x[key], returned: n, usedAt: Date.now(), spent: n * avgOrder, saved: n * per } } : x))
+      onBack(n)
+    }, 15_000)
+  }
   return {
-    branch, ...data, now,
+    branch, ...data, now, sendGroupOffer,
     setOrders, setTables: up('tables'), setBookings: up('bookings'), setThreads: up('threads'), setOffers,
     setAutoOffer: up('autoOffer'), setPaused: up('paused'), sendOffer,
     newCode: () => { const c = `${branch.prefix[0]}${data.nextCode}`; up('nextCode')(n => n + 1); return c },
