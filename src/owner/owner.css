@@ -1454,3 +1454,4 @@ li.live .o-mt-play-icon { color: var(--green); border-color: var(--border); back
   html.o-web .o-brow-side i { align-items: flex-end !important; }
   html.o-web .o-brow-act { flex-direction: row; justify-content: flex-end; }
 }
+.o-status-tabs button.warn span { background: #d4473a; color: #fff; }

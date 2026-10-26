@@ -562,7 +562,7 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
   const [bTab, setBTab] = useState<'coming' | 'seated' | 'done'>('coming')
   const [bMore, setBMore] = useState(false)
   const HOLD = 60
-  const nTables = (n: number) => t(n === 1 ? 'طاولة' : n === 2 ? 'طاولتين' : n <= 10 ? `${n} طاولات` : `${n} طاولة`, `${n} table${n === 1 ? '' : 's'}`)
+  const nTables = (n: number) => t(n === 1 ? 'طاولة واحدة' : n === 2 ? 'طاولتين' : n <= 10 ? `${n} طاولات` : `${n} طاولة`, `${n} table${n === 1 ? '' : 's'}`)
   const table = (id: string) => tables.find(x => x.id === id)
   const tName = (id: string) => { const x = table(id); return x ? `${pick(x.name)} · ${pick(x.area)}` : '' }
   const patch = (id: string, p: Partial<Table>) => setTables(l => l.map(x => (x.id === id ? { ...x, ...p } : x)))
@@ -585,7 +585,17 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
   }
   const areas = tables.reduce<T2[]>((acc, x) => (acc.some(a => a[1] === x.area[1]) ? acc : [...acc, x.area]), [])
   const sel = open ? table(open) : undefined
-  const counts = { free: tables.filter(x => !x.seatedAt).length, seated: tables.filter(x => x.seatedAt).length, over: tables.filter(x => status(x).k === 'over').length }
+  // Status tabs over the floor, like the bookings tabs: all, free, booked soon, seated, over time.
+  const [fTab, setFTab] = useState<'all' | 'free' | 'soon' | 'seated' | 'over'>('all')
+  const fOf = (k: string) => tables.filter(x => status(x).k === k)
+  const fTabs: ['all' | 'free' | 'soon' | 'seated' | 'over', string, number, boolean][] = [
+    ['all', t('الكل', 'All'), tables.length, false],
+    ['free', t('شاغرة', 'Free'), fOf('free').length, false],
+    ['soon', t('محجوزة قريبًا', 'Booked soon'), fOf('soon').length, false],
+    ['seated', t('مشغولة', 'Seated'), fOf('seated').length + fOf('over').length, false],
+    ['over', t('تجاوزت الوقت', 'Over time'), fOf('over').length, true],
+  ]
+  const fShown = fTab === 'all' ? tables : fTab === 'seated' ? tables.filter(x => x.seatedAt) : fOf(fTab)
 
   return (
     <div className="o-ops">
@@ -600,16 +610,19 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
             <span><b>{nTables(tables.length)}</b><small>{t(`في ${areas.length === 1 ? 'موقع واحد' : areas.length === 2 ? 'موقعين' : `${areas.length} مواقع`}`, `in ${areas.length} location${areas.length === 1 ? '' : 's'}`)}</small></span>
             <button type="button" className="o-offer-new-btn" onClick={() => setEditing('new')}><Plus />{t('أضف طاولة', 'Add a table')}</button>
           </div>
-          <div className="o-ops-stats">
-            <div><b>{counts.free}</b><small>{t('شاغرة', 'free')}</small></div>
-            <div><b>{counts.seated}</b><small>{t('مشغولة', 'seated')}</small></div>
-            <div className={counts.over ? 'warn' : ''}><b>{counts.over}</b><small>{t('انتهى وقتها', 'over time')}</small></div>
+          <div className="o-status-tabs o-btabs" role="tablist">
+            {fTabs.map(([id, label, n, warn]) => (
+              <button key={id} type="button" role="tab" aria-selected={fTab === id} className={`${fTab === id ? 'active' : ''} ${warn && n > 0 ? 'warn' : ''}`} onClick={() => setFTab(id)}>
+                {label}<span>{n}</span>
+              </button>
+            ))}
           </div>
-          {areas.map(area => (
+          {!fShown.length && <div className="o-empty"><Check /><b>{fTab === 'over' ? t('لا طاولة تجاوزت وقتها', 'No table is over its time') : fTab === 'free' ? t('لا طاولات شاغرة الآن', 'No free tables right now') : t('لا شيء هنا', 'Nothing here')}</b></div>}
+          {areas.filter(area => fShown.some(x => x.area[1] === area[1])).map(area => (
             <section key={area[1]} className="o-tm-group">
-              <h4>{pick(area)}<small>{nTables(tables.filter(x => x.area[1] === area[1]).length)}</small></h4>
+              <h4>{pick(area)}<small>{nTables(fShown.filter(x => x.area[1] === area[1]).length)}</small></h4>
               <div className="o-floor">
-                {tables.filter(x => x.area[1] === area[1]).map(x => {
+                {fShown.filter(x => x.area[1] === area[1]).map(x => {
                   const st = status(x)
                   return (
                     <button key={x.id} type="button" className={`o-tbl s-${st.k}`} onClick={() => { setOpen(x.id); setPpl(Math.min(2, x.seats)) }}>
