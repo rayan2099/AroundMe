@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Armchair, Check, ChevronLeft, ChevronRight, Clock, Coffee, Crown, Gift, HeartHandshake, Hourglass, Percent, Plus, Repeat, Search, ShoppingBag, Sparkles, UserPlus, Users, Wallet } from 'lucide-react'
 import { Sheet, useT } from './Owner'
+import { useCan } from './Staff'
 import { OfferSheet, useOfferText } from './Offer'
 import { MEETUPS, measure, weekFor } from './Insights'
 import type { Offer } from './Offer'
@@ -24,6 +25,7 @@ const hash = (code: string) => `\u2066#${code}\u2069`
 
 export default function Offers({ ops, notify }: { ops: Ops; notify: (s: string) => void }) {
   const { t, sar, lang } = useT()
+  const can = useCan()
   const { offerText, daysText } = useOfferText()
   const [filter, setFilter] = useState<Status | 'all'>('all')
   const [picking, setPicking] = useState(false)
@@ -101,7 +103,7 @@ export default function Offers({ ops, notify }: { ops: Ops; notify: (s: string) 
           <b>{t('شجّع زوارك على العودة', 'Bring your visitors back')}</b>
           <small>{t(`${weekLeft.toLocaleString('en-US')} زائر في آخر 7 أيام بلا عرض بعد`, `${weekLeft.toLocaleString('en-US')} visitors in the last 7 days without an offer`)}</small>
         </div>
-        <button type="button" className="o-offer-new-btn" onClick={() => setPicking(true)}><Plus />{t('عرض جديد', 'New offer')}</button>
+        {can('offers.send') && <button type="button" className="o-offer-new-btn" onClick={() => setPicking(true)}><Plus />{t('عرض جديد', 'New offer')}</button>}
       </div>
       <RangePicker value={range} onChange={setRange} label={t('العروض المُرسلة في', 'Offers sent in')} />
       <div className="o-offer-kpis">
@@ -127,10 +129,10 @@ export default function Offers({ ops, notify }: { ops: Ops; notify: (s: string) 
         {best && best.pct > 0 && <p className="o-card-sub">{t(`«${kindLabel(best.k)}» هو الأنجح عندك حتى الآن.`, `“${kindLabel(best.k)}” works best for you so far.`)}</p>}
       </section>
 
-      <button type="button" className="o-switch-row o-auto-offer" role="switch" aria-checked={ops.autoOffer} onClick={() => ops.setAutoOffer(v => !v)}>
+      {can('offers.auto') && <button type="button" className="o-switch-row o-auto-offer" role="switch" aria-checked={ops.autoOffer} onClick={() => ops.setAutoOffer(v => !v)}>
         <span><b>{t('عرض تلقائي بعد أول زيارة', 'Automatic offer after a first visit')}</b><small>{ops.autoOffer ? t('يصل كل زائر جديد مشروب مجاني صالح أسبوعين، في اليوم التالي لزيارته', 'Every new visitor gets a free drink, valid 2 weeks, the day after their visit') : t('أرسل العروض بنفسك من الطلبات والحجوزات واللقاءات', 'Send offers yourself from orders, bookings and meetups')}</small></span>
         <em className={ops.autoOffer ? 'on' : ''} />
-      </button>
+      </button>}
 
       <div className="o-chips wrap o-offer-filter">
         {(['all', 'back', 'waiting', 'expired'] as const).map(f => (

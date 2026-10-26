@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Armchair, BellRing, Check, ChefHat, CircleAlert, Clock, Gift, HandPlatter, LayoutGrid, MessageCircle, House, Navigation, Pause, PenLine, Play, Plus, Rows3, Search, Send, ShoppingBag, Timer, Users } from 'lucide-react'
+import { Armchair, BellRing, Lock, Check, ChefHat, CircleAlert, Clock, Gift, HandPlatter, LayoutGrid, MessageCircle, House, Navigation, Pause, PenLine, Play, Plus, Rows3, Search, Send, ShoppingBag, Timer, Users } from 'lucide-react'
 import { Sheet, useT } from './Owner'
+import { useCan } from './Staff'
 import { OfferButton, OfferSent, OfferSheet, useOfferText } from './Offer'
 import type { Offer } from './Offer'
 import type { Item } from './data'
@@ -346,6 +347,7 @@ export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { o
   const backNote = (code: string) => notify(back(code))
   const { offerText } = useOfferText()
   const { orders, setOrders, now, paused, setPaused } = ops
+  const can = useCan()
   const [tab, setTab] = useState<Status>(startTab)
   const [issue, setIssue] = useState<Order | null>(null)
   const [offerFor, setOfferFor] = useState<Order | null>(null)
@@ -397,7 +399,7 @@ export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { o
           <b>{paused ? t('الطلبات متوقفة', 'Orders are paused') : t('تستقبل الطلبات الآن', 'Taking orders')}</b>
           <small>{paused ? (paused === 'manual' ? t('حتى تعيد تشغيلها', 'Until you turn them back on') : t(`تعود ${clock(paused)}`, `Back at ${clock(paused)}`)) : t(`وقت التحضير المتوقع ~${PREP_TARGET} د`, `Expected prep time ~${PREP_TARGET} min`)}</small>
         </div>
-        <button type="button" onClick={() => (paused ? (setPaused(null), notify(t('عدت لاستقبال الطلبات', 'Taking orders again'))) : setPauseOpen(true))}>{paused ? <><Play />{t('أعد التشغيل', 'Resume')}</> : <><Pause />{t('إيقاف مؤقت', 'Pause')}</>}</button>
+        {can('orders.pause') && <button type="button" onClick={() => (paused ? (setPaused(null), notify(t('عدت لاستقبال الطلبات', 'Taking orders again'))) : setPauseOpen(true))}>{paused ? <><Play />{t('أعد التشغيل', 'Resume')}</> : <><Pause />{t('إيقاف مؤقت', 'Pause')}</>}</button>}
       </div>
 
       <div className="o-ops-stats">
@@ -426,7 +428,7 @@ export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { o
         <div className="o-tomake">
           <div className="o-tomake-head">
             <b>{tab === 'new' ? t(count('new') === 1 ? 'طلب واحد ينتظر القبول' : count('new') === 2 ? 'طلبان ينتظران القبول' : `${nOrders(count('new'))} تنتظر القبول`, `${count('new')} order${count('new') === 1 ? '' : 's'} waiting`) : t('حضّر الآن', 'Make now')}</b>
-            {tab === 'new' && <button type="button" className="o-advance" onClick={acceptAll}><ChefHat />{t('اقبل الكل وابدأ التحضير', 'Accept all and start')}</button>}
+            {tab === 'new' && can('orders.handle') && <button type="button" className="o-advance" onClick={acceptAll}><ChefHat />{t('اقبل الكل وابدأ التحضير', 'Accept all and start')}</button>}
           </div>
           <div className="o-tomake-items">{toMake.slice(0, 8).map(([en, n]) => <span key={en}><b>{`\u2066${n}×\u2069`}</b>{name(en)}</span>)}</div>
         </div>
@@ -451,7 +453,7 @@ export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { o
                   <span className="o-orow-lines">{o.lines.map(([en, n]) => `${n > 1 ? `\u2066${n}×\u2069 ` : ''}${name(en)}`).join(t('، ', ', '))}</span>
                   <span className={`o-orow-time ${late ? 'late' : ''}`}>{late && <CircleAlert />}{when}</span>
                 </button>
-                {o.status !== 'done' && <button type="button" className="o-orow-act" onClick={() => advance(o)} aria-label={lbl}>{ic}<span>{o.status === 'new' ? t('اقبل', 'Accept') : o.status === 'prep' ? t('جاهز', 'Ready') : o.status === 'ready' ? t('سُلّم', 'Handed') : t('ابدأ', 'Start')}</span></button>}
+                {o.status !== 'done' && can('orders.handle') && <button type="button" className="o-orow-act" onClick={() => advance(o)} aria-label={lbl}>{ic}<span>{o.status === 'new' ? t('اقبل', 'Accept') : o.status === 'prep' ? t('جاهز', 'Ready') : o.status === 'ready' ? t('سُلّم', 'Handed') : t('ابدأ', 'Start')}</span></button>}
               </li>
             )
           }
@@ -492,11 +494,11 @@ export function Orders({ ops, items, notify, openThread, startTab = 'new' }: { o
               {slow && <p className="o-order-flag"><CircleAlert />{t(`تجاوز ${PREP_TARGET} دقائق`, `Over ${PREP_TARGET} minutes`)}</p>}
               {o.offer && <p className="o-order-offer"><Gift />{t(`${total(o) === 0 ? 'استلم هديته' : 'طلب بعرضك'}: ${offerText(ops.offers[o.offer.id] ?? { kind: 'drink', pct: 0, days: 0, note: '' }, ops.offers[o.offer.id]?.pair)}`, `${total(o) === 0 ? 'Claimed' : 'Ordered with your offer'}: ${offerText(ops.offers[o.offer.id] ?? { kind: 'drink', pct: 0, days: 0, note: '' }, ops.offers[o.offer.id]?.pair)}`)}<b>{`− ${sar(o.offer.saved)}`}</b></p>}
               {o.offer && total(o) === 0 ? <p className="o-paid"><Gift />{t('مجاني بالكامل بعرضك، لا شيء للدفع', 'Free with your offer, nothing to pay')}</p> : <p className="o-paid"><Check />{t('مدفوع', 'Paid')} {sar(total(o))} · {o.pay === 'apple' ? 'Apple Pay' : 'Google Pay'}</p>}
-              {o.status === 'done' && (ops.offers[o.code] ? <OfferSent offer={ops.offers[o.code]} /> : <OfferButton onClick={() => setOfferFor(o)} />)}
+              {o.status === 'done' && (ops.offers[o.code] ? (can('offers.view') && <OfferSent offer={ops.offers[o.code]} />) : can('offers.send') && <OfferButton onClick={() => setOfferFor(o)} />)}
               <div className="o-order-actions">
-                {o.status !== 'done' && <button type="button" className="o-advance" onClick={() => advance(o)}>{icon}{label}</button>}
-                {o.status !== 'ready' && o.status !== 'done' && <button type="button" className="o-issue" onClick={() => setIssue(o)}>{t('مشكلة؟', 'Problem?')}</button>}
-                <button type="button" className="o-icon-btn o-chat-btn" onClick={() => openThread(o.code)} aria-label={t('راسل العميل', 'Message the customer')}><MessageCircle />{o.status === 'done' && t('راسل العميل', 'Message')}</button>
+                {o.status !== 'done' && can('orders.handle') && <button type="button" className="o-advance" onClick={() => advance(o)}>{icon}{label}</button>}
+                {o.status !== 'ready' && o.status !== 'done' && can('orders.problem') && <button type="button" className="o-issue" onClick={() => setIssue(o)}>{t('مشكلة؟', 'Problem?')}</button>}
+                {can('messages.view') && <button type="button" className="o-icon-btn o-chat-btn" onClick={() => openThread(o.code)} aria-label={t('راسل العميل', 'Message the customer')}><MessageCircle />{o.status === 'done' && t('راسل العميل', 'Message')}</button>}
               </div>
             </li>
           )
@@ -554,6 +556,7 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
   const { t, clock, mins, pick, people, backNote: back } = useFmt()
   const backNote = (code: string) => notify(back(code))
   const { tables, setTables, bookings, setBookings, now } = ops
+  const can = useCan()
   const [tab, setTab] = useState<'floor' | 'bookings'>('floor')
   const [open, setOpen] = useState<string | null>(null)
   const [editing, setEditing] = useState<Table | 'new' | null>(null)
@@ -608,7 +611,7 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
         <>
           <div className="o-floor-head">
             <span><b>{nTables(tables.length)}</b><small>{t(`في ${areas.length === 1 ? 'موقع واحد' : areas.length === 2 ? 'موقعين' : `${areas.length} مواقع`}`, `in ${areas.length} location${areas.length === 1 ? '' : 's'}`)}</small></span>
-            <button type="button" className="o-offer-new-btn" onClick={() => setEditing('new')}><Plus />{t('أضف طاولة', 'Add a table')}</button>
+            {can('tables.edit') && <button type="button" className="o-offer-new-btn" onClick={() => setEditing('new')}><Plus />{t('أضف طاولة', 'Add a table')}</button>}
           </div>
           <div className="o-status-tabs o-btabs" role="tablist">
             {fTabs.map(([id, label, n, warn]) => (
@@ -663,15 +666,15 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
                   </div>
                 </div>
                 {sel.limit > 0 && <span className="o-tbl-bar big"><i style={{ width: `${Math.min(100, (st.sat / sel.limit) * 100)}%` }} /></span>}
-                <div className="o-order-actions">
+                {can('tables.seat') && <div className="o-order-actions">
                   {sel.limit > 0 && <button type="button" className="o-issue" onClick={() => { patch(sel.id, { limit: sel.limit + 15 }); notify(t(`أضفنا 15 دقيقة إلى ${pick(sel.name)}`, `Added 15 minutes to ${pick(sel.name)}`)) }}>{t('+15 د', '+15 min')}</button>}
                   <button type="button" className="o-advance" onClick={() => { free(sel.id); setOpen(null); notify(t(`${pick(sel.name)} أصبحت شاغرة`, `${pick(sel.name)} is free`)) }}><Check />{t('غادروا، فرّغ الطاولة', 'They left, free it')}</button>
-                </div>
+                </div>}
               </>
             ) : (
               <>
                 {st.nb && <p className={`o-note ${st.k === 'soon' ? 'warn' : ''}`}><Clock />{t(`عليها حجز ${clock(st.nb.at)} · ${people(st.nb.ppl)} · ${hash(st.nb.code)}`, `Booked at ${clock(st.nb.at)} · ${people(st.nb.ppl)} · ${hash(st.nb.code)}`)}</p>}
-                <h4 className="o-sheet-h">{t('كم عدد الأشخاص؟', 'How many people?')}</h4>
+                {can('tables.seat') ? <><h4 className="o-sheet-h">{t('كم عدد الأشخاص؟', 'How many people?')}</h4>
                 <div className="o-stepper">
                   <button type="button" onClick={() => setPpl(n => Math.max(1, n - 1))} aria-label={t('أقل', 'Fewer')}>−</button>
                   <b>{people(ppl)}</b>
@@ -680,9 +683,10 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
                 <div className="o-order-actions">
                   <button type="button" className="o-advance" onClick={() => { seat(sel.id, ppl); setOpen(null); notify(t(`أجلسنا ${people(ppl)} على ${pick(sel.name)}، وبدأ العدّاد`, `Seated ${people(ppl)} at ${pick(sel.name)}. Timer started`)) }}><Play />{t('أجلسهم وابدأ العدّاد', 'Seat and start timer')}</button>
                 </div>
+                </> : !st.nb && <p className="o-sheet-sub">{t('الطاولة شاغرة.', 'The table is free.')}</p>}
               </>
             )}
-            <button type="button" className="o-text-btn o-edit-table" onClick={() => setEditing(sel)}><PenLine />{t('عدّل الطاولة', 'Edit table')}</button>
+            {can('tables.edit') && <button type="button" className="o-text-btn o-edit-table" onClick={() => setEditing(sel)}><PenLine />{t('عدّل الطاولة', 'Edit table')}</button>}
           </Sheet>
         )
       })()}
@@ -718,12 +722,12 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
     const row = (b: Booking, side: ReactNode, act: ReactNode, cls = '') => (
       <li key={b.code} className={`o-brow ${cls}`}>
         <span className="o-brow-time">{clock(b.at)}</span>
-        <button type="button" className="o-brow-main" onClick={() => openThread(b.code)} aria-label={t('راسل العميل', 'Message the customer')}>
+        <button type="button" className="o-brow-main" disabled={!can('messages.view')} onClick={() => openThread(b.code)} aria-label={t('راسل العميل', 'Message the customer')}>
           <b>{pick(table(b.table)?.name ?? ['', ''])}<small>{pick(table(b.table)?.area ?? ['', ''])}</small></b>
           <span><Users />{people(b.ppl)} · {pick(b.tag)} · {hash(b.code)}{b.order && <> · <ShoppingBag />{hash(b.order)}</>}</span>
         </button>
         <span className="o-brow-side">{side}</span>
-        {act && <span className="o-brow-act">{act}</span>}
+        {act && can('tables.seat') && <span className="o-brow-act">{act}</span>}
       </li>
     )
     const parts: [string, Booking[], boolean][] = bTab === 'coming' ? [
@@ -768,7 +772,7 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
                 const offer = ops.offers[b.order ?? b.code]
                 return row(b,
                   b.state === 'noshow' ? <i className="muted">{t('لم يحضروا · 5 ر.س لك', 'No-show · SAR 5 kept')}</i> : offer ? <i className={offer.usedAt ? 'good' : 'muted'}><Gift />{offer.usedAt ? t('عادوا بعرضك', 'Came back') : t('أُرسل عرض', 'Offer sent')}</i> : <i className="muted">{t('غادروا', 'Left')}</i>,
-                  b.state === 'left' && !offer ? <button type="button" className="o-brow-btn soft" onClick={() => setOfferBooking(b)}><Gift />{t('عرض', 'Offer')}</button> : null)
+                   b.state === 'left' && !offer && can('offers.send') ? <button type="button" className="o-brow-btn soft" onClick={() => setOfferBooking(b)}><Gift />{t('عرض', 'Offer')}</button> : null)
               })}
             </ul>
           </section>
@@ -837,6 +841,7 @@ function TableForm({ table, areas, onSave, onDelete, onClose }: { table: Table |
 export function Messages({ ops, open, setOpen }: { ops: Ops; open: string | null; setOpen: (c: string | null) => void }) {
   const { t, clock } = useFmt()
   const { threads, setThreads, orders, bookings } = ops
+  const can = useCan()
   const [draft, setDraft] = useState('')
   const about = (code: string) => {
     const o = orders.find(x => x.code === code); if (o) return t(`طلب ${hash(code)}`, `Order ${hash(code)}`)
@@ -874,7 +879,7 @@ export function Messages({ ops, open, setOpen }: { ops: Ops; open: string | null
         })}
       </ul>
       {open && (
-        <Sheet title={about(open)} onClose={() => setOpen(null)} footer={
+        <Sheet title={about(open)} onClose={() => setOpen(null)} footer={!can('messages.reply') ? <p className="o-fine"><Lock />{t('يمكنك قراءة المحادثة فقط.', 'You can read this chat only.')}</p> :
           <div className="o-composer">
             <div className="o-quick">{QUICK.map(q => <button key={q} type="button" className="o-chip" onClick={() => send(q)}>{q}</button>)}</div>
             <form onSubmit={e => { e.preventDefault(); send(draft) }}>

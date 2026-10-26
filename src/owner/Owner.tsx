@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import {
   Armchair, ArrowDown, ArrowUp, BadgeCheck, ClipboardList, Menu as MenuIcon, MessageCircle, ChartColumn, CakeSlice, Camera, Check, ChevronLeft, ChevronRight, CircleAlert, Coffee, Cookie, Croissant,
   CupSoda, Eye, FileText, GlassWater, ImagePlus, Languages, Leaf, Link2, MapPin, PenLine, Plus, Salad, Sandwich, ScanLine,
-  Search, Sparkles, Star, Store, Trash2, Upload, Utensils, X, Gift, HeartHandshake, LayoutGrid, Building2, ChevronDown, CalendarClock,
+  Search, Sparkles, Star, Store, Trash2, Upload, Utensils, X, Gift, HeartHandshake, LayoutGrid, Building2, ChevronDown, CalendarClock, UsersRound, Lock,
 } from 'lucide-react'
 import Insights, { Meetups } from './Insights'
 import Tomorrow from './Tomorrow'
@@ -12,6 +12,8 @@ import { Messages, Orders, Tables, attention, opsStats, useBranches } from './Op
 import type { Order } from './Ops'
 import { BranchPick, BranchSwitcher, BranchesAdmin, Overview, useBranchText } from './Branches'
 import type { BranchView } from './Branches'
+import { PermProvider, ROLES, SAMPLE_STAFF, StaffPage } from './Staff'
+import type { Employee, Perm } from './Staff'
 import { PLACES, PLATFORMS, SUGGESTED, importedMenu, scannedMenu } from './data'
 import type { Category, IconKey, Item, Place, Text } from './data'
 
@@ -673,14 +675,16 @@ function CustomerMenu({ place, cats, items }: { place: Place; cats: Category[]; 
 }
 
 /* ---------- After publishing: the café's dashboard ---------- */
-type View = 'overview' | 'orders' | 'tables' | 'messages' | 'tomorrow' | 'offers' | 'meetups' | 'insights' | 'menu' | 'branches'
+type View = 'overview' | 'orders' | 'tables' | 'messages' | 'tomorrow' | 'offers' | 'meetups' | 'insights' | 'menu' | 'branches' | 'staff'
 const NAV: [View, typeof Coffee, string, string][] = [
   ['overview', LayoutGrid, 'نظرة عامة', 'Overview'],
   ['orders', ClipboardList, 'الطلبات', 'Orders'], ['tables', Armchair, 'الطاولات', 'Tables'], ['messages', MessageCircle, 'الرسائل', 'Messages'],
   ['tomorrow', CalendarClock, 'جدول الغد', "Tomorrow's plan"],
   ['offers', Gift, 'العروض', 'Offers'], ['meetups', HeartHandshake, 'اللقاءات', 'Meetups'],
-  ['insights', ChartColumn, 'الأداء', 'Performance'], ['menu', Utensils, 'المنيو', 'Menu'], ['branches', Building2, 'الفروع', 'Branches'],
+  ['insights', ChartColumn, 'الأداء', 'Performance'], ['menu', Utensils, 'المنيو', 'Menu'], ['branches', Building2, 'الفروع', 'Branches'], ['staff', UsersRound, 'الموظفون', 'Staff'],
 ]
+// The permission that makes each section visible: without it the section is not in the nav at all.
+const VIEW_PERM: Record<View, Perm> = { overview: 'overview.view', orders: 'orders.view', tables: 'tables.view', messages: 'messages.view', tomorrow: 'tomorrow.view', offers: 'offers.view', meetups: 'meetups.view', insights: 'insights.view', menu: 'menu.view', branches: 'branches.manage', staff: 'staff.manage' }
 // Sections that always belong to one branch; with «كل الفروع» selected they ask which branch first.
 const PER_BRANCH: View[] = ['orders', 'tables', 'messages', 'tomorrow', 'offers', 'meetups', 'insights']
 // Sections that only make sense across all branches.
@@ -691,14 +695,23 @@ function Live(props: MenuProps & { place: Place }) {
   const { branchName } = useBranchText()
   const [cur, setCur] = useState(cats[0]?.id ?? '')
   const [preview, setPreview] = useState(false)
-  const B = useBranches()
+  const Ball = useBranches()
+  // «اعرض كما يراها»: the dashboard as one staff member sees it, with only their sections, buttons and branches.
+  const [staff, setStaff] = useState<Employee[]>(SAMPLE_STAFF)
+  const [viewAs, setViewAs] = useState<string | null>(null)
+  const me = viewAs ? staff.find(e => e.id === viewAs) ?? null : null
+  const perms = me?.perms ?? null
+  const can = (p: Perm) => !perms || perms.includes(p)
+  const B = me && me.branches !== 'all' ? { ...Ball, branches: Ball.branches.filter(b => (me.branches as string[]).includes(b.id)) } : Ball
   const multi = B.branches.length > 1
   const [branchRaw, setBranchRaw] = useState<string>('all')
   // A removed branch, or a single-branch café, falls back to a real branch.
   const branch = branchRaw === 'all' ? (multi ? 'all' : B.branches[0].id) : B.branches.some(b => b.id === branchRaw) ? branchRaw : multi ? 'all' : B.branches[0].id
   const isAll = branch === 'all'
   const [view, setViewRaw] = useState<View>('overview')
-  const shownView: View = !isAll && ALL_ONLY.includes(view) ? 'orders' : isAll || view !== 'overview' ? view : 'orders'
+  const allowed = NAV.map(n => n[0]).filter(v => can(VIEW_PERM[v]) && (multi || !ALL_ONLY.includes(v)) && (isAll || !ALL_ONLY.includes(v)))
+  const wanted: View = !isAll && ALL_ONLY.includes(view) ? 'orders' : isAll || view !== 'overview' ? view : 'orders'
+  const shownView: View = allowed.includes(wanted) ? wanted : allowed[0] ?? 'staff'
   const [thread, setThread] = useState<string | null>(null)
   // Tomorrow's checklist, per branch: the tasks the team has already done.
   const [ready, setReady] = useState<Record<string, string[]>>({})
@@ -755,11 +768,18 @@ function Live(props: MenuProps & { place: Place }) {
   const sum = (k: keyof ReturnType<typeof opsStats>) => scope.reduce((s, id) => s + statsOf(id)[k], 0)
   const newOrders = sum('newOrders'), unread = sum('unread'), lateTables = sum('lateBookings') + sum('overTime')
   const soldOut = isAll ? B.branches.reduce((s, b) => s + (soldBy[b.id]?.length ?? 0), 0) : viewItems.filter(i => i.soldOut).length
-  const badges: Record<View, number> = { overview: 0, orders: newOrders, tables: lateTables, messages: unread, tomorrow: 0, offers: sum('returned'), meetups: 0, insights: 0, menu: soldOut, branches: 0 }
+  const badges: Record<View, number> = { overview: 0, orders: newOrders, tables: lateTables, messages: unread, tomorrow: 0, offers: sum('returned'), meetups: 0, insights: 0, menu: soldOut, branches: 0, staff: 0 }
   // Same count as the branch switcher: new orders, unread messages, and tables that need action.
-  const totalBadge = scope.reduce((s, id) => s + attention(statsOf(id)), 0)
-  const nav = NAV.filter(([id]) => multi || !ALL_ONLY.includes(id)).filter(([id]) => isAll || !ALL_ONLY.includes(id))
+  // A staff member's badge only counts sections they can open.
+  const totalBadge = me ? allowed.reduce((s, v) => s + (v === 'orders' || v === 'messages' || v === 'tables' ? badges[v] : 0), 0) : scope.reduce((s, id) => s + attention(statsOf(id)), 0)
+  const nav = NAV.filter(([id]) => allowed.includes(id))
   const [drawer, setDrawer] = useState(false)
+  const previewAs = (id: string | null) => {
+    const e = id ? staff.find(x => x.id === id) : null
+    const bs = e && e.branches !== 'all' ? Ball.branches.filter(b => (e.branches as string[]).includes(b.id)) : Ball.branches
+    setViewAs(id); setBranchRaw(bs.length > 1 ? 'all' : bs[0]?.id ?? 'all'); setThread(null); setSwitcher(false); setDrawer(false)
+    setView(id ? 'orders' : 'staff')
+  }
   const current = isAll ? null : B.branches.find(b => b.id === branch)!
   const placeHere: Place = current ? { ...place, area: { ar: current.area[0], en: current.area[1] } } : place
   const toggle = (i: Item) => {
@@ -776,8 +796,15 @@ function Live(props: MenuProps & { place: Place }) {
   )
   const title = t(...NAV.find(n => n[0] === shownView)!.slice(2) as [string, string])
   return (
-    <>
+    <PermProvider perms={perms}>
       <div className="o-pad o-live">
+        {me && (
+          <div className="o-viewas">
+            <Eye />
+            <span><b>{t(`تعرض اللوحة كما يراها ${me.name}`, `Viewing as ${me.name}`)}</b><small>{me.role === 'custom' ? t('صلاحيات مخصصة', 'Custom permissions') : t(...ROLES.find(r => r.id === me.role)!.name)} · {me.branches === 'all' ? t('كل الفروع', 'All branches') : B.branches.map(x => branchName(x)).join(t('، ', ', '))} · {t(allowed.length === 1 ? 'قسم واحد' : allowed.length === 2 ? 'قسمان' : allowed.length <= 10 ? `${allowed.length} أقسام` : `${allowed.length} قسمًا`, `${allowed.length} section${allowed.length === 1 ? '' : 's'}`)}{!me.active && t(' · دخوله موقوف', ' · access paused')}</small></span>
+            <button type="button" onClick={() => previewAs(null)}>{t('رجوع إلى حسابي', 'Back to my account')}</button>
+          </div>
+        )}
         <div className="o-section-bar">
           <button type="button" className="o-icon-btn o-menu-btn" onClick={() => setDrawer(true)} aria-label={t('القائمة', 'Menu')}><MenuIcon />{totalBadge > 0 && <i>{totalBadge}</i>}</button>
           <h2>{title}</h2>
@@ -799,6 +826,7 @@ function Live(props: MenuProps & { place: Place }) {
         {isAll && PER_BRANCH.includes(shownView) && <BranchPick B={B} view={shownView as BranchView} onPick={id => setBranch(id)} />}
         {isAll && shownView === 'overview' && <Overview B={B} open={(id, v) => openIn(id, v)} />}
         {isAll && shownView === 'branches' && <BranchesAdmin B={B} notify={notify} onOpen={id => openIn(id, 'orders')} />}
+        {shownView === 'staff' && (can('staff.manage') ? <StaffPage staff={staff} setStaff={setStaff} branches={Ball.branches} notify={notify} onPreview={previewAs} /> : <p className="o-empty"><Lock />{t('لم تُمنح أي صلاحية بعد.', 'No permissions granted yet.')}</p>)}
         {ops && <>
           {shownView === 'orders' && <Orders key={`${branch}-${ordersTab}`} startTab={ordersTab} ops={ops} items={viewItems} notify={notify} openThread={openThread} />}
           {shownView === 'tables' && <Tables key={branch} ops={ops} notify={notify} openThread={openThread} />}
@@ -817,14 +845,14 @@ function Live(props: MenuProps & { place: Place }) {
         </div>
         <div className="o-tabs-with-edit o-live-cats">
           <MenuTabs cats={cats} current={cur} onPick={setCur} extra={<span className="o-tabs-end" />} />
-          <button type="button" className="o-tabs-edit" onClick={ed.openCats} aria-label={t('عدّل الأقسام', 'Edit sections')}><PenLine /></button>
+          {can('menu.edit') && <button type="button" className="o-tabs-edit" onClick={ed.openCats} aria-label={t('عدّل الأقسام', 'Edit sections')}><PenLine /></button>}
         </div>
-        <p className="o-fine start">{t('اضغط على المفتاح عند نفاد صنف، واضغط على الصنف لتعديله.', 'Flip the switch when something runs out. Tap an item to edit it.')}</p>
+        {(can('menu.soldout') || can('menu.edit')) && <p className="o-fine start">{can('menu.soldout') && can('menu.edit') ? t('اضغط على المفتاح عند نفاد صنف، واضغط على الصنف لتعديله.', 'Flip the switch when something runs out. Tap an item to edit it.') : can('menu.soldout') ? t('اضغط على المفتاح عند نفاد صنف.', 'Flip the switch when something runs out.') : t('اضغط على الصنف لتعديله.', 'Tap an item to edit it.')}</p>}
         <ul className="o-items">
           {viewItems.filter(i => i.cat === cur).map(i => {
             const partly = isAll && !i.soldOut ? soldIn(i.id) : []
             return (
-              <ItemRow key={i.id} item={i} cat={cats.find(c => c.id === i.cat)} onOpen={() => ed.edit(i)} trailing={
+              <ItemRow key={i.id} item={i} cat={cats.find(c => c.id === i.cat)} onOpen={can('menu.edit') ? () => ed.edit(i) : undefined} trailing={!can('menu.soldout') ? (i.soldOut ? <small className="o-sold-tag">{t('نفد', 'Sold out')}</small> : undefined) :
                 <button type="button" className="o-toggle" role="switch" aria-checked={!i.soldOut} aria-label={t(`${tx(i.name)} متوفر`, `${tx(i.name)} available`)} onClick={() => toggle(i)}>
                   <em className={!i.soldOut ? 'on' : ''} /><small className={partly.length ? 'o-partly' : ''}>{i.soldOut ? (isAll && multi ? t('نفد في الكل', 'Out everywhere') : t('نفد', 'Sold out')) : partly.length ? t(`نفد في ${partly.map(b => b.area[0]).join('، ')}`, `Out at ${partly.map(b => b.area[1]).join(', ')}`) : t('متوفر', 'Available')}</small>
                 </button>
@@ -832,7 +860,7 @@ function Live(props: MenuProps & { place: Place }) {
             )
           })}
         </ul>
-        {cur && <button type="button" className="o-dashed" onClick={() => ed.add(cur)}><Plus />{t(`أضف صنف في ${tx(cats.find(c => c.id === cur)!.name)}`, `Add an item to ${tx(cats.find(c => c.id === cur)!.name)}`)}</button>}
+        {cur && can('menu.edit') && <button type="button" className="o-dashed" onClick={() => ed.add(cur)}><Plus />{t(`أضف صنف في ${tx(cats.find(c => c.id === cur)!.name)}`, `Add an item to ${tx(cats.find(c => c.id === cur)!.name)}`)}</button>}
         </>}
       </div>
       <aside className={`o-side ${drawer ? 'open' : ''}`} aria-label={t('أقسام اللوحة', 'Dashboard sections')}>
@@ -857,15 +885,15 @@ function Live(props: MenuProps & { place: Place }) {
             )
           })}
         </nav>
-        <button type="button" className="o-switch-row o-busy-switch" role="switch" aria-checked={B.busy} onClick={() => { B.setBusy(!B.busy); notify(B.busy ? t('عدنا إلى اليوم العادي', 'Back to a normal day') : t('حمّلنا يومًا مزدحمًا: نحو 120 زيارة في اليوم', 'Loaded a busy day: about 120 visits')) }}>
+        {!me && <button type="button" className="o-switch-row o-busy-switch" role="switch" aria-checked={B.busy} onClick={() => { B.setBusy(!B.busy); notify(B.busy ? t('عدنا إلى اليوم العادي', 'Back to a normal day') : t('حمّلنا يومًا مزدحمًا: نحو 120 زيارة في اليوم', 'Loaded a busy day: about 120 visits')) }}>
           <span><b>{t('تجربة: كافيه مزدحم', 'Demo: busy café')}</b><small>{t('نحو 120 زيارة في اليوم', 'About 120 visits a day')}</small></span>
           <em className={B.busy ? 'on' : ''} />
-        </button>
+        </button>}
         <button type="button" className="o-side-view" onClick={() => { setPreview(true); setDrawer(false) }}><Eye />{t('اعرض المنيو كعميل', 'See the menu as a customer')}</button>
       </aside>
       {drawer && <div className="o-side-scrim" onClick={() => setDrawer(false)} />}
       {switcher && <Sheet title={t('اختر الفرع', 'Choose a branch')} onClose={() => setSwitcher(false)}><BranchSwitcher B={B} place={place} current={branch} onPick={setBranch} /></Sheet>}
       {ed.sheets}
-    </>
+    </PermProvider>
   )
 }

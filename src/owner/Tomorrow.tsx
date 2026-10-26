@@ -1,5 +1,6 @@
 import { Armchair, CalendarClock, Check, ChefHat, CircleAlert, HeartHandshake, Lock, ShoppingBag, Store } from 'lucide-react'
 import { useT } from './Owner'
+import { useCan } from './Staff'
 import { MEETUPS, TOMORROW } from './Insights'
 import type { Visit } from './Insights'
 import type { Ops } from './Ops'
@@ -62,7 +63,8 @@ export default function Tomorrow({ ops, items, done, setDone, openMenu }: { ops:
   const doneHere = done.filter(id => checks.includes(id))
   const total = checks.length
   const pct = total ? Math.round((doneHere.length / total) * 100) : 100
-  const toggle = (id: string) => setDone(d => (d.includes(id) ? d.filter(x => x !== id) : [...d, id]))
+  const can = useCan()
+  const toggle = (id: string) => can('tomorrow.check') && setDone(d => (d.includes(id) ? d.filter(x => x !== id) : [...d, id]))
   const isDone = (j: Job) => (!j.order || doneHere.includes(`o-${j.order}`)) && (!j.booking || doneHere.includes(`t-${j.booking}`))
   const next = jobs.find(j => !isDone(j))
 
@@ -114,14 +116,14 @@ export default function Tomorrow({ ops, items, done, setDone, openMenu }: { ops:
                         <span className="o-tmr-time">{clock(...j.v.at)}</span>
                         <div className="o-tmr-what">
                           {j.order && (
-                            <button type="button" role="checkbox" aria-checked={oOn} className={`o-tmr-job ${oOn ? 'on' : ''}`} onClick={() => toggle(`o-${j.order}`)}>
+                            <button type="button" role="checkbox" aria-checked={oOn} disabled={!can('tomorrow.check')} className={`o-tmr-job ${oOn ? 'on' : ''}`} onClick={() => toggle(`o-${j.order}`)}>
                               <Check2 on={oOn} />
                               <span><b><ShoppingBag />{t(`طلب ${hash(j.order)}`, `Order #${j.order}`)}</b><small>{orderText(j.v.order!)}</small></span>
                               <em>{oOn ? t('الطلب جاهز', 'Order ready') : t('جهّز الطلب', 'Prepare order')}</em>
                             </button>
                           )}
                           {j.booking && (
-                            <button type="button" role="checkbox" aria-checked={tOn} className={`o-tmr-job ${tOn ? 'on' : ''}`} onClick={() => toggle(`t-${j.booking}`)}>
+                            <button type="button" role="checkbox" aria-checked={tOn} disabled={!can('tomorrow.check')} className={`o-tmr-job ${tOn ? 'on' : ''}`} onClick={() => toggle(`t-${j.booking}`)}>
                               <Check2 on={tOn} />
                               <span><b><Armchair />{t(`حجز ${hash(j.booking)}`, `Booking #${j.booking}`)}</b><small>{`${pick(j.v.seat!)} · ${people(j.v.ppl)}`}</small></span>
                               <em>{tOn ? t('الطاولة جاهزة', 'Table ready') : t('جهّز الطاولة', 'Set table')}</em>

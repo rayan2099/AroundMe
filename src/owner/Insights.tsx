@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowDown, ArrowUp, SlidersHorizontal, Check, ChevronLeft, ChevronRight, Clock, Coffee, Gift, HeartHandshake, Lightbulb, Lock, MapPin, MessageCircleHeart, Repeat, Search, ShoppingBag, Sparkles, TrendingUp, UserPlus, Users } from 'lucide-react'
 import { Sheet, useT } from './Owner'
+import { useCan } from './Staff'
 import { BundleSheet, PerkSheet, bundleFull, defaultBundle } from './Grow'
 import type { Bundle, Perk } from './Grow'
 import { OfferSheet } from './Offer'
@@ -418,6 +419,7 @@ const meetPlays: Record<string, { bundle?: Bundle; perk?: Perk }> = {}
 
 export function Meetups({ ops, notify, items, cafe }: { ops: Ops; notify: (s: string) => void; items: Item[]; cafe: string }) {
   const { t, lang, sar: sar0 } = useT()
+  const can = useCan()
   const sar = (x: number) => sar0(x.toLocaleString('en-US'))
   const [offerFor, setOfferFor] = useState<number | null>(null)
   const [filter, setFilter] = useState<'all' | 'again'>('all')
@@ -506,14 +508,14 @@ export function Meetups({ ops, notify, items, cafe }: { ops: Ops; notify: (s: st
         ))}
       </div>
 
-      <div className="o-offer-new o-grow">
+      {can('meetups.act') && <div className="o-offer-new o-grow">
         <span className="o-offer-new-icon"><TrendingUp /></span>
         <div>
           <b>{t('زِد دخلك', 'Earn more')}</b>
           <small>{t(`${fmtN(weekAgain * 2)} شخص اتفقوا على العودة في آخر 7 أيام · نحو +${sar(potential)} في الأسبوع`, `${fmtN(weekAgain * 2)} people plan to come back (last 7 days) · about +${sar(potential)} a week`)}</small>
         </div>
         <button type="button" className="o-offer-new-btn" onClick={() => setGrowing(true)}><Sparkles />{t('اعرض الفرص', 'See ideas')}</button>
-      </div>
+      </div>}
 
       <div className="o-meet-head">
         <h3>{t('سجل اللقاءات', 'Meetup log')}</h3>
@@ -551,6 +553,7 @@ export function Meetups({ ops, notify, items, cafe }: { ops: Ops; notify: (s: st
                         {!m.again ? <i className="none">{t('لم يتفقا', 'Not planned')}</i>
                           : offer?.usedAt ? <i className="used"><Check />{t('عادا بعرضك', 'Came back')}</i>
                           : offer ? <i className="sent"><Gift />{t('أُرسل عرض', 'Offer sent')}</i>
+                          : !can('meetups.act') ? <i className="none">{t('بلا عرض', 'No offer')}</i>
                           : <button type="button" className="o-mlog-send" onClick={() => setOfferFor(i)}><Gift />{t('أرسل عرضًا', 'Send offer')}</button>}
                       </span>
                     </div>
