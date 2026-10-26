@@ -13,7 +13,7 @@ import type { Order } from './Ops'
 import { BranchPick, BranchSwitcher, BranchesAdmin, Overview, useBranchText } from './Branches'
 import type { BranchView } from './Branches'
 import { PermProvider, ROLES, SAMPLE_STAFF, StaffPage } from './Staff'
-import type { Employee, Perm } from './Staff'
+import type { Employee, Perm, Role } from './Staff'
 import { PLACES, PLATFORMS, SUGGESTED, importedMenu, scannedMenu } from './data'
 import type { Category, IconKey, Item, Place, Text } from './data'
 
@@ -698,6 +698,7 @@ function Live(props: MenuProps & { place: Place }) {
   const Ball = useBranches()
   // «اعرض كما يراها»: the dashboard as one staff member sees it, with only their sections, buttons and branches.
   const [staff, setStaff] = useState<Employee[]>(SAMPLE_STAFF)
+  const [roles, setRoles] = useState<Role[]>(ROLES)
   const [viewAs, setViewAs] = useState<string | null>(null)
   const me = viewAs ? staff.find(e => e.id === viewAs) ?? null : null
   const perms = me?.perms ?? null
@@ -801,7 +802,7 @@ function Live(props: MenuProps & { place: Place }) {
         {me && (
           <div className="o-viewas">
             <Eye />
-            <span><b>{t(`تعرض اللوحة كما يراها ${me.name}`, `Viewing as ${me.name}`)}</b><small>{me.role === 'custom' ? t('صلاحيات مخصصة', 'Custom permissions') : t(...ROLES.find(r => r.id === me.role)!.name)} · {me.branches === 'all' ? t('كل الفروع', 'All branches') : B.branches.map(x => branchName(x)).join(t('، ', ', '))} · {t(allowed.length === 1 ? 'قسم واحد' : allowed.length === 2 ? 'قسمان' : allowed.length <= 10 ? `${allowed.length} أقسام` : `${allowed.length} قسمًا`, `${allowed.length} section${allowed.length === 1 ? '' : 's'}`)}{!me.active && t(' · دخوله موقوف', ' · access paused')}</small></span>
+            <span><b>{t(`تعرض اللوحة كما يراها ${me.name}`, `Viewing as ${me.name}`)}</b><small>{(r => (r ? t(...r.name) : t('صلاحيات مخصصة', 'Custom permissions')))(roles.find(r => r.id === me.role))} · {me.branches === 'all' ? t('كل الفروع', 'All branches') : B.branches.map(x => branchName(x)).join(t('، ', ', '))} · {t(allowed.length === 1 ? 'قسم واحد' : allowed.length === 2 ? 'قسمان' : allowed.length <= 10 ? `${allowed.length} أقسام` : `${allowed.length} قسمًا`, `${allowed.length} section${allowed.length === 1 ? '' : 's'}`)}{!me.active && t(' · دخوله موقوف', ' · access paused')}</small></span>
             <button type="button" onClick={() => previewAs(null)}>{t('رجوع إلى حسابي', 'Back to my account')}</button>
           </div>
         )}
@@ -826,7 +827,7 @@ function Live(props: MenuProps & { place: Place }) {
         {isAll && PER_BRANCH.includes(shownView) && <BranchPick B={B} view={shownView as BranchView} onPick={id => setBranch(id)} />}
         {isAll && shownView === 'overview' && <Overview B={B} open={(id, v) => openIn(id, v)} />}
         {isAll && shownView === 'branches' && <BranchesAdmin B={B} notify={notify} onOpen={id => openIn(id, 'orders')} />}
-        {shownView === 'staff' && (can('staff.manage') ? <StaffPage staff={staff} setStaff={setStaff} branches={Ball.branches} notify={notify} onPreview={previewAs} /> : <p className="o-empty"><Lock />{t('لم تُمنح أي صلاحية بعد.', 'No permissions granted yet.')}</p>)}
+        {shownView === 'staff' && (can('staff.manage') ? <StaffPage staff={staff} setStaff={setStaff} roles={roles} setRoles={setRoles} branches={Ball.branches} notify={notify} onPreview={previewAs} /> : <p className="o-empty"><Lock />{t('لم تُمنح أي صلاحية بعد.', 'No permissions granted yet.')}</p>)}
         {ops && <>
           {shownView === 'orders' && <Orders key={`${branch}-${ordersTab}`} startTab={ordersTab} ops={ops} items={viewItems} notify={notify} openThread={openThread} />}
           {shownView === 'tables' && <Tables key={branch} ops={ops} notify={notify} openThread={openThread} />}

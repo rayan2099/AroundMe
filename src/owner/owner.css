@@ -1514,3 +1514,19 @@ li.live .o-mt-play-icon { color: var(--green); border-color: var(--border); back
 @media (min-width: 900px) {
   html.o-web .o-staff-list { display: grid; grid-template-columns: repeat(2, 1fr); align-items: start; }
 }
+.o-staff-text em.r-own { background: #efeaf8; color: #5b4a8c; }
+.o-staff-text em.r-base { background: #f1eee9; color: #77736c; }
+.o-role-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.o-role-list button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px; border-radius: 18px; background: #fff; border: 1px solid var(--border); text-align: start; }
+.o-role-list button > svg { width: 18px; color: var(--muted); flex: none; }
+.o-role-n { flex: none; display: flex; flex-direction: column; align-items: center; min-width: 52px; }
+.o-role-n b { font-size: 18px; }
+.o-role-n small { font-size: 11px; color: var(--muted); }
+.o-role-own { font-style: normal; font-size: 10.5px; font-weight: 700; margin-inline-start: 6px; padding: 1px 7px; border-radius: 99px; background: #efeaf8; color: #5b4a8c; vertical-align: middle; }
+.o-role-custom { flex-wrap: wrap; }
+.o-role-custom .o-text-btn { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; font-size: 13px; font-weight: 700; color: var(--green-dark); }
+.o-role-custom .o-text-btn svg, .o-add-role svg { width: 15px; }
+.o-add-role { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; min-height: 40px; font-weight: 700; color: var(--green-dark); }
+@media (min-width: 900px) {
+  html.o-web .o-role-list { display: grid; grid-template-columns: repeat(2, 1fr); align-items: start; }
+}
