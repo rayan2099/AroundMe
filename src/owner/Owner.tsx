@@ -714,6 +714,8 @@ function Live(props: MenuProps & { place: Place }) {
   const wanted: View = !isAll && ALL_ONLY.includes(view) ? 'orders' : isAll || view !== 'overview' ? view : 'orders'
   const shownView: View = allowed.includes(wanted) ? wanted : allowed[0] ?? 'staff'
   const [thread, setThread] = useState<string | null>(null)
+  // The café's own saved replies, offered in every chat after the suggested ones.
+  const [replies, setReplies] = useState<string[]>(() => [t('الواي فاي: AroundMe2024', 'Wi-Fi: AroundMe2024'), t('أهلًا بك، الكافيه مزدحم الآن وسنرد خلال دقائق', "Hi, we're busy right now and will reply in a few minutes")])
   // Tomorrow's checklist, per branch: the tasks the team has already done.
   const [ready, setReady] = useState<Record<string, string[]>>({})
   const [switcher, setSwitcher] = useState(false)
@@ -831,7 +833,7 @@ function Live(props: MenuProps & { place: Place }) {
         {ops && <>
           {shownView === 'orders' && <Orders key={`${branch}-${ordersTab}`} startTab={ordersTab} ops={ops} items={viewItems} notify={notify} openThread={openThread} />}
           {shownView === 'tables' && <Tables key={branch} ops={ops} notify={notify} openThread={openThread} />}
-          {shownView === 'messages' && <Messages key={branch} ops={ops} open={thread} setOpen={setThread} />}
+          {shownView === 'messages' && <Messages key={branch} ops={ops} items={viewItems} open={thread} setOpen={setThread} saved={replies} setSaved={setReplies} />}
           {shownView === 'tomorrow' && <Tomorrow key={branch} ops={ops} items={viewItems} done={ready[branch] ?? []} setDone={f => setReady(r => ({ ...r, [branch]: f(r[branch] ?? []) }))} openMenu={() => setView('menu')} />}
           {shownView === 'offers' && <Offers key={branch} ops={ops} notify={notify} />}
           {shownView === 'meetups' && <Meetups key={branch} ops={ops} notify={notify} items={viewItems} cafe={tx(place.name)} />}

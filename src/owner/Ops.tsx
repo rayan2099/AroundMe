@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Armchair, BellRing, Lock, Check, ChefHat, CircleAlert, Clock, Gift, HandPlatter, LayoutGrid, MessageCircle, House, Navigation, Pause, PenLine, Play, Plus, Rows3, Search, Send, ShoppingBag, Timer, Users } from 'lucide-react'
+import { Armchair, BellRing, Lock, Trash2, Check, ChefHat, CircleAlert, Clock, Gift, HandPlatter, LayoutGrid, MessageCircle, House, Navigation, Pause, PenLine, Play, Plus, Rows3, Search, Send, ShoppingBag, Timer, Users } from 'lucide-react'
 import { Sheet, useT } from './Owner'
 import { useCan } from './Staff'
 import { OfferButton, OfferSent, OfferSheet, useOfferText } from './Offer'
@@ -37,7 +37,8 @@ export type Booking = { code: string; at: number; table: string; ppl: number; ta
 // A table as staff set it up: a name, where it is, how many seats, and how long a sitting lasts (0 = no limit).
 export type Table = { id: string; name: T2; area: T2; seats: number; limit: number; bookable: boolean; seatedAt?: number; ppl?: number; booking?: string }
 export type Msg = { from: 'them' | 'me'; text: string; at: number }
-export type Thread = { code: string; msgs: Msg[]; unread: boolean }
+// done: the café closed the chat; a new customer message reopens it.
+export type Thread = { code: string; msgs: Msg[]; unread: boolean; done?: boolean }
 
 // Unit prices for the sample orders, so totals work even if the owner's menu is still being set up.
 const PRICE: Record<string, number> = {
@@ -46,6 +47,8 @@ const PRICE: Record<string, number> = {
   'Chocolate croissant': 15, Cookie: 9, 'Matcha latte': 24, 'Orange juice': 15, Water: 3, 'Halloumi sandwich': 26, 'Turkey and cheese sandwich': 29,
 }
 const PREP_TARGET = 10 // minutes
+// How long a booked table is held for a late guest, in minutes.
+const HOLD = 60
 const AREAS: T2[] = [['عند النافذة', 'By the window'], ['داخل', 'Inside'], ['منطقة الهدوء', 'Quiet area'], ['الجلسات الخارجية', 'Outdoor seating']]
 const SEATS: T2[] = [['عند النافذة', 'By the window'], ['الطاولة الطويلة', 'Long table'], ['منطقة الهدوء', 'Quiet area'], ['الجلسات الخارجية', 'Outdoor seating']]
 
@@ -564,7 +567,6 @@ export function Tables({ ops, notify, openThread }: { ops: Ops; notify: (s: stri
   const [offerBooking, setOfferBooking] = useState<Booking | null>(null)
   const [bTab, setBTab] = useState<'coming' | 'seated' | 'done'>('coming')
   const [bMore, setBMore] = useState(false)
-  const HOLD = 60
   const nTables = (n: number) => t(n === 1 ? 'طاولة واحدة' : n === 2 ? 'طاولتين' : n <= 10 ? `${n} طاولات` : `${n} طاولة`, `${n} table${n === 1 ? '' : 's'}`)
   const table = (id: string) => tables.find(x => x.id === id)
   const tName = (id: string) => { const x = table(id); return x ? `${pick(x.name)} · ${pick(x.area)}` : '' }
@@ -838,60 +840,209 @@ function TableForm({ table, areas, onSave, onDelete, onClose }: { table: Table |
 }
 
 /* ---------- Messages ---------- */
-export function Messages({ ops, open, setOpen }: { ops: Ops; open: string | null; setOpen: (c: string | null) => void }) {
-  const { t, clock } = useFmt()
-  const { threads, setThreads, orders, bookings } = ops
+// What a customer's message is about, read from its words, so the list can be scanned and the right replies offered first.
+type Topic = 'change' | 'late' | 'status' | 'thanks' | 'place' | 'ask'
+const topicOf = (text: string): Topic =>
+  /شكر|رائع|بالعافية|🤍|thank/i.test(text) ? 'thanks'
+    : /تأخر|سأتأخر|الطريق|بعد قليل|سنصل|late|on (our|my) way/i.test(text) ? 'late'
+    : /جاهز|متى|ready|when/i.test(text) ? 'status'
+    : /شوفان|سكر|بدون|إضافة|أضف|بدل|حليب|oat|sugar|add/i.test(text) ? 'change'
+    : /مكان|شاحن|طاولة|جلسة|seat|table|charger/i.test(text) ? 'place'
+    : 'ask'
+
+export function Messages({ ops, items, open, setOpen, saved, setSaved }: { ops: Ops; items: Item[]; open: string | null; setOpen: (c: string | null) => void; saved: string[]; setSaved: (f: (s: string[]) => string[]) => void }) {
+  const { t, tx, clock, mins, pick, people } = useFmt()
+  const { threads, setThreads, orders, bookings, tables, now } = ops
   const can = useCan()
   const [draft, setDraft] = useState('')
+  const [q, setQ] = useState('')
+  const [manage, setManage] = useState(false)
+  const [newReply, setNewReply] = useState('')
+  const [more, setMore] = useState(false)
+  const last = (th: Thread) => th.msgs[th.msgs.length - 1]
+  const needs = (th: Thread) => !th.done && last(th).from === 'them'
+  const orderOf = (code: string) => orders.find(x => x.code === code)
+  const bookingOf = (code: string) => bookings.find(x => x.code === code)
+  const finished = (th: Thread) => th.done || (!needs(th) && (orderOf(th.code)?.status === 'done' || ['left', 'noshow'].includes(bookingOf(th.code)?.state ?? '')))
+  const waitOf = (th: Thread) => mins(now - last(th).at)
+  const [tab, setTab] = useState<'needs' | 'all' | 'done'>(() => (threads.some(needs) ? 'needs' : 'all'))
   const about = (code: string) => {
-    const o = orders.find(x => x.code === code); if (o) return t(`طلب ${hash(code)}`, `Order ${hash(code)}`)
-    const b = bookings.find(x => x.code === code); if (b) return t(`حجز ${hash(code)}`, `Booking ${hash(code)}`)
+    if (orderOf(code)) return t(`طلب ${hash(code)}`, `Order ${hash(code)}`)
+    if (bookingOf(code)) return t(`حجز ${hash(code)}`, `Booking ${hash(code)}`)
     return `${hash(code)}`
   }
+  const name = (en: string) => { const it = items.find(i => i.name.en === en); return it ? tx(it.name) : en }
+  const STATUS: Record<Status, string> = { new: t('طلب جديد', 'New order'), prep: t('قيد التحضير', 'Preparing'), ready: t('جاهز', 'Ready'), scheduled: t('مجدول', 'Scheduled'), done: t('تم التسليم', 'Handed over') }
+  const BSTATE: Record<Booking['state'], string> = { upcoming: t('قادم', 'Coming'), arrived: t('جالس الآن', 'Seated'), noshow: t('لم يحضر', 'No-show'), left: t('غادر', 'Left') }
+  const bState = (b: Booking) => (b.state !== 'upcoming' ? BSTATE[b.state] : now > b.at ? t('متأخر', 'Late') : t(`قادم ${clock(b.at)}`, `Due ${clock(b.at)}`))
+  const statusOf = (code: string): [string, string] => {
+    const o = orderOf(code); if (o) return [STATUS[o.status], `s-${o.status}`]
+    const b = bookingOf(code); if (b) return [bState(b), b.state === 'upcoming' && now > b.at ? 'b-late' : `b-${b.state}`]
+    return ['', '']
+  }
+  const TOPIC: Record<Topic, string> = { change: t('تعديل على الطلب', 'Order change'), late: t('في الطريق أو متأخر', 'On the way or late'), status: t('يسأل عن طلبه', 'Asking about order'), thanks: t('شكر', 'Thanks'), place: t('عن المكان', 'About seating'), ask: t('سؤال', 'Question') }
+
   const thread = threads.find(x => x.code === open)
   useEffect(() => { if (open) setThreads(l => l.map(x => (x.code === open ? { ...x, unread: false } : x))) }, [open, setThreads])
   const send = (text: string) => {
     if (!text.trim() || !open) return
+    const code = open
+    const firstReply = !thread?.msgs.some(m => m.from === 'me')
     setThreads(l => {
-      const has = l.some(x => x.code === open)
+      const has = l.some(x => x.code === code)
       const msg: Msg = { from: 'me', text: text.trim(), at: Date.now() }
-      return has ? l.map(x => (x.code === open ? { ...x, msgs: [...x.msgs, msg] } : x)) : [{ code: open, unread: false, msgs: [msg] }, ...l]
+      return has ? l.map(x => (x.code === code ? { ...x, done: false, msgs: [...x.msgs, msg] } : x)) : [{ code, unread: false, msgs: [msg] }, ...l]
     })
     setDraft('')
+    // Demo: the customer thanks the café a few seconds after its first reply.
+    if (firstReply && thread) setTimeout(() => setThreads(l => l.map(x => (x.code === code ? { ...x, done: false, unread: true, msgs: [...x.msgs, { from: 'them', text: t('شكرًا لكم 🙏', 'Thank you 🙏'), at: Date.now() }] } : x))), 5000)
   }
-  const QUICK = [t('طلبك جاهز، أهلًا بك ☕', 'Your order is ready ☕'), t('سنتأخر 5 دقائق، نعتذر', "We're 5 minutes behind, sorry"), t('طاولتك محجوزة لك', 'Your table is held for you'), t('ماذا تفضّل بدل الصنف الذي نفد؟', 'What would you like instead of the item that ran out?')]
-  const sorted = [...threads].sort((a, b) => b.msgs[b.msgs.length - 1].at - a.msgs[a.msgs.length - 1].at)
+  const close = (code: string) => { setThreads(l => l.map(x => (x.code === code ? { ...x, done: true, unread: false } : x))); setOpen(null) }
+
+  // Replies that fit this chat: its order or booking, then what the customer asked about.
+  const suggest = (code: string): string[] => {
+    const o = orderOf(code), b = bookingOf(code)
+    const th = threads.find(x => x.code === code)
+    const ask = th ? [...th.msgs].reverse().find(m => m.from === 'them') : undefined
+    const topic = ask ? topicOf(ask.text) : 'ask'
+    const out: string[] = []
+    if (topic === 'thanks') out.push(t('بالعافية، سعدنا بزيارتك 🤍', 'Our pleasure, glad you came 🤍'))
+    if (topic === 'change') out.push(t('تم، سنحضّره كما طلبت 👍', "Done, we'll make it the way you asked 👍"), t('للأسف غير متوفر اليوم، هل تفضّل بديلًا؟', "Sorry, it's not available today. Would you like something else?"))
+    if (topic === 'late') out.push(b ? t(`لا بأس، طاولتك محجوزة لك حتى ${clock(b.at + HOLD * min)}`, `No problem, your table is held until ${clock(b.at + HOLD * min)}`) : t('لا بأس، سيكون طلبك جاهزًا عند وصولك', "No problem, your order will be ready when you arrive"))
+    if (topic === 'place') out.push(t('نعم، سنجهّز لك مكانًا مناسبًا', "Yes, we'll get a good spot ready for you"))
+    if (o) {
+      const left = Math.max(1, PREP_TARGET - mins(now - (o.started ?? o.placed)))
+      if (o.status === 'new') out.push(t('استلمنا طلبك، وسنبدأ تحضيره الآن', "We got your order and we're starting it now"))
+      if (o.status === 'prep') out.push(t(`طلبك قيد التحضير، وسيكون جاهزًا خلال نحو ${left} دقائق`, `Your order is being made, ready in about ${left} min`))
+      if (o.status === 'ready') out.push(t('طلبك جاهز ☕ أهلًا بك', 'Your order is ready ☕ Welcome'))
+      if (o.status === 'done' && topic !== 'thanks') out.push(t('شكرًا لزيارتك، نتمنى أن يعجبك 🤍', 'Thanks for coming, hope you enjoy it 🤍'))
+    }
+    if (b && b.state === 'upcoming' && topic !== 'late') out.push(t(`طاولتك جاهزة لك الساعة ${clock(b.at)}`, `Your table is ready for you at ${clock(b.at)}`))
+    if (topic === 'ask' || topic === 'status') out.push(t('أهلًا بك، كيف يمكننا مساعدتك؟', 'Hi, how can we help?'))
+    return [...new Set([...out, ...saved])]
+  }
+
+  const match = (th: Thread) => !q.trim() || th.code.toLowerCase().includes(q.trim().toLowerCase().replace('#', ''))
+  const waiting = threads.filter(needs)
+  const slow = waiting.filter(th => waitOf(th) >= 5).length
+  const done = threads.filter(finished)
+  const list = (q.trim() ? threads : tab === 'needs' ? waiting : tab === 'done' ? done : threads).filter(match)
+  // Waiting chats: the one waiting longest first. Others: the latest first.
+  const sorted = [...list].sort((a, b) => (tab === 'needs' && !q.trim() ? last(a).at - last(b).at : last(b).at - last(a).at))
+  const shown = more ? sorted : sorted.slice(0, 15)
+  // Reply time: how long the café took to answer each customer message it answered.
+  const gaps = threads.flatMap(th => th.msgs.flatMap((m, i) => (m.from === 'me' && i > 0 && th.msgs[i - 1].from === 'them' ? [m.at - th.msgs[i - 1].at] : [])))
+  const avgReply = gaps.length ? Math.max(1, Math.round(gaps.reduce((s, x) => s + x, 0) / gaps.length / min)) : 0
+  const tabs: ['needs' | 'all' | 'done', string, number, number][] = [
+    ['needs', t('تنتظر ردك', 'Waiting for you'), waiting.length, slow],
+    ['all', t('الكل', 'All'), threads.length, 0],
+    ['done', t('انتهت', 'Finished'), done.length, 0],
+  ]
+  const ctx = (code: string) => {
+    const o = orderOf(code), b = bookingOf(code)
+    if (o) return (
+      <div className="o-chat-ctx">
+        <div className="o-chat-ctx-head">
+          <span className={`o-ctx-pill ${statusOf(code)[1]}`}>{STATUS[o.status]}</span>
+          <small>{o.kind === 'seat' ? <><Armchair />{o.seat ? pick(o.seat) : t('من طاولة', 'At a table')}</> : <><ShoppingBag />{t('استلام', 'Pickup')}</>} · {people(o.ppl)}</small>
+          {o.where && <small className={`o-ctx-where w-${o.where}`}>{o.where === 'here' ? t('في الكافيه', 'In the café') : o.where === 'way' ? (o.eta && o.eta > now ? t(`في الطريق · يصل خلال ${mins(o.eta - now)} د`, `On the way · ${mins(o.eta - now)} min`) : t('في الطريق', 'On the way')) : t('لم يخرج بعد', 'Not left yet')}</small>}
+        </div>
+        <p>{o.lines.map(([en, n]) => `⁦${n}×⁩ ${name(en)}`).join(t('، ', ', '))}</p>
+        {o.note && <p className="o-chat-ctx-note">«{o.note}»</p>}
+      </div>
+    )
+    if (b) { const tb = tables.find(x => x.id === b.table); return (
+      <div className="o-chat-ctx">
+        <div className="o-chat-ctx-head">
+          <span className={`o-ctx-pill ${statusOf(code)[1]}`}>{bState(b)}</span>
+          <small><Clock />{clock(b.at)} · {tb ? pick(tb.name) : ''}{tb ? ` · ${pick(tb.area)}` : ''} · {people(b.ppl)}</small>
+        </div>
+        {b.state === 'upcoming' && now > b.at && <p className="o-chat-ctx-note">{t(`متأخر ${mins(now - b.at)} د · الطاولة محجوزة حتى ${clock(b.at + HOLD * min)}`, `${mins(now - b.at)} min late · held until ${clock(b.at + HOLD * min)}`)}</p>}
+      </div>
+    ) }
+    return null
+  }
+
   return (
-    <div className="o-ops">
-      <p className="o-note"><MessageCircle />{t('يراسلك العملاء بشأن طلباتهم وحجوزاتهم. لا تظهر أسماؤهم، بل رقم الطلب أو الحجز فقط.', "Customers message you about their orders and bookings. You don't see their names, only the order or booking number.")}</p>
-      <ul className="o-threads">
-        {sorted.map(th => {
-          const last = th.msgs[th.msgs.length - 1]
-          return (
-            <li key={th.code}>
-              <button type="button" onClick={() => setOpen(th.code)} className={th.unread ? 'unread' : ''}>
-                <span className="o-avatar">{hash(th.code)}</span>
-                <div><b>{about(th.code)}</b><small>{last.from === 'me' ? t('أنت: ', 'You: ') : ''}{last.text}</small></div>
-                <span className="o-thread-time">{clock(last.at)}{th.unread && <i />}</span>
-              </button>
-            </li>
-          )
-        })}
-      </ul>
+    <div className="o-ops o-msgs">
+      <div className="o-stats">
+        <div className={waiting.length ? 'warn' : ''}><b>{waiting.length}</b><small>{t('تنتظر ردك', 'waiting')}</small></div>
+        <div><b>{avgReply ? t(`${avgReply} د`, `${avgReply} min`) : '—'}</b><small>{t('متوسط وقت ردك', 'avg reply time')}</small></div>
+        <div><b>{threads.length}</b><small>{t('محادثات اليوم', 'chats today')}</small></div>
+      </div>
+      <label className="o-search"><Search /><input value={q} onChange={e => setQ(e.target.value)} placeholder={t('ابحث برقم الطلب أو الحجز', 'Search by order or booking number')} /></label>
+      {!q.trim() && (
+        <div className="o-status-tabs o-btabs" role="tablist">
+          {tabs.map(([id, label, n, red]) => (
+            <button key={id} type="button" role="tab" aria-selected={tab === id} className={`${tab === id ? 'active' : ''} ${red ? 'warn' : ''}`} onClick={() => { setTab(id); setMore(false) }}>
+              {label}<span>{n}</span>{red > 0 && <em>{t(`${red} تأخر`, `${red} slow`)}</em>}
+            </button>
+          ))}
+        </div>
+      )}
+      {tab === 'needs' && !q.trim() && waiting.length > 1 && <p className="o-fine start">{t('الأطول انتظارًا أولًا.', 'Longest waiting first.')}</p>}
+      {shown.length === 0
+        ? <p className="o-empty"><MessageCircle />{q.trim() ? t('لا توجد محادثة بهذا الرقم.', 'No chat with that number.') : tab === 'needs' ? t('لا أحد ينتظر ردك الآن 👌', 'Nobody is waiting for you 👌') : t('لا توجد محادثات هنا.', 'No chats here.')}</p>
+        : <ul className="o-threads">
+          {shown.map(th => {
+            const m = last(th), wait = needs(th) ? waitOf(th) : -1
+            const ask = [...th.msgs].reverse().find(x => x.from === 'them')
+            const [st, cls] = statusOf(th.code)
+            return (
+              <li key={th.code}>
+                <button type="button" onClick={() => setOpen(th.code)} className={`${th.unread ? 'unread' : ''} ${wait >= 5 ? 'slow' : ''}`}>
+                  <span className="o-avatar">{hash(th.code)}</span>
+                  <div>
+                    <b>{about(th.code)}{st && <em className={`o-ctx-pill ${cls}`}>{st}</em>}</b>
+                    <small>{m.from === 'me' ? t('أنت: ', 'You: ') : ''}{m.text}</small>
+                    {ask && needs(th) && <span className="o-topic">{TOPIC[topicOf(ask.text)]}</span>}
+                  </div>
+                  <span className="o-thread-time">
+                    {clock(m.at)}
+                    {wait >= 0 ? <i className={`o-wait ${wait >= 5 ? 'late' : ''}`}>{wait < 1 ? t('الآن', 'now') : t(`ينتظر ${wait} د`, `${wait} min`)}</i> : th.done ? <i className="o-wait ok"><Check />{t('انتهت', 'Done')}</i> : null}
+                  </span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>}
+      {!more && sorted.length > 15 && <button type="button" className="o-text-btn o-show-more" onClick={() => setMore(true)}>{t(`اعرض الكل (${sorted.length})`, `Show all (${sorted.length})`)}</button>}
+      <p className="o-fine"><Lock />{t('لا تظهر أسماء العملاء، بل رقم الطلب أو الحجز فقط.', "You don't see customer names, only the order or booking number.")}</p>
+      {can('messages.reply') && <button type="button" className="o-text-btn o-inline o-manage-replies" onClick={() => setManage(true)}><PenLine />{t(`ردودك الجاهزة (${saved.length})`, `Your saved replies (${saved.length})`)}</button>}
+
       {open && (
         <Sheet title={about(open)} onClose={() => setOpen(null)} footer={!can('messages.reply') ? <p className="o-fine"><Lock />{t('يمكنك قراءة المحادثة فقط.', 'You can read this chat only.')}</p> :
           <div className="o-composer">
-            <div className="o-quick">{QUICK.map(q => <button key={q} type="button" className="o-chip" onClick={() => send(q)}>{q}</button>)}</div>
+            <div className="o-quick">{suggest(open).map(r => <button key={r} type="button" className="o-chip" onClick={() => send(r)}>{r}</button>)}</div>
             <form onSubmit={e => { e.preventDefault(); send(draft) }}>
               <input className="o-field" value={draft} onChange={e => setDraft(e.target.value)} placeholder={t('اكتب ردًا…', 'Write a reply…')} />
               <button type="submit" className="o-send" aria-label={t('أرسل', 'Send')}><Send /></button>
             </form>
           </div>
         }>
+          {ctx(open)}
           <div className="o-chat">
             {(thread?.msgs ?? []).map((m, i) => <div key={i} className={`o-bubble ${m.from}`}>{m.text}<small>{clock(m.at)}</small></div>)}
             {!thread && <p className="o-sheet-sub">{t('ابدأ المحادثة مع العميل.', 'Start the conversation with the customer.')}</p>}
           </div>
+          {thread && can('messages.reply') && (thread.done
+            ? <p className="o-chat-done"><Check />{t('أنهيت هذه المحادثة. تعود إلى «تنتظر ردك» إن كتب العميل مجددًا.', 'You closed this chat. It comes back if the customer writes again.')}</p>
+            : <button type="button" className="o-text-btn o-inline o-chat-close" onClick={() => close(thread.code)}><Check />{t('تم، أنهِ المحادثة', 'Done, close chat')}</button>)}
+        </Sheet>
+      )}
+
+      {manage && (
+        <Sheet title={t('ردودك الجاهزة', 'Your saved replies')} onClose={() => setManage(false)}>
+          <p className="o-sheet-sub">{t('تظهر في كل محادثة بعد الردود المقترحة، بضغطة واحدة.', 'They show in every chat after the suggested replies, one tap to send.')}</p>
+          <ul className="o-replies">
+            {saved.map(r => (
+              <li key={r}><span>{r}</span><button type="button" className="o-icon-btn" aria-label={t('احذف', 'Delete')} onClick={() => setSaved(s => s.filter(x => x !== r))}><Trash2 /></button></li>
+            ))}
+          </ul>
+          <form className="o-reply-add" onSubmit={e => { e.preventDefault(); const v = newReply.trim(); if (v && !saved.includes(v)) setSaved(s => [...s, v]); setNewReply('') }}>
+            <input className="o-field" value={newReply} maxLength={90} onChange={e => setNewReply(e.target.value)} placeholder={t('مثلًا: الواي فاي: AroundMe2024', 'e.g. Wi-Fi: AroundMe2024')} />
+            <button type="submit" className="o-offer-new-btn" disabled={!newReply.trim()}><Plus />{t('أضف', 'Add')}</button>
+          </form>
         </Sheet>
       )}
     </div>
