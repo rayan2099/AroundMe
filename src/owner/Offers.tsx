@@ -1,18 +1,25 @@
 import { useState } from 'react'
-import { Armchair, Check, ChevronLeft, ChevronRight, Clock, Coffee, Gift, HeartHandshake, Percent, Plus, Repeat, ShoppingBag, Sparkles, Wallet } from 'lucide-react'
+import { Armchair, Check, ChevronLeft, ChevronRight, Clock, Coffee, Crown, Gift, HeartHandshake, Hourglass, Percent, Plus, Repeat, Search, ShoppingBag, Sparkles, UserPlus, Users, Wallet } from 'lucide-react'
 import { Sheet, useT } from './Owner'
 import { OfferSheet, useOfferText } from './Offer'
-import { MEETUPS } from './Insights'
+import { MEETUPS, measure, weekFor } from './Insights'
 import type { Offer } from './Offer'
 import type { Ops } from './Ops'
-import { RangePicker, inRange, presetRange } from './Range'
+import { RangePicker, inRange, presetRange, useRangeText } from './Range'
 import type { Range } from './Range'
 
 // Come-back offers the café has sent, and who came back because of one. Visitors stay anonymous: an order,
 // booking or meetup, never a name.
 type Status = 'back' | 'waiting' | 'expired'
 const DAY = 86_400_000
-type Target = { id: string; src: Offer['src']; about: [string, string]; sub: [string, string]; pair?: boolean }
+type Target = { id: string; src: Offer['src']; about: [string, string]; sub: [string, string]; pair?: boolean; group?: number }
+// Ready-made groups for busy cafés, as shares of the period's visitors (sample numbers).
+const SEGMENTS: { id: string; share: number; back: number; icon: 'new' | 'lapsed' | 'top' | 'all'; name: [string, string]; sub: [string, string] }[] = [
+  { id: 'new', share: 0.38, back: 0.22, icon: 'new', name: ['زاروا أول مرة', 'First-time visitors'], sub: ['لم يعودوا بعد زيارتهم الأولى', "Haven't come back after their first visit"] },
+  { id: 'lapsed', share: 0.12, back: 0.15, icon: 'lapsed', name: ['انقطعوا عن الزيارة', 'Stopped coming'], sub: ['كانوا يزورونك كل أسبوع، ولم يأتوا منذ أسبوعين', 'Used to come weekly, not seen for two weeks'] },
+  { id: 'top', share: 0.1, back: 0.34, icon: 'top', name: ['الأكثر إنفاقًا', 'Top spenders'], sub: ['أعلى 10% في قيمة الطلب', 'Top 10% by order value'] },
+  { id: 'all', share: 1, back: 0.14, icon: 'all', name: ['كل زوار الفترة', 'Everyone in the period'], sub: ['عدا من لديه عرض لم ينتهِ', 'Except those with an active offer'] },
+]
 const hash = (code: string) => `\u2066#${code}\u2069`
 
 export default function Offers({ ops, notify }: { ops: Ops; notify: (s: string) => void }) {
@@ -22,12 +29,20 @@ export default function Offers({ ops, notify }: { ops: Ops; notify: (s: string) 
   const [picking, setPicking] = useState(false)
   const [target, setTarget] = useState<Target | null>(null)
   const [range, setRange] = useState<Range>(() => presetRange('d30'))
+  const [visits, setVisits] = useState<Range>(() => presetRange('week'))
+  const [q, setQ] = useState('')
+  const [more, setMore] = useState(false)
+  const { rangeName } = useRangeText()
   const { offers, now } = ops
   const status = (o: Offer): Status => (o.usedAt ? 'back' : now > (o.sentAt ?? now) + o.days * DAY ? 'expired' : 'waiting')
   const list = Object.entries(offers).filter(([, o]) => o.sentAt && inRange(range, o.sentAt)).sort((a, b) => (b[1].usedAt ?? b[1].sentAt!) - (a[1].usedAt ?? a[1].sentAt!))
+  const size = (o: Offer) => o.group ?? 1
+  const came = (o: Offer) => (o.group ? o.returned ?? 0 : status(o) === 'back' ? 1 : 0)
   const back = list.filter(([, o]) => status(o) === 'back')
-  const decided = list.filter(([, o]) => status(o) !== 'waiting').length
-  const rate = decided ? Math.round((back.length / decided) * 100) : 0
+  const reached = list.reduce((s, [, o]) => s + size(o), 0)
+  const cameBack = list.reduce((s, [, o]) => s + came(o), 0)
+  const decided = list.filter(([, o]) => status(o) !== 'waiting').reduce((s, [, o]) => s + size(o), 0)
+  const rate = decided ? Math.round((cameBack / decided) * 100) : 0
   const spent = back.reduce((s, [, o]) => s + (o.spent ?? 0), 0)
   const given = back.reduce((s, [, o]) => s + (o.saved ?? 0), 0)
   const days = (ms: number) => Math.max(0, Math.round(ms / DAY))
@@ -35,9 +50,10 @@ export default function Offers({ ops, notify }: { ops: Ops; notify: (s: string) 
   const inDays = (d: number) => t(d === 1 ? 'يوم' : d === 2 ? 'يومان' : d <= 10 ? `${d} أيام` : `${d} يومًا`, `${d} day${d === 1 ? '' : 's'}`)
   const pick = (x?: [string, string]) => (x ? (lang === 'ar' ? x[0] : x[1]) : '')
   const kinds = (['drink', 'sweet', 'off'] as const).map(k => {
-    const sent = list.filter(([, o]) => o.kind === k && status(o) !== 'waiting')
-    const came = sent.filter(([, o]) => status(o) === 'back').length
-    return { k, sent: sent.length, came, pct: sent.length ? Math.round((came / sent.length) * 100) : 0 }
+    const settled = list.filter(([, o]) => o.kind === k && status(o) !== 'waiting')
+    const sent = settled.reduce((s, [, o]) => s + size(o), 0)
+    const back = settled.reduce((s, [, o]) => s + came(o), 0)
+    return { k, sent, came: back, pct: sent ? Math.round((back / sent) * 100) : 0 }
   })
   // The best performer needs at least two settled offers, so one lucky offer doesn't win.
   const best = [...kinds].filter(x => x.sent >= 2).sort((a, b) => b.pct - a.pct)[0]
@@ -57,8 +73,29 @@ export default function Offers({ ops, notify }: { ops: Ops; notify: (s: string) 
     ...ops.bookings.filter(b => b.state === 'left' && !offers[b.order ?? b.code]).map(b => ({ id: b.order ?? b.code, src: 'booking' as const, about: [`حجز ${hash(b.code)} · ${b.tag[0]}`, `Booking ${hash(b.code)} · ${b.tag[1]}`] as [string, string], sub: [`${people(b.ppl)[0]} · ${tableName(b.table)?.[0] ?? ''} · غادروا اليوم`, `${people(b.ppl)[1]} · ${tableName(b.table)?.[1] ?? ''} · left today`] as [string, string] })),
     ...MEETUPS.map((m, i) => ({ m, i })).filter(({ m, i }) => ops.branch.meetups.includes(i) && m.again && !offers[`M${i}`]).map(({ m, i }) => ({ id: `M${i}`, src: 'meet' as const, pair: true, about: m.topic, sub: ['اتفقا على اللقاء هنا مرة أخرى', 'Plan to meet here again'] as [string, string] })),
   ]
-  const groups: [Offer['src'], string][] = [['order', t('طلبات سُلّمت اليوم', 'Orders handed over today')], ['booking', t('حجوزات انتهت', 'Finished bookings')], ['meet', t('لقاءات', 'Meetups')]]
+  const w = weekFor(ops.branch.scale)
+  const periodVisits = measure('visits', ops.branch.scale, visits)
+  const offered = Object.values(offers).filter(o => o.group && status(o) !== 'expired').reduce((s, o) => s + (o.group ?? 0), 0)
+  const segs = SEGMENTS.map(g => ({ ...g, n: Math.max(0, Math.round(periodVisits * g.share) - (g.id === 'all' ? offered : 0)) }))
+  const weekLeft = Math.max(0, measure('visits', ops.branch.scale, presetRange('week')) - offered)
+  const SegIcon = ({ k }: { k: string }) => (k === 'new' ? <UserPlus /> : k === 'lapsed' ? <Hourglass /> : k === 'top' ? <Crown /> : <Users />)
+  const found = targets.filter(x => !q.trim() || `${pick(x.about)} ${x.id}`.toLowerCase().includes(q.trim().toLowerCase().replace('#', '')))
+  const sendGroup = (x: Target, o: Offer) => {
+    const key = `G-${x.id}-${Date.now()}`
+    const g = SEGMENTS.find(s => s.id === x.id)!
+    ops.setOffers(m => ({ ...m, [key]: { ...o, sentAt: Date.now(), src: 'order', about: x.about, group: x.group, returned: 0 } }))
+    setTarget(null)
+    notify(t(`أرسلنا العرض إلى ${x.group!.toLocaleString('en-US')} عميل، وسيصلهم إشعار «افتح هديتك»`, `Offer sent to ${x.group!.toLocaleString('en-US')} customers. They get an “Open your gift” notification`))
+    // Prototype: part of the group comes back a little later.
+    setTimeout(() => {
+      const n = Math.max(1, Math.round(x.group! * g.back))
+      const per = o.kind === 'drink' ? 18 : o.kind === 'sweet' ? 24 : Math.round((w.avgOrder * o.pct) / 100)
+      ops.setOffers(m => (m[key] ? { ...m, [key]: { ...m[key], returned: n, usedAt: Date.now(), spent: n * w.avgOrder, saved: n * per } } : m))
+      notify(t(`عاد ${n} عميل بعرضك 🎁`, `${n} customers came back with your offer 🎁`))
+    }, 15_000)
+  }
   const send = (x: Target, o: Offer) => {
+    if (x.group) return sendGroup(x, o)
     ops.sendOffer(x.id, { ...o, sentAt: Date.now(), src: x.src, about: x.about, pair: x.pair }, code => notify(t(`عاد عميل بعرضك 🎁 طلب جديد ${hash(code)}`, `A customer came back with your offer 🎁 New order ${hash(code)}`)))
     setTarget(null)
     notify(t('أرسلنا العرض، وسيصله إشعار «افتح هديتك»', 'Offer sent. They get an “Open your gift” notification'))
@@ -70,14 +107,14 @@ export default function Offers({ ops, notify }: { ops: Ops; notify: (s: string) 
         <span className="o-offer-new-icon"><Gift /></span>
         <div>
           <b>{t('شجّع زوارك على العودة', 'Bring your visitors back')}</b>
-          <small>{targets.length ? t(`${targets.length === 1 ? 'زائر واحد' : targets.length === 2 ? 'زائران' : `${targets.length} زوار`} من اليوم بلا عرض بعد`, `${targets.length} recent visitor${targets.length === 1 ? '' : 's'} without an offer yet`) : t('أرسلت عروضًا لكل زوار اليوم', "You've sent offers to everyone from today")}</small>
+          <small>{t(`${weekLeft.toLocaleString('en-US')} زائر في آخر 7 أيام بلا عرض بعد`, `${weekLeft.toLocaleString('en-US')} visitors in the last 7 days without an offer`)}</small>
         </div>
-        <button type="button" className="o-offer-new-btn" disabled={!targets.length} onClick={() => setPicking(true)}><Plus />{t('عرض جديد', 'New offer')}</button>
+        <button type="button" className="o-offer-new-btn" onClick={() => setPicking(true)}><Plus />{t('عرض جديد', 'New offer')}</button>
       </div>
       <RangePicker value={range} onChange={setRange} label={t('العروض المُرسلة في', 'Offers sent in')} />
       <div className="o-offer-kpis">
-        <div><Gift /><b>{list.length}</b><small>{t('عرض أُرسل', 'offers sent')}</small></div>
-        <div className="good"><Repeat /><b>{back.length}</b><small>{t(`عادوا بسببها · ${rate}%`, `came back · ${rate}%`)}</small></div>
+        <div><Gift /><b>{reached.toLocaleString('en-US')}</b><small>{t('عميل وصله عرض', 'customers reached')}</small></div>
+        <div className="good"><Repeat /><b>{cameBack.toLocaleString('en-US')}</b><small>{t(`عادوا بسببها · ${rate}%`, `came back · ${rate}%`)}</small></div>
         <div><Wallet /><b>{sar(spent)}</b><small>{t('دفعها العائدون بالعروض', 'paid by returners')}</small></div>
         <div><Sparkles /><b>{sar(given)}</b><small>{t('قيمة ما قدّمته', 'value you gave')}</small></div>
       </div>
@@ -120,9 +157,10 @@ export default function Offers({ ops, notify }: { ops: Ops; notify: (s: string) 
               <span className="o-offer-kind"><KindIcon k={o.kind} /></span>
               <div>
                 <b>{offerText(o, o.pair)}</b>
-                <small><SrcIcon s={o.src} />{pick(o.about)} · {t(`أُرسل ${ago(o.sentAt!)}`, `sent ${ago(o.sentAt!)}`)}</small>
+                <small>{o.group ? <Users /> : <SrcIcon s={o.src} />}{pick(o.about)}{o.group ? t(` · ${o.group.toLocaleString('en-US')} عميل`, ` · ${o.group.toLocaleString('en-US')} customers`) : ''} · {t(`أُرسل ${ago(o.sentAt!)}`, `sent ${ago(o.sentAt!)}`)}</small>
                 <span className={`o-offer-status s-${st}`}>
-                  {st === 'back' ? <><Check />{o.spent ? t(`${o.pair ? 'عادا' : 'عاد'} ${ago(o.usedAt!)} · طلب ودفع ${sar(o.spent)}${o.order ? ` · ${hash(o.order)}` : ''}`, `Came back ${ago(o.usedAt!)} · ordered and paid ${sar(o.spent)}${o.order ? ` · ${hash(o.order)}` : ''}`) : t(`${o.pair ? 'عادا واستلما' : 'عاد واستلم'} ${o.kind === 'sweet' ? 'الحلى' : 'المشروب'} مجانًا ${ago(o.usedAt!)}${o.order ? ` · ${hash(o.order)}` : ''}`, `Came back and claimed it ${ago(o.usedAt!)}${o.order ? ` · ${hash(o.order)}` : ''}`)}</>
+                  {o.group ? (st === 'back' ? <><Check />{t(`عاد ${o.returned} من ${o.group.toLocaleString('en-US')} · طلبوا ودفعوا ${sar((o.spent ?? 0).toLocaleString('en-US'))}`, `${o.returned} of ${o.group.toLocaleString('en-US')} came back · paid ${sar((o.spent ?? 0).toLocaleString('en-US'))}`)}</> : st === 'waiting' ? <><Clock />{t(`لم يعد أحد بعد · بقي ${inDays(Math.max(1, left))}`, `No one back yet · ${inDays(Math.max(1, left))} left`)}</> : t(`انتهى بعد ${daysText(o.days)} دون عودة`, `Expired after ${daysText(o.days)}, no return`))
+                  : st === 'back' ? <><Check />{o.spent ? t(`${o.pair ? 'عادا' : 'عاد'} ${ago(o.usedAt!)} · طلب ودفع ${sar(o.spent)}${o.order ? ` · ${hash(o.order)}` : ''}`, `Came back ${ago(o.usedAt!)} · ordered and paid ${sar(o.spent)}${o.order ? ` · ${hash(o.order)}` : ''}`) : t(`${o.pair ? 'عادا واستلما' : 'عاد واستلم'} ${o.kind === 'sweet' ? 'الحلى' : 'المشروب'} مجانًا ${ago(o.usedAt!)}${o.order ? ` · ${hash(o.order)}` : ''}`, `Came back and claimed it ${ago(o.usedAt!)}${o.order ? ` · ${hash(o.order)}` : ''}`)}</>
                     : st === 'waiting' ? <><Clock />{t(`لم ${o.pair ? 'يعودا' : 'يعد'} بعد · بقي ${inDays(Math.max(1, left))}`, `Not back yet · ${inDays(Math.max(1, left))} left`)}</>
                     : t(`انتهى بعد ${daysText(o.days)} دون عودة`, `Expired after ${daysText(o.days)}, no return`)}
                 </span>
@@ -134,29 +172,41 @@ export default function Offers({ ops, notify }: { ops: Ops; notify: (s: string) 
 
       {picking && (
         <Sheet title={t('لمن العرض؟', 'Who is it for?')} onClose={() => setPicking(false)}>
-          <p className="o-sheet-sub">{t('اختر زيارة، ويصل العرض إلى صاحبها عبر التطبيق دون أن يظهر لك اسمه.', 'Pick a visit. The offer reaches them through the app, and you never see their name.')}</p>
-          {groups.map(([src, title]) => {
-            const xs = targets.filter(x => x.src === src)
-            return xs.length > 0 && (
-              <section key={src} className="o-tm-group">
-                <h4>{title}<small>{xs.length}</small></h4>
-                <div className="o-offer-pick">
-                  {xs.map(x => (
-                    <button key={x.id} type="button" onClick={() => { setPicking(false); setTarget(x) }}>
-                      <span className="o-offer-kind"><SrcIcon s={x.src} /></span>
-                      <span><b>{pick(x.about)}</b><small>{pick(x.sub)}</small></span>
-                      <Fwd />
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )
-          })}
+          <p className="o-sheet-sub">{t('أرسل عرضًا واحدًا لمجموعة كاملة، أو اختر زيارة بعينها. يصل العرض عبر التطبيق دون أن يظهر لك أي اسم.', 'Send one offer to a whole group, or pick a single visit. It goes through the app, and you never see a name.')}</p>
+          <RangePicker value={visits} onChange={setVisits} label={t('زوار أي فترة؟', 'Visitors from when?')} />
+          <section className="o-tm-group">
+            <h4>{t('مجموعات جاهزة', 'Ready-made groups')}<small>{t(`${periodVisits.toLocaleString('en-US')} زيارة · ${rangeName(visits)}`, `${periodVisits.toLocaleString('en-US')} visits · ${rangeName(visits)}`)}</small></h4>
+            <div className="o-offer-pick">
+              {segs.map(g => (
+                <button key={g.id} type="button" disabled={!g.n} onClick={() => { setPicking(false); setTarget({ id: g.id, src: 'order', about: g.name, sub: g.sub, group: g.n }) }}>
+                  <span className="o-offer-kind"><SegIcon k={g.icon} /></span>
+                  <span><b>{pick(g.name)}</b><small>{pick(g.sub)} · {t(`يعود عادةً \u2066${Math.round(g.back * 100)}%\u2069`, `usually ${Math.round(g.back * 100)}% come back`)}</small></span>
+                  <em className="o-seg-n">{g.n.toLocaleString('en-US')}</em>
+                  <Fwd />
+                </button>
+              ))}
+            </div>
+          </section>
+          <section className="o-tm-group">
+            <h4>{t('أو زيارة بعينها', 'Or a single visit')}<small>{t(`اليوم · ${targets.length}`, `Today · ${targets.length}`)}</small></h4>
+            <label className="o-search"><Search /><input value={q} onChange={e => setQ(e.target.value)} placeholder={t('ابحث برقم الطلب أو الحجز، مثل A25', 'Search by order or booking number, e.g. A25')} /></label>
+            <div className="o-offer-pick">
+              {(more || q ? found : found.slice(0, 4)).map(x => (
+                <button key={x.id} type="button" onClick={() => { setPicking(false); setTarget(x) }}>
+                  <span className="o-offer-kind"><SrcIcon s={x.src} /></span>
+                  <span><b>{pick(x.about)}</b><small>{pick(x.sub)}</small></span>
+                  <Fwd />
+                </button>
+              ))}
+              {!found.length && <p className="o-empty">{q ? t('لا توجد زيارة بهذا الرقم.', 'No visit with that number.') : t('أرسلت عروضًا لكل زوار اليوم.', "You've sent offers to everyone from today.")}</p>}
+              {!q && !more && found.length > 4 && <button type="button" className="o-text-btn o-show-more" onClick={() => setMore(true)}>{t(`اعرض الكل (${found.length})`, `Show all (${found.length})`)}</button>}
+            </div>
+          </section>
         </Sheet>
       )}
       {target && (
-        <OfferSheet pair={target.pair} onClose={() => setTarget(null)} onSend={o => send(target, o)}
-          about={<p className="o-offer-for"><SrcIcon s={target.src} /><span><b>{pick(target.about)}</b><small>{pick(target.sub)}</small></span></p>} />
+        <OfferSheet pair={target.pair} count={target.group} onClose={() => setTarget(null)} onSend={o => send(target, o)}
+          about={<p className="o-offer-for">{target.group ? <Users /> : <SrcIcon s={target.src} />}<span><b>{pick(target.about)}{target.group ? t(` · ${target.group.toLocaleString('en-US')} عميل`, ` · ${target.group.toLocaleString('en-US')} customers`) : ''}</b><small>{pick(target.sub)}</small></span></p>} />
       )}
     </div>
   )

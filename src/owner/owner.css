@@ -1361,3 +1361,12 @@ li.live .o-mt-play-icon { color: var(--green); border-color: var(--border); back
 .o-bundle-price .o-inline-field { display: flex; align-items: center; gap: 8px; font-weight: 700; }
 .o-bundle-price small { font-size: 12.5px; color: var(--green); font-weight: 600; }
 .o-bundle-price + .o-chips { margin-bottom: 4px; }
+
+/* Offer picker for busy cafés: ready-made groups with counts, search for a single visit */
+.o-offer-pick .o-seg-n { font-style: normal; font-size: 15px; font-weight: 800; color: var(--green-dark); padding: 2px 10px; border-radius: 99px; background: var(--green-soft); flex: none; }
+.o-offer-pick button:disabled { opacity: 0.45; }
+.o-offer-pick .o-show-more { justify-content: center; border: 0; background: none; padding: 8px; font-weight: 700; color: var(--green-dark); }
+.o-sheet-body > .o-range-btn { margin-bottom: 4px; }
+.o-tm-group .o-search { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; margin-bottom: 8px; border-radius: 14px; background: #fff; border: 1px solid var(--border); }
+.o-tm-group .o-search svg { width: 16px; color: var(--muted); flex: none; }
+.o-tm-group .o-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; font-size: 13.5px; }

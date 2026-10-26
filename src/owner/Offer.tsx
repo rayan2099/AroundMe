@@ -10,6 +10,8 @@ export type Offer = {
   // Tracking: when it went out, who it went to (never a name), and whether they came back with it.
   sentAt?: number; src?: 'order' | 'booking' | 'meet'; about?: [string, string]; pair?: boolean
   usedAt?: number; spent?: number; saved?: number; order?: string
+  // Sent to a whole group at once (busy cafés): how many got it, and how many came back with it.
+  group?: number; returned?: number
 }
 const PCTS = [10, 15, 20, 25, 50]
 const DAYS = [7, 14, 30]
@@ -42,14 +44,14 @@ export function OfferButton({ onClick, pair = false }: { onClick: () => void; pa
   return <button type="button" className="o-offer-btn" onClick={onClick}><Gift />{t(pair ? 'شجّعهما على العودة بعرض' : 'شجّعه على العودة بعرض', 'Invite them back with an offer')}</button>
 }
 
-export function OfferSheet({ about, pair = false, onSend, onClose }: { about: ReactNode; pair?: boolean; onSend: (o: Offer) => void; onClose: () => void }) {
+export function OfferSheet({ about, pair = false, count, onSend, onClose }: { about: ReactNode; pair?: boolean; count?: number; onSend: (o: Offer) => void; onClose: () => void }) {
   const { t } = useT()
   const { offerText, daysText } = useOfferText()
   const [draft, setDraft] = useState<Offer>({ kind: 'drink', pct: 20, days: 14, note: '' })
   return (
     <Sheet title={t('عرض للعودة', 'Come-back offer')} onClose={onClose} footer={
       <>
-        <button type="button" className="o-primary" onClick={() => onSend(draft)}><Send />{t('أرسل العرض', 'Send offer')}</button>
+        <button type="button" className="o-primary" onClick={() => onSend(draft)}><Send />{count ? t(`أرسل إلى ${count.toLocaleString('en-US')} عميل`, `Send to ${count.toLocaleString('en-US')} customers`) : t('أرسل العرض', 'Send offer')}</button>
         <button type="button" className="o-text-btn" onClick={onClose}>{t('رجوع', 'Back')}</button>
       </>
     }>
