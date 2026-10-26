@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { ArrowDown, ArrowUp, SlidersHorizontal, Check, Clock, Coffee, Gift, HeartHandshake, Lightbulb, Lock, MapPin, MessageCircleHeart, Repeat, ShoppingBag, Sparkles, TrendingUp } from 'lucide-react'
-import { useT } from './Owner'
+import { ArrowDown, ArrowUp, SlidersHorizontal, Check, ChevronLeft, ChevronRight, Clock, Coffee, Gift, HeartHandshake, Lightbulb, Lock, MapPin, MessageCircleHeart, Repeat, ShoppingBag, Sparkles, TrendingUp } from 'lucide-react'
+import { Sheet, useT } from './Owner'
+import { BundleSheet, PerkSheet, bundleFull, defaultBundle } from './Grow'
+import type { Bundle, Perk } from './Grow'
 import { OfferSheet } from './Offer'
 import type { Branch, Ops } from './Ops'
 import type { Item } from './data'
@@ -407,16 +409,14 @@ export default function Insights({ items, branch, peers = [] }: { items: Item[];
 
 // Meetups at the café, as their own dashboard section: what kind of help happened, and a come-back offer for pairs who plan to meet here again.
 // Sample meetup patterns for a branch: what people meet about, when, where, and how meetup visitors compare with everyone else.
-const MEET_TOPICS: [T2, number][] = [[['برمجة وتطبيقات', 'Coding and apps'], 28], [['تصميم', 'Design'], 22], [['تسويق', 'Marketing'], 18], [['المالية والجداول', 'Finance and Excel'], 14], [['كتابة', 'Writing'], 10], [['تصوير', 'Photography'], 8]]
 const MEET_TIMES: [T2, number][] = [[['الصباح', 'Morning'], 12], [['الظهر', 'Midday'], 18], [['العصر', 'Afternoon'], 41], [['المساء', 'Evening'], 29]]
-const MEET_SEATS: [T2, number][] = [[['عند النافذة', 'By the window'], 34], [['منطقة الهدوء', 'Quiet area'], 26], [['الطاولة الطويلة', 'Long table'], 22], [['الجلسات الخارجية', 'Outdoor seating'], 18]]
 // Meetup visitors against everyone else: [meetup, others].
 const MEET_VS = { stay: [134, 96], orders: [2.1, 1.3], back: [61, 42] }
 
 // Meetup ideas the owner turned on, per branch (kept while the dashboard is open).
-const meetPlays: Record<string, string[]> = {}
+const meetPlays: Record<string, { bundle?: Bundle; perk?: Perk }> = {}
 
-export function Meetups({ ops, notify }: { ops: Ops; notify: (s: string) => void }) {
+export function Meetups({ ops, notify, items, cafe }: { ops: Ops; notify: (s: string) => void; items: Item[]; cafe: string }) {
   const { t, lang, sar: sar0 } = useT()
   const sar = (x: number) => sar0(x.toLocaleString('en-US'))
   const [offerFor, setOfferFor] = useState<number | null>(null)
@@ -449,39 +449,31 @@ export function Meetups({ ops, notify }: { ops: Ops; notify: (s: string) => void
   const quietRev = Math.round(meetRev * (topTime[1] / 100))
   const tv = visitsFor(ops.branch.scale)
   const tmr = { need: tv.filter(v => v.kind === 'need').length, help: tv.filter(v => v.kind === 'help').length }
-  const done = meetPlays[ops.branch.id] ?? (meetPlays[ops.branch.id] = [])
+  const Fwd = lang === 'ar' ? ChevronLeft : ChevronRight
+  const live = meetPlays[ops.branch.id] ?? (meetPlays[ops.branch.id] = {})
   const [, bump] = useState(0)
-  const turnOn = (k: string, msg: string) => { done.push(k); bump(x => x + 1); notify(msg) }
+  const [growing, setGrowing] = useState(false)
+  const [editing, setEditing] = useState<'bundle' | 'perk' | null>(null)
   const tiles: [typeof Clock, string, string, string][] = [
     [Sparkles, t('عملاء جدد', 'New customers'), String(newPeople), t('زاروا كافيهك أول مرة من أجل لقاء', 'visited your café for the first time for a meetup')],
     [Repeat, t('زيارات عودة', 'Return visits'), String(backVisits), t(`عادوا خلال أسبوعين · نحو ${sar(backVisits * w.avgOrder)}`, `came back within two weeks · about ${sar(backVisits * w.avgOrder)}`)],
     [Clock, t('دخل في وقتك الهادئ', 'Quiet-hours sales'), sar(quietRev), t(`\u2066${topTime[1]}%\u2069 من اللقاءات بين 1 و5 عصرًا`, `${topTime[1]}% of meetups land between 1 and 5pm`)],
     [ShoppingBag, t('طلبات أكثر', 'Bigger orders'), `⁦+${Math.round(((MEET_VS.orders[0] - MEET_VS.orders[1]) / MEET_VS.orders[1]) * 100)}%⁩`, t(`${MEET_VS.orders[0]} طلب في الزيارة مقابل ${MEET_VS.orders[1]} لباقي العملاء`, `${MEET_VS.orders[0]} orders a visit vs ${MEET_VS.orders[1]} for other customers`)],
   ]
-  // Ways to earn more from meetups, each with a rough weekly gain and one button.
-  const plays: { k: string; icon: typeof Clock; title: string; why: string; gain: number; once?: boolean; cta: string; on: string; act: () => void; live: boolean }[] = [
-    { k: 'offer', icon: Gift, live: todo.length === 0,
-      title: todo.length ? t(`أرسل عرض عودة إلى ${todo.length === 1 ? 'لقاء واحد' : todo.length === 2 ? 'لقاءين' : `${todo.length} لقاءات`}`, `Send a come-back offer to ${todo.length} meetup${todo.length === 1 ? '' : 's'}`) : t('عروض العودة', 'Come-back offers'),
-      why: todo.length ? t(`اتفقوا على اللقاء في كافيهك مرة أخرى. عرض صغير يضمن أن يعودوا إليك لا إلى غيرك. «${pick(todo[0].m.topic)}»`, `They agreed to meet at your café again. A small offer makes sure they come back to you. “${pick(todo[0].m.topic)}”`) : t('أرسلت عرضًا لكل من اتفقوا على العودة. تابع النتائج في صفحة العروض.', 'Everyone meeting again has an offer. Track results on the Offers page.'),
-      gain: todo.length * perMeet, once: true, cta: t('أرسل عرضًا', 'Send offer'), on: t('أُرسلت كل العروض', 'All offers sent'), act: () => todo[0] && setOfferFor(todo[0].i) },
-    { k: 'table', icon: MapPin, live: done.includes('table'),
-      title: t(`خصّص طاولة للقاءات ${pick(MEET_SEATS[0][0])} في ${pick(topTime[0])}`, `Set a meetup table ${pick(MEET_SEATS[0][0]).toLowerCase()} in the ${pick(topTime[0]).toLowerCase()}`),
-      why: t(`\u2066${topTime[1]}%\u2069 من اللقاءات في وقتك الهادئ، و\u2066${MEET_SEATS[0][1]}%\u2069 منها ${pick(MEET_SEATS[0][0])}. يقترح التطبيق هذه الطاولة لمن يتفقون على اللقاء، فيأتون في الوقت الذي تحتاجهم فيه.`, `${topTime[1]}% of meetups fall in your quiet hours, ${MEET_SEATS[0][1]}% of them ${pick(MEET_SEATS[0][0]).toLowerCase()}. The app suggests this table to people arranging a meetup, so they come when you need them.`),
-      gain: Math.max(1, weekly(count * 0.2)) * perMeet, cta: t('خصّص الطاولة', 'Set the table'), on: t('طاولة اللقاءات مفعّلة', 'Meetup table is on'),
-      act: () => turnOn('table', t('فعّلنا طاولة اللقاءات، وسيقترحها التطبيق في وقتك الهادئ', 'Meetup table is on. The app will suggest it in your quiet hours')) },
-    { k: 'perk', icon: HeartHandshake, live: done.includes('perk'),
+  // Ways to earn more from meetups, each with a rough weekly gain.
+  const perkGain = Math.max(1, weekly(count * 0.15)) * (perMeet - (live.perk?.cap ?? 20))
+  const bundleGain = weekly(count * 0.3) * 12
+  const ideas = [
+    { k: 'perk' as const, icon: HeartHandshake, on: !!live.perk, gain: perkGain,
       title: t('كافئ من يساعد بمشروب مجاني', 'Give helpers a free drink'),
-      why: t(`غدًا ${tmr.need} يحتاجون مساعدة و${tmr.help} فقط يستطيعون. من يساعد يختار الكافيه، ومكافأة صغيرة تجعله يختار كافيهك ويأتي معه من يحتاج المساعدة.`, `Tomorrow ${tmr.need} people need help and only ${tmr.help} can help. Helpers pick the café, and a small perk makes them pick yours, bringing the person they help with them.`),
-      gain: Math.max(1, weekly(count * 0.15)) * (perMeet - 16), cta: t('فعّل المكافأة', 'Turn on the perk'), on: t('مكافأة المساعدين مفعّلة', 'Helper perk is on'),
-      act: () => turnOn('perk', t('فعّلنا المكافأة. سيرى المساعدون أن لهم مشروبًا مجانيًا في كافيهك', 'Perk is on. Helpers will see a free drink waiting at your café')) },
-    { k: 'bundle', icon: Coffee, live: done.includes('bundle'),
-      title: t('أضف «باقة جلسة عمل»', 'Add a “work session” bundle'),
-      why: t(`يجلس من يلتقون ${MEET_VS.stay[0]} دقيقة في المتوسط، وأغلب لقاءاتهم عن ${pick(MEET_TOPICS[0][0])}. باقة قهوتين ومعجنات بسعر واحد تظهر لهم عند تأكيد اللقاء.`, `People who meet stay ${MEET_VS.stay[0]} minutes on average, mostly on ${pick(MEET_TOPICS[0][0]).toLowerCase()}. Two coffees and a pastry at one price, shown when they confirm a meetup.`),
-      gain: weekly(count * 0.3) * 12, cta: t('أضف الباقة', 'Add bundle'), on: t('الباقة تظهر عند تأكيد اللقاء', 'Bundle shows when a meetup is confirmed'),
-      act: () => turnOn('bundle', t('أضفنا الباقة، وستظهر لمن يؤكدون لقاءً في كافيهك', 'Bundle added. It shows to people confirming a meetup at your café')) },
+      sub: live.perk ? t(`مفعّلة · مشروب حتى ${sar(live.perk.cap)}`, `On · a drink up to ${sar(live.perk.cap)}`) : t(`غدًا ${tmr.need} يحتاجون مساعدة و${tmr.help} فقط يستطيعون · نحو +${sar(perkGain)} أسبوعيًا`, `Tomorrow ${tmr.need} need help, only ${tmr.help} can help · about +${sar(perkGain)} a week`) },
+    { k: 'bundle' as const, icon: Coffee, on: !!live.bundle, gain: bundleGain,
+      title: live.bundle?.name || t('أضف «باقة جلسة عمل»', 'Add a “work session” bundle'),
+      sub: live.bundle ? t(`مفعّلة · ${sar(live.bundle.price)} بدل ${sar(bundleFull(live.bundle, items))}`, `On · ${sar(live.bundle.price)} instead of ${sar(bundleFull(live.bundle, items))}`) : t(`يجلسون ${MEET_VS.stay[0]} دقيقة في المتوسط · نحو +${sar(bundleGain)} أسبوعيًا`, `They stay ${MEET_VS.stay[0]} min on average · about +${sar(bundleGain)} a week`) },
   ]
-  const open = plays.filter(p => !p.live)
-  const potential = open.filter(p => !p.once).reduce((x, p) => x + p.gain, 0)
+  const openIdeas = ideas.filter(x => !x.on)
+  const potential = openIdeas.reduce((x, p) => x + p.gain, 0) + todo.length * perMeet
+  const waiting = openIdeas.length + todo.length
   return (
     <div className="o-meetups-page">
       <RangePicker value={range} onChange={setRange} />
@@ -498,29 +490,14 @@ export function Meetups({ ops, notify }: { ops: Ops; notify: (s: string) => void
         ))}
       </div>
 
-      <section className="o-card o-mt-plays">
-        <div className="o-mt-plays-head">
-          <div>
-            <h3><Lightbulb />{t('فرص لزيادة دخلك', 'Ways to earn more')}</h3>
-            <p className="o-card-sub">{open.length ? t('مبنية على لقاءات كافيهك. فعّل ما يناسبك بضغطة.', 'Based on meetups at your café. Turn on what suits you in one tap.') : t('فعّلت كل الفرص. تابع أثرها هنا وفي صفحة العروض.', 'All on. Watch their effect here and on the Offers page.')}</p>
-          </div>
-          {potential > 0 && <div className="o-mt-potential"><small>{t('دخل إضافي متوقع', 'Possible extra')}</small><b>{t(`+${sar(potential)}`, `+${sar(potential)}`)}</b><small>{t('في الأسبوع تقريبًا', 'a week, roughly')}</small></div>}
+      <div className="o-offer-new o-grow">
+        <span className="o-offer-new-icon"><TrendingUp /></span>
+        <div>
+          <b>{t('زِد دخلك', 'Earn more')}</b>
+          <small>{waiting ? t(`${waiting === 1 ? 'فرصة واحدة' : waiting === 2 ? 'فرصتان' : `${waiting} فرص`} · نحو +${sar(potential)} في الأسبوع`, `${waiting} idea${waiting === 1 ? '' : 's'} · about +${sar(potential)} a week`) : t('فعّلت كل الفرص. يمكنك تعديلها في أي وقت.', 'Everything is on. You can change it any time.')}</small>
         </div>
-        <ul>
-          {[...open, ...plays.filter(p => p.live)].map(p => (
-            <li key={p.k} className={p.live ? 'live' : ''}>
-              <span className="o-mt-play-icon"><p.icon /></span>
-              <div className="o-mt-play-text"><b>{p.title}</b><small>{p.why}</small></div>
-              <div className="o-mt-play-act">
-                {p.live ? <i><Check />{p.on}</i> : <>
-                  <em>{p.once ? t(`≈ +${sar(p.gain)} عند عودتهم`, `≈ +${sar(p.gain)} when they return`) : t(`≈ +${sar(p.gain)} أسبوعيًا`, `≈ +${sar(p.gain)} a week`)}</em>
-                  <button type="button" onClick={p.act}>{p.cta}</button>
-                </>}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
+        <button type="button" className="o-offer-new-btn" onClick={() => setGrowing(true)}><Sparkles />{t('اعرض الفرص', 'See ideas')}</button>
+      </div>
 
       <div className="o-meet-head">
         <h3>{t('سجل اللقاءات', 'Meetup log')}</h3>
@@ -570,6 +547,50 @@ export function Meetups({ ops, notify }: { ops: Ops; notify: (s: string) => void
       )}
       <p className="o-fine"><Lock />{t('لا نعرض الأسماء ولا الصور. يظهر لك موضوع اللقاء ووقته ومكانه فقط.', 'No names or photos. You only see what the meetup was about, when and where.')}</p>
 
+      {growing && (
+        <Sheet title={t('كيف تزيد دخلك؟', 'How to earn more?')} onClose={() => setGrowing(false)}>
+          <p className="o-sheet-sub">{t('فرص مبنية على لقاءات كافيهك. اختر واحدة لتراها وتفعّلها.', 'Ideas based on meetups at your café. Pick one to see and turn it on.')}</p>
+          {todo.length > 0 && (
+            <section className="o-tm-group">
+              <h4>{t('عروض العودة', 'Come-back offers')}<small>{todo.length}</small></h4>
+              <div className="o-offer-pick">
+                {todo.map(({ m, i }) => (
+                  <button key={i} type="button" onClick={() => { setGrowing(false); setOfferFor(i) }}>
+                    <span className="o-offer-kind"><Gift /></span>
+                    <span><b>{pick(m.topic)}</b><small>{t(`اتفقا على اللقاء هنا مرة أخرى · نحو +${sar(perMeet)}`, `Plan to meet here again · about +${sar(perMeet)}`)}</small></span>
+                    <Fwd />
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+          {([[false, t('أفكار لجذب لقاءات أكثر', 'Ideas to bring more meetups')], [true, t('مفعّلة', 'Turned on')]] as const).map(([on, title]) => {
+            const xs = ideas.filter(x => x.on === on)
+            return xs.length > 0 && (
+              <section key={String(on)} className="o-tm-group">
+                <h4>{title}<small>{xs.length}</small></h4>
+                <div className="o-offer-pick">
+                  {xs.map(x => (
+                    <button key={x.k} type="button" className={x.on ? 'on' : ''} onClick={() => { setGrowing(false); setEditing(x.k) }}>
+                      <span className="o-offer-kind"><x.icon /></span>
+                      <span><b>{x.title}</b><small>{x.sub}</small></span>
+                      {x.on ? <Check /> : <Fwd />}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )
+          })}
+        </Sheet>
+      )}
+      {editing === 'bundle' && (
+        <BundleSheet items={items} cafe={cafe} start={live.bundle ?? defaultBundle(items, t('باقة جلسة عمل', 'Work-session bundle'))} onClose={() => setEditing(null)}
+          onSave={b => { live.bundle = b; setEditing(null); bump(x => x + 1); notify(t('فعّلنا الباقة، وستصل لمن يلتقون في كافيهك', 'Bundle is on. People meeting at your café will get it')) }} />
+      )}
+      {editing === 'perk' && (
+        <PerkSheet start={live.perk ?? { cap: 20 }} onClose={() => setEditing(null)}
+          onSave={p => { live.perk = p; setEditing(null); bump(x => x + 1); notify(t('فعّلنا المكافأة. سيرى المساعدون أن لهم مشروبًا مجانيًا في كافيهك', 'Perk is on. Helpers will see a free drink waiting at your café')) }} />
+      )}
       {offerFor != null && (
         <OfferSheet pair onClose={() => setOfferFor(null)}
           onSend={o => { ops.setOffers(x => ({ ...x, [`M${offerFor}`]: { ...o, sentAt: Date.now(), src: 'meet', about: MEETUPS[offerFor].topic, pair: true } })); setOfferFor(null); notify(t('أرسلنا العرض إليهما، وسيصلهما إشعار «افتح هديتك»', 'Offer sent. They get an “Open your gift” notification')) }}
