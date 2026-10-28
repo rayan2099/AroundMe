@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowDown, ArrowUp, SlidersHorizontal, Check, ChevronLeft, ChevronRight, Clock, Coffee, Gift, HeartHandshake, Lightbulb, Lock, MapPin, MessageCircleHeart, Repeat, Search, ShoppingBag, Sparkles, TrendingUp, UserPlus, Users } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Calculator, Camera, Code, Megaphone, Palette, PenLine, Timer, SlidersHorizontal, Check, ChevronLeft, ChevronRight, Clock, Coffee, Gift, HeartHandshake, Lightbulb, Lock, MapPin, MessageCircleHeart, Repeat, Search, ShoppingBag, Sparkles, TrendingUp, UserPlus, Users } from 'lucide-react'
 import { Sheet, useT } from './Owner'
 import { useCan } from './Staff'
 import { BundleSheet, PerkSheet, bundleFull, defaultBundle } from './Grow'
@@ -422,19 +422,39 @@ export function Meetups({ ops, notify, items, cafe }: { ops: Ops; notify: (s: st
   const can = useCan()
   const sar = (x: number) => sar0(x.toLocaleString('en-US'))
   const [offerFor, setOfferFor] = useState<number | null>(null)
-  const [filter, setFilter] = useState<'all' | 'again'>('all')
+  const [filter, setFilter] = useState<'all' | 'again' | 'back'>('all')
   const [range, setRange] = useState<Range>(() => presetRange('week'))
   const pick = (x: T2) => (lang === 'ar' ? x[0] : x[1])
   const loc = lang === 'ar' ? 'ar-u-ca-gregory-nu-latn' : 'en-US'
   const dayMonth = (d: Date) => d.toLocaleDateString(loc, { day: 'numeric', month: 'long' })
   const daysAgo = (n: number) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n); return d }
   const clock = (h: number, m: number) => lang === 'ar' ? `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'ص' : 'م'}` : `${h % 12 || 12}:${String(m).padStart(2, '0')}${h < 12 ? 'am' : 'pm'}`
-  const an = (x: string) => `${/^[aeio]|^u(?!ni)/i.test(x) ? 'An' : 'A'} ${x.toLowerCase()}`
   // Only meetups inside the chosen period.
   const mine = MEETUPS.map((m, i) => ({ m, i })).filter(({ m, i }) => ops.branch.meetups.includes(i) && inRange(range, daysAgo(m.when[0]).getTime()))
   const again = mine.filter(({ m }) => m.again)
   const todo = again.filter(({ i }) => !ops.offers[`M${i}`])
-  const shown = filter === 'again' ? again : mine
+  const cameBack = mine.filter(({ i }) => ops.offers[`M${i}`]?.usedAt)
+  const shown = filter === 'again' ? again : filter === 'back' ? cameBack : mine
+  const [openMeet, setOpenMeet] = useState<number | null>(null)
+  const Arrow = lang === 'ar' ? ArrowLeft : ArrowRight
+  const nMeet = (n: number) => t(n === 1 ? 'لقاء واحد' : n === 2 ? 'لقاءان' : n <= 10 ? `${n} لقاءات` : `${n} لقاءً`, `${n} meetups`)
+  const TAG_ICON: Record<string, typeof Clock> = { Coding: Code, Design: Palette, Finance: Calculator, Marketing: Megaphone, Writing: PenLine, Photography: Camera }
+  const tagIcon = (tag?: T2) => (tag && TAG_ICON[tag[1]]) || HeartHandshake
+  // Where each meetup stands on coming back: no plan, planned with no offer yet, offer sent, came back with it.
+  const statusOf = (i: number) => { const o = ops.offers[`M${i}`]; return !MEETUPS[i].again ? 'none' : o?.usedAt ? 'used' : o ? 'sent' : 'todo' }
+  const statusPill = (i: number) => {
+    const st = statusOf(i)
+    return st === 'none' ? <i className="none">{t('لم يتفقا على العودة', 'No plan to return')}</i>
+      : st === 'used' ? <i className="used"><Check />{t('عادا بعرضك', 'Came back')}</i>
+      : st === 'sent' ? <i className="sent"><Gift />{t('أُرسل عرض', 'Offer sent')}</i>
+      : !can('meetups.act') ? <i className="sent"><Repeat />{t('سيلتقيان مجددًا', 'Meeting again')}</i>
+      : <button type="button" className="o-mlog-send" onClick={() => setOfferFor(i)}><Gift />{t('أرسل عرضًا', 'Send offer')}</button>
+  }
+  const logTabs: ['all' | 'again' | 'back', string, number, number][] = [
+    ['all', t('الكل', 'All'), mine.length, 0],
+    ['again', t('سيلتقون مجددًا', 'Meeting again'), again.length, can('meetups.act') ? todo.length : 0],
+    ['back', t('عادوا بعرضك', 'Came back'), cameBack.length, 0],
+  ]
   const w = weekFor(ops.branch.scale)
   const count = measure('meetups', ops.branch.scale, range)
   const before = measure('meetups', ops.branch.scale, prevRange(range))
@@ -517,53 +537,59 @@ export function Meetups({ ops, notify, items, cafe }: { ops: Ops; notify: (s: st
         <button type="button" className="o-offer-new-btn" onClick={() => setGrowing(true)}><Sparkles />{t('اعرض الفرص', 'See ideas')}</button>
       </div>}
 
-      <div className="o-meet-head">
-        <h3>{t('سجل اللقاءات', 'Meetup log')}</h3>
-        <div className="o-chips wrap">
-          {([['all', t(`الكل · ${mine.length}`, `All · ${mine.length}`)], ['again', t(`سيلتقون مجددًا · ${again.length}`, `Meeting again · ${again.length}`)]] as const).map(([k, l]) => (
-            <button key={k} type="button" className={`o-chip ${filter === k ? 'active' : ''}`} onClick={() => setFilter(k)}>{l}</button>
+      <section className="o-mlog-wrap">
+        <div className="o-mlog-top">
+          <h3>{t('سجل اللقاءات', 'Meetup log')}</h3>
+          <small>{t(`${nMeet(mine.length)} · ${sar(mine.reduce((x, { m }) => x + m.ordered * w.avgOrder, 0))} · ${rangeName(range)}`, `${mine.length} meetup${mine.length === 1 ? '' : 's'} · ${sar(mine.reduce((x, { m }) => x + m.ordered * w.avgOrder, 0))} · ${rangeName(range)}`)}</small>
+        </div>
+        <div className="o-status-tabs o-btabs" role="tablist">
+          {logTabs.map(([k, l, n, hot]) => (
+            <button key={k} type="button" role="tab" aria-selected={filter === k} className={filter === k ? 'active' : ''} onClick={() => setFilter(k)}>
+              {l}<span>{n}</span>{hot > 0 && <i className="o-tab-late">{t(`${hot} بلا عرض`, `${hot} no offer`)}</i>}
+            </button>
           ))}
         </div>
-      </div>
-      {shown.length === 0 && <p className="o-empty">{t('لا توجد لقاءات في هذه الفترة. جرّب فترة أطول.', 'No meetups in this period. Try a longer one.')}</p>}
-      {shown.length > 0 && (
-        <div className="o-mlog">
-          <div className="o-mlog-head" aria-hidden>
-            <span>{t('الوقت', 'Time')}</span><span>{t('اللقاء', 'Meetup')}</span><span>{t('المكان', 'Spot')}</span><span>{t('المدة', 'Length')}</span><span>{t('الإنفاق', 'Spend')}</span><span>{t('العودة', 'Coming back')}</span>
+        {shown.length === 0 && <p className="o-empty"><HeartHandshake />{filter === 'all' ? t('لا توجد لقاءات في هذه الفترة. جرّب فترة أطول.', 'No meetups in this period. Try a longer one.') : t('لا توجد لقاءات هنا في هذه الفترة.', 'Nothing here in this period.')}</p>}
+        {shown.length > 0 && (
+          <div className="o-mlog">
+            <div className="o-mlog-head" aria-hidden>
+              <span>{t('الوقت', 'Time')}</span><span>{t('اللقاء', 'Meetup')}</span><span>{t('المكان والمدة', 'Spot and length')}</span><span>{t('الإنفاق', 'Spend')}</span><span>{t('العودة', 'Coming back')}</span>
+            </div>
+            {[...new Set(shown.map(({ m }) => m.when[0]))].map(ago => {
+              const day = shown.filter(({ m }) => m.when[0] === ago)
+              const spend = day.reduce((x, { m }) => x + m.ordered * w.avgOrder, 0)
+              const d = daysAgo(ago)
+              return (
+                <section key={ago} className="o-mlog-day">
+                  <h4><b>{ago === 0 ? t('اليوم', 'Today') : ago === 1 ? t('أمس', 'Yesterday') : d.toLocaleDateString(loc, { weekday: 'long' })}</b><span>{dayMonth(d)}</span><small>{t(`${nMeet(day.length)} · ${sar(spend)}`, `${day.length} meetup${day.length === 1 ? '' : 's'} · ${sar(spend)}`)}</small></h4>
+                  {day.map(({ m, i }) => {
+                    const st = statusOf(i)
+                    const Icon = tagIcon(m.tags[0])
+                    return (
+                      <div key={i} className={`o-mlog-row ${st === 'todo' ? 'todo' : ''}`}>
+                        <button type="button" className="o-mlog-open" onClick={() => setOpenMeet(i)} aria-label={pick(m.topic)}>
+                          <span className="o-mlog-time">{clock(m.when[1], m.when[2])}</span>
+                          <span className="o-mlog-icon"><Icon /></span>
+                          <span className="o-mlog-main">
+                            <b>{pick(m.topic)}</b>
+                            <small className="o-mlog-who"><span>{pick(m.helper)}</span><Arrow /><span>{pick(m.helped)}</span></small>
+                          </span>
+                          <span className="o-mlog-meta">
+                            <span><MapPin />{pick(m.seat)}</span>
+                            <span><Clock />{t(`${m.mins} د`, `${m.mins} min`)}</span>
+                          </span>
+                          <span className="o-mlog-spend"><b>{sar(m.ordered * w.avgOrder)}</b><small>{t(m.ordered === 1 ? 'طلب واحد' : m.ordered === 2 ? 'طلبان' : `${m.ordered} طلبات`, `${m.ordered} order${m.ordered === 1 ? '' : 's'}`)}</small></span>
+                        </button>
+                        <span className="o-mlog-status">{statusPill(i)}</span>
+                      </div>
+                    )
+                  })}
+                </section>
+              )
+            })}
           </div>
-          {[...new Set(shown.map(({ m }) => m.when[0]))].map(ago => {
-            const day = shown.filter(({ m }) => m.when[0] === ago)
-            const spend = day.reduce((x, { m }) => x + m.ordered * w.avgOrder, 0)
-            const d = daysAgo(ago)
-            return (
-              <section key={ago} className="o-mlog-day">
-                <h4><b>{ago === 0 ? t('اليوم', 'Today') : ago === 1 ? t('أمس', 'Yesterday') : d.toLocaleDateString(loc, { weekday: 'long' })}</b><span>{dayMonth(d)}</span><small>{t(`${day.length === 1 ? 'لقاء واحد' : day.length === 2 ? 'لقاءان' : `${day.length} لقاءات`} · ${sar(spend)}`, `${day.length} meetup${day.length === 1 ? '' : 's'} · ${sar(spend)}`)}</small></h4>
-                {day.map(({ m, i }) => {
-                  const offer = ops.offers[`M${i}`]
-                  return (
-                    <div key={i} className="o-mlog-row">
-                      <span className="o-mlog-time">{clock(m.when[1], m.when[2])}</span>
-                      <span className="o-mlog-main"><b>{pick(m.topic)}</b><small>{t(`${pick(m.helper)} ${m.f ? 'ساعدت' : 'ساعد'} ${pick(m.helped)}`, `${an(pick(m.helper))} helped ${an(pick(m.helped)).toLowerCase()}`)}</small></span>
-                      <span className="o-mlog-meta">
-                        <span className="o-mlog-seat"><MapPin />{pick(m.seat)}</span>
-                        <span className="o-mlog-mins"><Clock />{t(`${m.mins} د`, `${m.mins} min`)}</span>
-                      </span>
-                      <span className="o-mlog-spend"><b>{sar(m.ordered * w.avgOrder)}</b><small>{t(m.ordered === 1 ? 'طلب واحد' : m.ordered === 2 ? 'طلبان' : `${m.ordered} طلبات`, `${m.ordered} order${m.ordered === 1 ? '' : 's'}`)}</small></span>
-                      <span className="o-mlog-status">
-                        {!m.again ? <i className="none">{t('لم يتفقا', 'Not planned')}</i>
-                          : offer?.usedAt ? <i className="used"><Check />{t('عادا بعرضك', 'Came back')}</i>
-                          : offer ? <i className="sent"><Gift />{t('أُرسل عرض', 'Offer sent')}</i>
-                          : !can('meetups.act') ? <i className="none">{t('بلا عرض', 'No offer')}</i>
-                          : <button type="button" className="o-mlog-send" onClick={() => setOfferFor(i)}><Gift />{t('أرسل عرضًا', 'Send offer')}</button>}
-                      </span>
-                    </div>
-                  )
-                })}
-              </section>
-            )
-          })}
-        </div>
-      )}
+        )}
+      </section>
       <p className="o-fine"><Lock />{t('لا نعرض الأسماء ولا الصور. يظهر لك موضوع اللقاء ووقته ومكانه فقط.', 'No names or photos. You only see what the meetup was about, when and where.')}</p>
 
       {growing && (
@@ -636,6 +662,30 @@ export function Meetups({ ops, notify, items, cafe }: { ops: Ops; notify: (s: st
           }}
           about={<p className="o-offer-for"><Users /><span><b>{pick(gTarget.name)} · {t(`${fmtN(gTarget.n)} شخص`, `${fmtN(gTarget.n)} people`)}</b><small>{pick(gTarget.sub)}</small></span></p>} />
       )}
+      {openMeet != null && (() => {
+        const m = MEETUPS[openMeet], Icon = tagIcon(m.tags[0]), d = daysAgo(m.when[0])
+        return (
+          <Sheet title={t('تفاصيل اللقاء', 'Meetup details')} onClose={() => setOpenMeet(null)} footer={statusOf(openMeet) === 'todo' && can('meetups.act') ? <button type="button" className="o-primary" onClick={() => { setOfferFor(openMeet); setOpenMeet(null) }}><Gift />{t('أرسل لهما عرض عودة', 'Send them a come-back offer')}</button> : undefined}>
+            <div className="o-mdet-head">
+              <span className="o-mlog-icon big"><Icon /></span>
+              <div><b>{pick(m.topic)}</b><small>{m.tags.map(x => pick(x)).join(t('، ', ', '))}</small></div>
+            </div>
+            <div className="o-mdet-who">
+              <div><small>{t('ساعد', 'Helped by')}</small><b>{pick(m.helper)}</b></div>
+              <Arrow />
+              <div><small>{t('احتاج المساعدة', 'Needed help')}</small><b>{pick(m.helped)}</b></div>
+            </div>
+            <ul className="o-mdet-facts">
+              <li><Clock /><span>{t('متى', 'When')}</span><b>{m.when[0] === 0 ? t('اليوم', 'Today') : m.when[0] === 1 ? t('أمس', 'Yesterday') : d.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' })} · {clock(m.when[1], m.when[2])}</b></li>
+              <li><Timer /><span>{t('المدة', 'Length')}</span><b>{t(`${m.mins} دقيقة`, `${m.mins} min`)}</b></li>
+              <li><MapPin /><span>{t('المكان', 'Spot')}</span><b>{pick(m.seat)}</b></li>
+              <li><ShoppingBag /><span>{t('ما طلباه', 'They ordered')}</span><b>{t(m.ordered === 1 ? 'طلب واحد' : m.ordered === 2 ? 'طلبان' : `${m.ordered} طلبات`, `${m.ordered} order${m.ordered === 1 ? '' : 's'}`)} · {sar(m.ordered * w.avgOrder)}</b></li>
+              <li><Repeat /><span>{t('العودة', 'Coming back')}</span><b className="o-mlog-status">{statusOf(openMeet) === 'todo' ? <i className="sent"><Repeat />{t('سيلتقيان مجددًا، بلا عرض بعد', 'Meeting again, no offer yet')}</i> : statusPill(openMeet)}</b></li>
+            </ul>
+            <p className="o-fine"><Lock />{t('لا نعرض الأسماء ولا الصور.', 'No names or photos.')}</p>
+          </Sheet>
+        )
+      })()}
       {offerFor != null && (
         <OfferSheet pair onClose={() => setOfferFor(null)}
           onSend={o => { ops.setOffers(x => ({ ...x, [`M${offerFor}`]: { ...o, sentAt: Date.now(), src: 'meet', about: MEETUPS[offerFor].topic, pair: true } })); setOfferFor(null); notify(t('أرسلنا العرض إليهما، وسيصلهما إشعار «افتح هديتك»', 'Offer sent. They get an “Open your gift” notification')) }}

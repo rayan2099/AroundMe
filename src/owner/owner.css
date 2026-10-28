@@ -1257,41 +1257,75 @@ html.o-web .o-ov-metrics { grid-template-columns: repeat(2, 1fr); }
 .o-mlog-day h4 { display: flex; align-items: baseline; gap: 8px; margin: 0; padding: 10px 14px; background: #f7f6f3; border-bottom: 1px solid var(--border); font-size: 13px; }
 .o-mlog-day h4 span { font-size: 12px; font-weight: 500; color: var(--muted); }
 .o-mlog-day h4 small { margin-inline-start: auto; font-size: 12px; font-weight: 700; color: var(--text); }
-.o-mlog-row { display: grid; grid-template-columns: 62px 1fr auto; grid-template-areas: "time main spend" "time meta status"; column-gap: 10px; row-gap: 6px; align-items: center; padding: 12px 14px; border-top: 1px solid var(--border); }
+.o-mlog-wrap { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
+.o-mlog-wrap > .o-status-tabs { margin-top: 0; }
+.o-mlog-top { display: flex; flex-direction: column; gap: 2px; }
+.o-mlog-top h3 { margin: 0; font-size: 17px; }
+.o-mlog-top small { font-size: 12.5px; color: var(--muted); }
+.o-mlog-row { display: flex; flex-direction: column; border-top: 1px solid var(--border); }
 .o-mlog-row:first-of-type { border-top: 0; }
-.o-mlog-time { grid-area: time; align-self: start; font-size: 12.5px; font-weight: 800; white-space: nowrap; padding-top: 1px; }
-.o-mlog-main { grid-area: main; display: flex; flex-direction: column; min-width: 0; }
-.o-mlog-main b { font-size: 13.5px; line-height: 1.4; }
-.o-mlog-main small { font-size: 12px; color: #6b6760; line-height: 1.45; }
-.o-mlog-seat, .o-mlog-mins { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
-.o-mlog-seat svg, .o-mlog-mins svg { width: 12px; flex: none; }
-.o-mlog-meta { grid-area: meta; display: flex; flex-wrap: wrap; gap: 4px 12px; }
-.o-mlog-spend { grid-area: spend; display: flex; flex-direction: column; align-items: flex-end; text-align: end; }
-.o-mlog-spend b { font-size: 13.5px; font-weight: 800; white-space: nowrap; }
+.o-mlog-row.todo { background: #fffaf3; }
+.o-mlog-open { display: grid; grid-template-columns: 40px auto 1fr auto; grid-template-areas: "icon main main spend" "icon time meta spend"; column-gap: 10px; row-gap: 5px; align-items: center; width: 100%; padding: 12px 14px; text-align: start; color: inherit; }
+.o-mlog-row .o-mlog-status { padding: 0 14px 12px; display: flex; justify-content: flex-end; }
+.o-mlog-row .o-mlog-status:has(.none) { display: none; }
+.o-mlog-time { grid-area: time; font-size: 11.5px; font-weight: 800; white-space: nowrap; color: var(--text); }
+.o-mlog-icon { grid-area: icon; align-self: start; width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; background: #f3efe9; color: #7a5a3c; }
+.o-mlog-icon svg { width: 18px; }
+.o-mlog-icon.big { width: 48px; height: 48px; border-radius: 15px; background: var(--orange-soft); color: var(--orange); }
+.o-mlog-icon.big svg { width: 22px; }
+.o-mlog-main { grid-area: main; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.o-mlog-main b { font-size: 14px; line-height: 1.4; }
+.o-mlog-who { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 5px; font-size: 12px; color: #6b6760; line-height: 1.45; }
+.o-mlog-who svg { width: 12px; color: var(--orange); flex: none; }
+.o-mlog-meta { grid-area: meta; display: flex; flex-wrap: wrap; gap: 4px 10px; min-width: 0; }
+.o-mlog-meta span { display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.o-mlog-meta svg { width: 12px; flex: none; }
+.o-mlog-spend { grid-area: spend; align-self: start; display: flex; flex-direction: column; align-items: flex-end; text-align: end; }
+.o-mlog-spend b { font-size: 14px; font-weight: 800; white-space: nowrap; }
 .o-mlog-spend small { font-size: 11px; color: var(--muted); white-space: nowrap; }
-.o-mlog-status { grid-area: status; justify-self: end; }
 .o-mlog-status i, .o-mlog-send { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-style: normal; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
 .o-mlog-status i svg, .o-mlog-send svg { width: 12px; }
 .o-mlog-status .none { padding: 0; color: #a8a49d; font-weight: 500; }
 .o-mlog-status .used { background: var(--green-soft); color: var(--green); }
 .o-mlog-status .sent { background: #fdf3e2; color: #a86a12; }
-.o-mlog-send { background: var(--orange); color: #fff; padding: 5px 11px; }
+.o-mlog-send { background: var(--orange); color: #fff; padding: 0 14px; min-height: 36px; font-size: 12.5px; }
+.o-mdet-head { display: flex; align-items: center; gap: 12px; }
+.o-mdet-head b { display: block; font-size: 16px; line-height: 1.4; }
+.o-mdet-head small { font-size: 12.5px; color: var(--muted); }
+.o-mdet-who { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: #f8f6f2; }
+.o-mdet-who > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.o-mdet-who small { font-size: 11.5px; color: var(--muted); }
+.o-mdet-who b { font-size: 13.5px; }
+.o-mdet-who > svg { width: 18px; color: var(--orange); flex: none; }
+.o-mdet-facts { list-style: none; margin: 12px 0 0; padding: 0; border: 1px solid var(--border); border-radius: 14px; background: #fff; }
+.o-mdet-facts li { display: flex; align-items: center; gap: 10px; padding: 11px 14px; font-size: 13px; }
+.o-mdet-facts li + li { border-top: 1px solid var(--border); }
+.o-mdet-facts li > svg { width: 16px; color: var(--muted); flex: none; }
+.o-mdet-facts li > span { color: var(--muted); }
+.o-mdet-facts li > b { margin-inline-start: auto; text-align: end; }
 @media (min-width: 900px) {
+  html.o-web .o-mlog-wrap { gap: 12px; }
+  html.o-web .o-mlog-top { flex-direction: row; align-items: baseline; gap: 12px; }
+  html.o-web .o-mlog-wrap > .o-status-tabs { margin-inline: 0; padding-inline: 0; }
   html.o-web .o-mlog { gap: 0; border-radius: 16px; background: #fff; border: 1px solid var(--border); overflow: hidden; }
-  html.o-web .o-mlog-head, html.o-web .o-mlog-row { display: grid; grid-template-columns: 80px minmax(0, 1fr) 150px 80px 100px 130px; grid-template-areas: none; column-gap: 16px; align-items: center; }
+  html.o-web .o-mlog-head, html.o-web .o-mlog-row { display: grid; grid-template-columns: 76px 40px minmax(0, 1fr) 210px 96px 140px; column-gap: 14px; align-items: center; }
   html.o-web .o-mlog-head { padding: 10px 18px; background: #f7f6f3; border-bottom: 1px solid var(--border); font-size: 11.5px; font-weight: 700; color: var(--muted); }
-  html.o-web .o-mlog-head span:nth-child(5), html.o-web .o-mlog-head span:nth-child(6) { text-align: end; }
+  html.o-web .o-mlog-head span:nth-child(2) { grid-column: 2 / 4; }
+  html.o-web .o-mlog-head span:nth-child(4), html.o-web .o-mlog-head span:nth-child(5) { text-align: end; }
   html.o-web .o-mlog-day { border: 0; border-radius: 0; }
   html.o-web .o-mlog-day h4 { padding: 8px 18px; background: #fbfaf8; border-top: 1px solid var(--border); }
   html.o-web .o-mlog-day:first-of-type h4 { border-top: 0; }
-  html.o-web .o-mlog-row { padding: 12px 18px; }
-  html.o-web .o-mlog-row > * { grid-area: auto; margin: 0; align-self: center; }
-  html.o-web .o-mlog-meta { display: contents; }
-  html.o-web .o-mlog-time { padding: 0; }
-  html.o-web .o-mlog-seat, html.o-web .o-mlog-mins { font-size: 12.5px; color: var(--text); }
-  html.o-web .o-mlog-status { justify-self: end; }
+  html.o-web .o-mlog-row { padding: 0 18px; }
+  html.o-web .o-mlog-row:hover { background: #fcfbf9; }
+  html.o-web .o-mlog-row.todo:hover { background: #fff6ea; }
+  html.o-web .o-mlog-open { display: contents; }
+  html.o-web .o-mlog-open > * { grid-area: auto; align-self: center; padding: 12px 0; cursor: pointer; }
+  html.o-web .o-mlog-icon { padding: 0 !important; }
+  html.o-web .o-mlog-time { font-size: 12.5px; }
+  html.o-web .o-mlog-meta { flex-direction: column; gap: 3px; }
+  html.o-web .o-mlog-meta span { font-size: 12.5px; color: var(--text); }
+  html.o-web .o-mlog-row .o-mlog-status, html.o-web .o-mlog-row .o-mlog-status:has(.none) { display: flex; padding: 12px 0; justify-content: flex-end; }
 }
-@media (max-width: 899px) { .o-mlog-status .none { display: none; } }
 
 /* Meetups: revenue first, then what it brings, then ways to earn more */
 .o-mt-hero { margin: 0; }
@@ -1615,3 +1649,4 @@ li.live .o-mt-play-icon { color: var(--green); border-color: var(--border); back
 }
 @media (min-width: 900px) { html.o-web .o-msgs > .o-range-btn { max-width: 420px; } }
 @media (min-width: 900px) { html.o-web .o-ops.o-msgs { display: flex; gap: 12px; align-items: stretch; max-width: 900px; } html.o-web .o-msgs > .o-fine, html.o-web .o-msgs > .o-manage-replies { align-self: flex-start; } html.o-web .o-msgs > .o-status-tabs { margin-inline: 0; padding-inline: 0; } }
+.o-mdet-facts + .o-fine { display: flex; align-items: center; justify-content: center; gap: 6px; } .o-mdet-facts + .o-fine svg { width: 14px; flex: none; }
